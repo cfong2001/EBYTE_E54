@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<AppConfig
+	LANGUAGE="ENG"
+	DataFilePath="C:\Users\donglei.xu\Desktop\运动目标检测(v1.4.4.2_20241120_1)\运动目标检测\SaveData\2024_11_20_16_02_31"
+	ObjectCountType="0"
+	ObjectWnd_TopViewMode="1"
+	ObjectWnd_DrawLocus="0"
+	ObjectWnd_AngleStart="-160"
+	ObjectWnd_AngleStop="-20"
+	ObjectWnd_AngleStep="10"
+	ObjectWnd_SectorCount="0"
+	ObjectWnd_GateMin="0.0"
+	ObjectWnd_GateMax="28.0"
+	ObjectWnd_RadiusScale="1.0"
+	ObjectWnd_LocusRadiusScale="0.5"
+	ObjectWnd_DisplayTime="0"
+	ObjectWnd_SmoothCount="0"
+	ObjectWnd_DrawArea="0"
+	ObjectWnd_RadiatingCount="0"
+	AlgorithmAreaEnable="0"
+	SaveData="0"
+	SaveDataPath="SaveData">
+	<MonitorPoint
+		Enable="0"
+		TextColor="0x00FFFFFF"
+		InactiveColor="0x0000FF00"
+		ActiveColor="0x000000FF"
+		RadiusScale="1.0"
+		Position="2.77,-90; 7.77,-135; 7.77,-45; 8.22,-123; 7.27,-108; 6.94,-90; 7.27,-72; 8.22,-57;12.42,-117; 11.25,-99; 11.25,-81; 12.42,-63; 14.58,-108; 13.88,-90; 14.58,-72;17.55,-108; 16.67,-90; 17.55,-72" />
+</AppConfig>
