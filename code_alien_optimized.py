@@ -227,11 +227,7 @@ while True:
     # Parse Basic protocol frames
     while len(buffer) >= FRAME_SIZE:
         # Find sync pattern
-        sync_idx = -1
-        for i in range(len(buffer) - 3):
-            if buffer[i:i+4] == SYNC:
-                sync_idx = i
-                break
+        sync_idx = buffer.find(SYNC)
         
         if sync_idx < 0:
             if len(buffer) > 100:
