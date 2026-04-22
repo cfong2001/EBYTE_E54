@@ -221,7 +221,7 @@ while True:
                     if 500 < dist < 10000:
                         new_targets.append((x, y, 0, target_idx))
                         target_idx += 1
-            except:
+            except Exception:
                 pass
             
             offset += 8

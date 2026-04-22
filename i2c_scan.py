@@ -22,7 +22,7 @@ for addr in range(0x00, 0x80):
         i2c.writeto(addr, b'')
         found.append(addr)
         print(f"  0x{addr:02X} ({addr})")
-    except:
+    except Exception:
         pass
 
 i2c.unlock()
