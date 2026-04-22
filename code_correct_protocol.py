@@ -6,14 +6,6 @@ import time, math
 import board, busio, neopixel
 import adafruit_ssd1306
 
-# Hardware
-i2c = board.STEMMA_I2C()
-oled = adafruit_ssd1306.SSD1306_I2C(128, 64, i2c, addr=0x3D)
-uart = busio.UART(board.IO43, board.IO44, baudrate=256000, receiver_buffer_size=8192, timeout=0)
-pixel = neopixel.NeoPixel(board.NEOPIXEL, 1, brightness=0.2, auto_write=True)
-
-print("HLK-LD2450 Radar - Basic Protocol")
-
 # Protocol - Basic mode per official spec
 SYNC = b"\xAA\xFF\x03\x00"
 FOOTER = b"\x55\xCC"
@@ -116,99 +108,108 @@ def draw_display():
     
     oled.show()
 
-last_stat = time.monotonic()
+if __name__ == "__main__":
+    # Hardware
+    i2c = board.STEMMA_I2C()
+    oled = adafruit_ssd1306.SSD1306_I2C(128, 64, i2c, addr=0x3D)
+    uart = busio.UART(board.IO43, board.IO44, baudrate=256000, receiver_buffer_size=8192, timeout=0)
+    pixel = neopixel.NeoPixel(board.NEOPIXEL, 1, brightness=0.2, auto_write=True)
 
-while True:
-    # Read UART
-    if uart.in_waiting:
-        data = uart.read(uart.in_waiting)
-        if data:
-            bytes_in += len(data)
-            buffer.extend(data)
-    
-    # Parse Basic protocol frames (AA FF 03 00 ... 55 CC)
-    while len(buffer) >= FRAME_SIZE:
-        # Find sync pattern
-        sync_idx = -1
-        for i in range(len(buffer) - 3):
-            if buffer[i:i+4] == SYNC:
-                sync_idx = i
+    print("HLK-LD2450 Radar - Basic Protocol")
+
+    last_stat = time.monotonic()
+
+    while True:
+        # Read UART
+        if uart.in_waiting:
+            data = uart.read(uart.in_waiting)
+            if data:
+                bytes_in += len(data)
+                buffer.extend(data)
+        
+        # Parse Basic protocol frames (AA FF 03 00 ... 55 CC)
+        while len(buffer) >= FRAME_SIZE:
+            # Find sync pattern
+            sync_idx = -1
+            for i in range(len(buffer) - 3):
+                if buffer[i:i+4] == SYNC:
+                    sync_idx = i
+                    break
+            
+            if sync_idx < 0:
+                # No sync found, keep last few bytes
+                if len(buffer) > 100:
+                    buffer = buffer[-50:]
                 break
-        
-        if sync_idx < 0:
-            # No sync found, keep last few bytes
-            if len(buffer) > 100:
-                buffer = buffer[-50:]
-            break
-        
-        # Align to sync
-        if sync_idx > 0:
-            buffer = buffer[sync_idx:]
-        
-        if len(buffer) < FRAME_SIZE:
-            break
-        
-        # Verify footer
-        if buffer[28] == 0x55 and buffer[29] == 0xCC:
-            frames_ok += 1
-            frame = buffer[0:FRAME_SIZE]
-            buffer = buffer[FRAME_SIZE:]
             
-            # Parse 3 targets (8 bytes each, starting at offset 4)
-            new_targets = []
-            for t_idx in range(3):
-                offset = 4 + (t_idx * 8)
-                
-                # Per protocol spec:
-                # Bytes 0-1: X coordinate (signed int16, little-endian)
-                # Bytes 2-3: Y coordinate (signed int16, little-endian)
-                # Bytes 4-5: Speed (signed int16, little-endian)
-                # Bytes 6-7: Distance resolution (uint16, little-endian)
-                
-                x = _s16_le(frame[offset], frame[offset + 1])
-                y = _s16_le(frame[offset + 2], frame[offset + 3])
-                # speed = _s16_le(frame[offset + 4], frame[offset + 5])  # Not used for display
-                # resolution = frame[offset + 6] | (frame[offset + 7] << 8)
-                
-                # Target exists if not all zeros
-                if x != 0 or y != 0:
-                    dist = int(math.sqrt(x * x + y * y))
-                    # Filter reasonable range (10cm to 8m)
-                    if 100 < dist < 8000:
-                        new_targets.append((x, y, 0, t_idx))
+            # Align to sync
+            if sync_idx > 0:
+                buffer = buffer[sync_idx:]
             
-            # Age existing targets
-            aged = [(x, y, age + 1, i) for x, y, age, i in targets if age < 15]
+            if len(buffer) < FRAME_SIZE:
+                break
             
-            # Merge: keep new, add non-duplicate aged
-            targets = new_targets[:]
-            for old in aged:
-                ox, oy, oa, oi = old
-                dup = False
-                for nx, ny, _, _ in new_targets:
-                    if math.sqrt((ox - nx)**2 + (oy - ny)**2) < 300:  # 300mm threshold
-                        dup = True
-                        break
-                if not dup:
-                    targets.append(old)
-            
-            targets = targets[:10]  # Max 10 targets
-        else:
-            # Invalid footer, skip 2 bytes and resync
-            buffer = buffer[2:]
-    
-    # Update display at 20 FPS
-    now = time.monotonic()
-    if now - last_draw > 0.05:
-        draw_display()
-        last_draw = now
-    
-    # Status report every second
-    if now - last_stat > 1.0:
-        print("RX {:5d} B/s  frames {:3d}/s  targets {:d}".format(
-            bytes_in, frames_ok, len([t for t in targets if t[2] < 5])))
-        bytes_in = 0
-        frames_ok = 0
-        last_stat = now
-    
-    time.sleep(0.001)
+            # Verify footer
+            if buffer[28] == 0x55 and buffer[29] == 0xCC:
+                frames_ok += 1
+                frame = buffer[0:FRAME_SIZE]
+                buffer = buffer[FRAME_SIZE:]
+
+                # Parse 3 targets (8 bytes each, starting at offset 4)
+                new_targets = []
+                for t_idx in range(3):
+                    offset = 4 + (t_idx * 8)
+
+                    # Per protocol spec:
+                    # Bytes 0-1: X coordinate (signed int16, little-endian)
+                    # Bytes 2-3: Y coordinate (signed int16, little-endian)
+                    # Bytes 4-5: Speed (signed int16, little-endian)
+                    # Bytes 6-7: Distance resolution (uint16, little-endian)
+
+                    x = _s16_le(frame[offset], frame[offset + 1])
+                    y = _s16_le(frame[offset + 2], frame[offset + 3])
+                    # speed = _s16_le(frame[offset + 4], frame[offset + 5])  # Not used for display
+                    # resolution = frame[offset + 6] | (frame[offset + 7] << 8)
+
+                    # Target exists if not all zeros
+                    if x != 0 or y != 0:
+                        dist = int(math.sqrt(x * x + y * y))
+                        # Filter reasonable range (10cm to 8m)
+                        if 100 < dist < 8000:
+                            new_targets.append((x, y, 0, t_idx))
+
+                # Age existing targets
+                aged = [(x, y, age + 1, i) for x, y, age, i in targets if age < 15]
+
+                # Merge: keep new, add non-duplicate aged
+                targets = new_targets[:]
+                for old in aged:
+                    ox, oy, oa, oi = old
+                    dup = False
+                    for nx, ny, _, _ in new_targets:
+                        if math.sqrt((ox - nx)**2 + (oy - ny)**2) < 300:  # 300mm threshold
+                            dup = True
+                            break
+                    if not dup:
+                        targets.append(old)
+
+                targets = targets[:10]  # Max 10 targets
+            else:
+                # Invalid footer, skip 2 bytes and resync
+                buffer = buffer[2:]
+
+        # Update display at 20 FPS
+        now = time.monotonic()
+        if now - last_draw > 0.05:
+            draw_display()
+            last_draw = now
+
+        # Status report every second
+        if now - last_stat > 1.0:
+            print("RX {:5d} B/s  frames {:3d}/s  targets {:d}".format(
+                bytes_in, frames_ok, len([t for t in targets if t[2] < 5])))
+            bytes_in = 0
+            frames_ok = 0
+            last_stat = now
+
+        time.sleep(0.001)
