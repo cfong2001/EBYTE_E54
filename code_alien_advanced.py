@@ -5,6 +5,7 @@
 import time, gc, math
 import board, busio, neopixel
 import adafruit_ssd1306
+from utils import s16_le
 
 # ----------------- Hardware config (EXACT MATCH to your code) -----------------
 # OLED on STEMMA QT (SDA=IO7, SCL=IO9)
@@ -23,10 +24,6 @@ print("Using YOUR initialization settings")
 
 # ----------------- Protocol (Advanced mode 0xAA 0x55) -----------------
 SYNC = b"\xAA\x55"
-
-def _s16_le(b0, b1):
-    v = b0 | (b1 << 8)
-    return v - 0x10000 if v & 0x8000 else v
 
 # Display config - Alien style
 CX, CY = 64, 35
@@ -213,8 +210,8 @@ while True:
         
         while offset + 8 <= len(frame) - 2 and target_idx < 3:
             try:
-                x = _s16_le(frame[offset], frame[offset + 1])
-                y = _s16_le(frame[offset + 2], frame[offset + 3])
+                x = s16_le(frame[offset], frame[offset + 1])
+                y = s16_le(frame[offset + 2], frame[offset + 3])
                 
                 if x != 0 or y != 0:
                     dist = int(math.sqrt(x * x + y * y))

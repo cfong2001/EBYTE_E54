@@ -5,6 +5,7 @@
 import time, math
 import board, busio, neopixel
 import adafruit_ssd1306
+from utils import ld2450_s16
 
 # Hardware
 i2c = board.STEMMA_I2C()
@@ -18,14 +19,6 @@ print("Alien Motion Tracker - Fade & Pulse Edition")
 SYNC = b"\xAA\xFF\x03\x00"
 FOOTER = b"\x55\xCC"
 FRAME_SIZE = 30
-
-def _s16_le(b0, b1):
-    """Convert little-endian signed int16 per LD2450 protocol"""
-    v = b0 | (b1 << 8)
-    if v & 0x8000:
-        return v - 0x8000
-    else:
-        return -v if v != 0 else 0
 
 # Display
 CX, CY = 64, 63
@@ -290,8 +283,8 @@ while True:
             for t_idx in range(3):
                 offset = 4 + (t_idx * 8)
                 
-                x = _s16_le(frame[offset], frame[offset + 1])
-                y = _s16_le(frame[offset + 2], frame[offset + 3])
+                x = ld2450_s16(frame[offset], frame[offset + 1])
+                y = ld2450_s16(frame[offset + 2], frame[offset + 3])
                 
                 if x != 0 or y != 0:
                     dist = int(math.sqrt(x * x + y * y))

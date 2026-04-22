@@ -4,6 +4,7 @@
 import time
 import board, busio, neopixel
 import adafruit_ssd1306
+from utils import s16_le
 
 # Hardware setup
 i2c = board.STEMMA_I2C()
@@ -123,11 +124,8 @@ while True:
                             # Try to extract first target
                             if count > 0 and idx + 13 < len(buffer):
                                 offset = idx + 7
-                                x = buffer[offset] | (buffer[offset + 1] << 8)
-                                y = buffer[offset + 2] | (buffer[offset + 3] << 8)
-                                # Convert to signed
-                                if x & 0x8000: x -= 0x10000
-                                if y & 0x8000: y -= 0x10000
+                                x = s16_le(buffer[offset], buffer[offset + 1])
+                                y = s16_le(buffer[offset + 2], buffer[offset + 3])
                                 print("Target 1: X=%dmm Y=%dmm" % (x, y))
                 except Exception as e:
                     print("Parse error: %s" % str(e))
