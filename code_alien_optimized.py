@@ -4,6 +4,7 @@
 
 import time, math
 import board, busio, neopixel
+from shared.ui_utils import draw_dotted_circle
 import adafruit_ssd1306
 
 # Hardware
@@ -68,18 +69,6 @@ def map_xy(x_mm, y_mm):
     sy = int(max(0, min(63, 63 - (y_mm * 63 / 6000))))
     return sx, sy
 
-def draw_dotted_circle(cx, cy, r, brightness=1.0):
-    """Draw dotted circle with variable brightness"""
-    if brightness < 0.1:
-        return
-    steps = int(r * 6.28)
-    for i in range(0, steps, 3):
-        a = (i / steps) * 2 * math.pi
-        x = int(cx + r * math.cos(a))
-        y = int(cy + r * math.sin(a))
-        if 0 <= x < 128 and 0 <= y < 64:
-            oled.pixel(x, y, 1)
-
 def draw_target_blip(sx, sy, radius, brightness):
     """Draw target blip with Rob's style - filled circle with glow"""
     if brightness < 0.1:
@@ -139,7 +128,7 @@ def draw_display():
     
     # Draw grid (always visible)
     for r in RADII:
-        draw_dotted_circle(CX, CY, r)
+        draw_dotted_circle(oled, CX, CY, r)
     oled.line(0, CY, 127, CY, 1)
     
     # Draw sweep lines to active targets
