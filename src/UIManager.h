@@ -21,6 +21,11 @@ public:
         sensitivity = 5;
         locationAveraging = 5;
         actionRequested = 0;
+
+        // Initialize history
+        for (int i=0; i<3; i++) {
+            lastTargetActive[i] = false;
+        }
     }
 
     void init() {
@@ -55,41 +60,54 @@ public:
     void updateRadarView(RadarTarget targets[3], bool anchorValid, int16_t anchorX, int16_t anchorY) {
         if (state != STATE_RADAR_VIEW) return;
 
-        // Clear previous targets by redrawing background
-        tft.fillScreen(TFT_BLACK);
-        drawRadarBackground();
-
-        // Draw anchor
-        if (anchorValid) {
-            tft.setTextColor(TFT_GREEN);
-            tft.setCursor(5, 5);
-            tft.printf("Anchor: (%d, %d)", anchorX, anchorY);
-        } else {
-            tft.setTextColor(TFT_RED);
-            tft.setCursor(5, 5);
-            tft.printf("No Anchor");
+        // Erase old targets
+        for (int i = 0; i < 3; i++) {
+            if (lastTargetActive[i]) {
+                tft.fillCircle(lastTargetX[i], lastTargetY[i], 5, TFT_BLACK);
+                tft.setTextColor(TFT_BLACK, TFT_BLACK);
+                tft.setCursor(lastTargetX[i] + 8, lastTargetY[i] - 8);
+                tft.printf("T%d", i + 1);
+            }
         }
 
-        // Draw targets
+        // Redraw background lines that might have been erased
+        drawRadarBackground();
+
+        // Draw anchor status text
+        if (anchorValid) {
+            tft.setTextColor(TFT_GREEN, TFT_BLACK);
+            tft.setCursor(5, 5);
+            tft.printf("Anchor: (%d, %d)   ", anchorX, anchorY); // padding spaces to overwrite old text
+        } else {
+            tft.setTextColor(TFT_RED, TFT_BLACK);
+            tft.setCursor(5, 5);
+            tft.printf("No Anchor          ");
+        }
+
+        // Draw new targets
         for (int i = 0; i < 3; i++) {
+            lastTargetActive[i] = targets[i].active;
+
             if (targets[i].active) {
-                // Ignore targets with speed below sensitivity threshold if not anchor?
-                // We'll leave filtering to the main loop or just display all active ones.
                 int16_t absSpeed = abs(targets[i].speed);
                 if (absSpeed < sensitivity && sensitivity > 1) {
-                    continue; // Skip rendering noise if below sensitivity threshold
+                    lastTargetActive[i] = false; // Skip rendering
+                    continue;
                 }
 
-                // Map mm to screen coordinates (assuming max range 5000mm)
-                // Radar is at bottom center (120, 240)
                 int screenX = 120 + (targets[i].x * 120 / 5000);
                 int screenY = 240 - (targets[i].y * 240 / 5000);
 
                 if (screenX >= 0 && screenX < 240 && screenY >= 0 && screenY < 240) {
                     tft.fillCircle(screenX, screenY, 5, TFT_RED);
-                    tft.setTextColor(TFT_YELLOW);
+                    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
                     tft.setCursor(screenX + 8, screenY - 8);
                     tft.printf("T%d", i + 1);
+
+                    lastTargetX[i] = screenX;
+                    lastTargetY[i] = screenY;
+                } else {
+                    lastTargetActive[i] = false; // Off screen
                 }
             }
         }
@@ -115,6 +133,11 @@ private:
     int locationAveraging; // 1-10
 
     int actionRequested; // 1=reset
+
+    // Rendering history for flicker-free updates
+    bool lastTargetActive[3];
+    int lastTargetX[3];
+    int lastTargetY[3];
 
     void drawRadarBackground() {
         // Draw arcs for distance

@@ -16,14 +16,14 @@ public:
         anchorID = -1;
         framesWithoutAnchor = 0;
         frameCount = 0;
-        smoothingAlpha = 0.3; // Default
+        baseSmoothingAlpha = 0.3; // Default
     }
 
     void setAveragingStrength(int level) {
         // level 1 to 10
-        // lower alpha means more smoothing
-        smoothingAlpha = 1.0 - (level * 0.08); // level 5 -> 0.6, level 10 -> 0.2
-        if (smoothingAlpha < 0.1) smoothingAlpha = 0.1;
+        // lower alpha means more smoothing (slower tracking)
+        baseSmoothingAlpha = 1.0 - (level * 0.08);
+        if (baseSmoothingAlpha < 0.1) baseSmoothingAlpha = 0.1;
     }
 
     // Process targets, identify an anchor if we don't have one, and compensate dynamic targets
@@ -46,28 +46,54 @@ public:
                 anchorX = currentX;
                 anchorY = currentY;
                 anchorValid = true;
-                anchorID = anchorIdx; // Track the physical slot if we want to, though IDs are not persistent in E54.
+                anchorID = anchorIdx;
                 framesWithoutAnchor = 0;
                 frameCount = 1;
             } else {
-                // Smooth anchor position
-                // Since this is the anchor moving *relative to us* due to handheld jitter, we update our
-                // "reference origin" to track its low-frequency movement but filter out high-frequency jitter.
-                // However, the anchor is a physical object. If we move the device smoothly, the anchor shifts smoothly in our coordinates.
-                anchorX = (int16_t)((1.0 - smoothingAlpha) * anchorX + smoothingAlpha * currentX);
-                anchorY = (int16_t)((1.0 - smoothingAlpha) * anchorY + smoothingAlpha * currentY);
+                // Adapt the smoothing alpha based on the derivative/error of the movement,
+                // inspired by the Anchor-Based Compensation paper's adaptive weight estimation (Eq 5).
+                //
+                // If the anchor jumps rapidly (high derivative -> transient jitter/shake), we lower the alpha
+                // to rely more on the historical position (heavy smoothing).
+                // If the anchor moves slowly/smoothly (low derivative -> deliberate panning of device),
+                // we increase the alpha to let the anchor "catch up" and not lag behind.
+
+                int16_t dx = currentX - anchorX;
+                int16_t dy = currentY - anchorY;
+                float dist = sqrt(dx*dx + dy*dy);
+
+                // Calculate adaptive alpha
+                // dist is typically mm.
+                // If dist is small (e.g., < 20mm per frame), it's slow deliberate motion or very minor jitter.
+                // If dist is large (e.g., > 100mm per frame), it's a sharp handshake/transient.
+
+                float adaptiveAlpha = baseSmoothingAlpha;
+
+                if (dist > 100.0f) {
+                    // Sharp transient motion: Heavily distrust the new measurement
+                    adaptiveAlpha = baseSmoothingAlpha * 0.2f;
+                } else if (dist < 20.0f) {
+                    // Smooth tracking: Trust the measurement more to prevent drift lagging
+                    adaptiveAlpha = baseSmoothingAlpha * 1.5f;
+                    if (adaptiveAlpha > 1.0f) adaptiveAlpha = 1.0f;
+                }
+
+                // Apply adaptive Exponential Moving Average (EMA)
+                anchorX = (int16_t)((1.0f - adaptiveAlpha) * anchorX + adaptiveAlpha * currentX);
+                anchorY = (int16_t)((1.0f - adaptiveAlpha) * anchorY + adaptiveAlpha * currentY);
+
                 framesWithoutAnchor = 0;
                 frameCount++;
             }
 
-            // The jitter is the difference between current perceived anchor position and its filtered position
+            // The jitter is the difference between current perceived raw anchor position and its adaptively filtered position
             int16_t jitterX = currentX - anchorX;
             int16_t jitterY = currentY - anchorY;
 
             // 2. Compensate other targets
             for (int i = 0; i < 3; i++) {
                 if (i != anchorIdx && targets[i].active) {
-                    // Subtract the jitter from the dynamic targets
+                    // Subtract the high-frequency jitter from the dynamic targets
                     compensated[i].x = targets[i].x - jitterX;
                     compensated[i].y = targets[i].y - jitterY;
                 }
@@ -97,7 +123,7 @@ private:
     int anchorID;
     int framesWithoutAnchor;
     uint32_t frameCount;
-    float smoothingAlpha;
+    float baseSmoothingAlpha;
 
     // Thresholds
     const int16_t STATIC_SPEED_INITIAL_THRESHOLD = 15; // cm/s
@@ -112,14 +138,12 @@ private:
                 int16_t absSpeed = abs(targets[i].speed);
 
                 if (anchorValid) {
-                    // If we already have an anchor, the anchor is allowed to have speed relative to us
-                    // (because we might be moving the handheld device towards/away from the anchor wall).
-                    // The main criteria is that it shouldn't teleport wildly from its last known position.
+                    // If we already have an anchor, verify it hasn't teleported wildly
                     int16_t dx = targets[i].x - anchorX;
                     int16_t dy = targets[i].y - anchorY;
                     if (sqrt(dx*dx + dy*dy) < MAX_ANCHOR_MOVEMENT_PER_FRAME) {
-                        bestIdx = i; // Prefer keeping the one close to our existing anchor
-                        break; // Stop looking, we found our tracked anchor
+                        bestIdx = i;
+                        break;
                     }
                 } else {
                     // Looking for a NEW anchor. It must be relatively static right now.
