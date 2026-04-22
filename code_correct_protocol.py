@@ -206,7 +206,7 @@ while True:
     # Status report every second
     if now - last_stat > 1.0:
         print("RX {:5d} B/s  frames {:3d}/s  targets {:d}".format(
-            bytes_in, frames_ok, len([t for t in targets if t[2] < 5])))
+            bytes_in, frames_ok, sum(1 for t in targets if t[2] < 5)))
         bytes_in = 0
         frames_ok = 0
         last_stat = now

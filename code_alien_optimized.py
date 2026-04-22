@@ -290,7 +290,7 @@ while True:
     
     # Status report
     if now - last_stat > 1.0:
-        active = len([t for t in targets if t.time_since_seen() < 1.0])
+        active = sum(1 for t in targets if t.time_since_seen() < 1.0)
         total = len(targets)
         print("RX {:5d} B/s | frames {:3d}/s | targets {:d}/{:d}".format(
             bytes_in, frames_ok, active, total))

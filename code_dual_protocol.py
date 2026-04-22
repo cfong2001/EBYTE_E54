@@ -306,7 +306,7 @@ while True:
         last_draw = now
         
         # Update NeoPixel status
-        if len([t for t in targets if t[2] < 5]) > 0:
+        if any(t[2] < 5 for t in targets):
             pixel.fill((50, 0, 0))  # Red when targets detected
         elif protocol_mode:
             pixel.fill((0, 50, 0))  # Green when protocol detected

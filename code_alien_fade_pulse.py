@@ -313,8 +313,8 @@ while True:
     
     # Stats
     if now - last_stat > 1.0:
-        active = len([t for t in targets if t.is_active()])
-        fading = len([t for t in targets if not t.is_active() and t.brightness() > 0])
+        active = sum(1 for t in targets if t.is_active())
+        fading = sum(1 for t in targets if not t.is_active() and t.brightness() > 0)
         print("RX {:5d} B/s | frames {:3d}/s | active {:d} | fading {:d}".format(
             bytes_in, frames_ok, active, fading))
         bytes_in = 0
