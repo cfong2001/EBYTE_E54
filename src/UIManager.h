@@ -20,11 +20,16 @@ public:
         menuSelection = 0;
         sensitivity = 5;
         locationAveraging = 5;
+        interpolationAmount = 0.5f; // New Setting
         actionRequested = 0;
 
         // Initialize history
         for (int i=0; i<3; i++) {
             lastTargetActive[i] = false;
+            targetCurrentX[i] = 120.0f;
+            targetCurrentY[i] = 240.0f;
+            lastDrawnX[i] = 120;
+            lastDrawnY[i] = 240;
         }
     }
 
@@ -39,8 +44,8 @@ public:
     void handleEncoder(int dir) {
         if (state == STATE_MENU) {
             menuSelection += dir;
-            if (menuSelection < 0) menuSelection = 3;
-            if (menuSelection > 3) menuSelection = 0;
+            if (menuSelection < 0) menuSelection = 4;
+            if (menuSelection > 4) menuSelection = 0;
             drawMenu();
         } else if (state == STATE_RADAR_VIEW) {
             // Adjust scale or other view parameters if needed in future
@@ -57,15 +62,81 @@ public:
         }
     }
 
-    void updateRadarView(RadarTarget targets[3], bool anchorValid, int16_t anchorX, int16_t anchorY) {
+    // Call this when new radar data arrives (e.g. 10Hz) to set the goal targets
+    void updateRadarData(RadarTarget targets[3], bool anchorValid, int16_t anchorX, int16_t anchorY) {
+        this->anchorValid = anchorValid;
+        this->anchorX = anchorX;
+        this->anchorY = anchorY;
+
+        for (int i = 0; i < 3; i++) {
+            targetActive[i] = targets[i].active;
+
+            if (targets[i].active) {
+                int16_t absSpeed = abs(targets[i].speed);
+                if (absSpeed < sensitivity && sensitivity > 1) {
+                    targetActive[i] = false;
+                } else {
+                    targetGoalX[i] = 120 + (targets[i].x * 120 / 5000);
+                    targetGoalY[i] = 240 - (targets[i].y * 240 / 5000);
+
+                    if (targetGoalX[i] < 0 || targetGoalX[i] >= 240 || targetGoalY[i] < 0 || targetGoalY[i] >= 240) {
+                        targetActive[i] = false; // Off screen
+                    }
+                }
+            }
+
+            // Snap immediately to goal if it just became active
+            if (targetActive[i] && !lastTargetActive[i]) {
+                targetCurrentX[i] = (float)targetGoalX[i];
+                targetCurrentY[i] = (float)targetGoalY[i];
+            }
+        }
+    }
+
+    // Call this frequently in the main loop to handle animations
+    void renderLoop() {
         if (state != STATE_RADAR_VIEW) return;
 
-        // Erase old targets
+        bool needsRedraw = false;
+
+        // 1. Move targets via interpolation
+        for (int i = 0; i < 3; i++) {
+            if (targetActive[i]) {
+                float diffX = (float)targetGoalX[i] - targetCurrentX[i];
+                float diffY = (float)targetGoalY[i] - targetCurrentY[i];
+
+                // If diff is very small, snap it.
+                if (abs(diffX) < 0.5f && abs(diffY) < 0.5f) {
+                    targetCurrentX[i] = (float)targetGoalX[i];
+                    targetCurrentY[i] = (float)targetGoalY[i];
+                } else {
+                    targetCurrentX[i] += diffX * interpolationAmount;
+                    targetCurrentY[i] += diffY * interpolationAmount;
+                }
+            }
+        }
+
+        // 2. Check if we actually need to draw something (to save TFT SPI bandwidth)
+        for (int i = 0; i < 3; i++) {
+            if (targetActive[i]) {
+                int currentScreenX = (int)targetCurrentX[i];
+                int currentScreenY = (int)targetCurrentY[i];
+                if (currentScreenX != lastDrawnX[i] || currentScreenY != lastDrawnY[i]) {
+                    needsRedraw = true;
+                }
+            } else if (lastTargetActive[i]) { // Became inactive
+                needsRedraw = true;
+            }
+        }
+
+        if (!needsRedraw) return;
+
+        // 3. Erase old targets
         for (int i = 0; i < 3; i++) {
             if (lastTargetActive[i]) {
-                tft.fillCircle(lastTargetX[i], lastTargetY[i], 5, TFT_BLACK);
+                tft.fillCircle(lastDrawnX[i], lastDrawnY[i], 5, TFT_BLACK);
                 tft.setTextColor(TFT_BLACK, TFT_BLACK);
-                tft.setCursor(lastTargetX[i] + 8, lastTargetY[i] - 8);
+                tft.setCursor(lastDrawnX[i] + 8, lastDrawnY[i] - 8);
                 tft.printf("T%d", i + 1);
             }
         }
@@ -77,7 +148,7 @@ public:
         if (anchorValid) {
             tft.setTextColor(TFT_GREEN, TFT_BLACK);
             tft.setCursor(5, 5);
-            tft.printf("Anchor: (%d, %d)   ", anchorX, anchorY); // padding spaces to overwrite old text
+            tft.printf("Anchor: (%d, %d)   ", anchorX, anchorY);
         } else {
             tft.setTextColor(TFT_RED, TFT_BLACK);
             tft.setCursor(5, 5);
@@ -86,29 +157,19 @@ public:
 
         // Draw new targets
         for (int i = 0; i < 3; i++) {
-            lastTargetActive[i] = targets[i].active;
+            lastTargetActive[i] = targetActive[i];
 
-            if (targets[i].active) {
-                int16_t absSpeed = abs(targets[i].speed);
-                if (absSpeed < sensitivity && sensitivity > 1) {
-                    lastTargetActive[i] = false; // Skip rendering
-                    continue;
-                }
+            if (targetActive[i]) {
+                int screenX = (int)targetCurrentX[i];
+                int screenY = (int)targetCurrentY[i];
 
-                int screenX = 120 + (targets[i].x * 120 / 5000);
-                int screenY = 240 - (targets[i].y * 240 / 5000);
+                tft.fillCircle(screenX, screenY, 5, TFT_RED);
+                tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+                tft.setCursor(screenX + 8, screenY - 8);
+                tft.printf("T%d", i + 1);
 
-                if (screenX >= 0 && screenX < 240 && screenY >= 0 && screenY < 240) {
-                    tft.fillCircle(screenX, screenY, 5, TFT_RED);
-                    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-                    tft.setCursor(screenX + 8, screenY - 8);
-                    tft.printf("T%d", i + 1);
-
-                    lastTargetX[i] = screenX;
-                    lastTargetY[i] = screenY;
-                } else {
-                    lastTargetActive[i] = false; // Off screen
-                }
+                lastDrawnX[i] = screenX;
+                lastDrawnY[i] = screenY;
             }
         }
     }
@@ -131,13 +192,26 @@ private:
     // Settings
     int sensitivity;       // 1-10
     int locationAveraging; // 1-10
+    float interpolationAmount; // 0.1f - 1.0f
 
     int actionRequested; // 1=reset
 
-    // Rendering history for flicker-free updates
+    // Data model
+    bool anchorValid;
+    int16_t anchorX;
+    int16_t anchorY;
+
+    bool targetActive[3];
+    int targetGoalX[3];
+    int targetGoalY[3];
+
+    // Rendering history/animation states
+    float targetCurrentX[3];
+    float targetCurrentY[3];
+
     bool lastTargetActive[3];
-    int lastTargetX[3];
-    int lastTargetY[3];
+    int lastDrawnX[3];
+    int lastDrawnY[3];
 
     void drawRadarBackground() {
         // Draw arcs for distance
@@ -158,14 +232,16 @@ private:
         tft.setCursor(10, 10);
         tft.println("--- MENU ---");
 
+        int interDisp = (int)(interpolationAmount * 10.0f); // 1 to 10
         String items[] = {
             "Return to Radar",
             "Sensitivity: " + String(sensitivity),
             "Loc Averaging: " + String(locationAveraging),
+            "Smoothing: " + String(interDisp),
             "Reset Tracking"
         };
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 5; i++) {
             tft.setCursor(30, 50 + i * 30);
             if (i == menuSelection) {
                 tft.setTextColor(TFT_BLACK, TFT_WHITE);
@@ -192,6 +268,11 @@ private:
                 drawMenu();
                 break;
             case 3:
+                interpolationAmount += 0.1f;
+                if (interpolationAmount > 1.05f) interpolationAmount = 0.1f;
+                drawMenu();
+                break;
+            case 4:
                 actionRequested = 1; // Signal main loop to reset tracking
                 state = STATE_RADAR_VIEW;
                 tft.fillScreen(TFT_BLACK);

@@ -49,6 +49,9 @@ void setup() {
     button.attachClick(handleButtonPress);
 }
 
+// Timer for render loop
+unsigned long lastRender = 0;
+
 void loop() {
     // Process button
     button.tick();
@@ -73,10 +76,17 @@ void loop() {
     // Apply Settings
     motionComp.setAveragingStrength(ui.getLocationAveraging());
 
-    // Process radar
+    // Process radar (10Hz from E54)
     if (radar.update()) {
         RadarTarget compensatedTargets[3];
         motionComp.process(radar.targets, compensatedTargets);
-        ui.updateRadarView(compensatedTargets, motionComp.isAnchorValid(), motionComp.getAnchorX(), motionComp.getAnchorY());
+        ui.updateRadarData(compensatedTargets, motionComp.isAnchorValid(), motionComp.getAnchorX(), motionComp.getAnchorY());
+    }
+
+    // Render loop (decoupled, max frame rate ~30-60Hz)
+    unsigned long now = millis();
+    if (now - lastRender >= 30) { // ~33Hz display rendering
+        ui.renderLoop();
+        lastRender = now;
     }
 }

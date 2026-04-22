@@ -58,29 +58,29 @@ public:
                 // If the anchor moves slowly/smoothly (low derivative -> deliberate panning of device),
                 // we increase the alpha to let the anchor "catch up" and not lag behind.
 
-                int16_t dx = currentX - anchorX;
-                int16_t dy = currentY - anchorY;
-                float dist = sqrt(dx*dx + dy*dy);
+                float dx = (float)(currentX - anchorX);
+                float dy = (float)(currentY - anchorY);
+                float distSq = (dx * dx) + (dy * dy);
 
                 // Calculate adaptive alpha
-                // dist is typically mm.
-                // If dist is small (e.g., < 20mm per frame), it's slow deliberate motion or very minor jitter.
-                // If dist is large (e.g., > 100mm per frame), it's a sharp handshake/transient.
+                // We use squared distances to avoid expensive sqrt() calls.
+                // 100mm -> 10000 sq mm
+                // 20mm  -> 400 sq mm
 
                 float adaptiveAlpha = baseSmoothingAlpha;
 
-                if (dist > 100.0f) {
+                if (distSq > 10000.0f) {
                     // Sharp transient motion: Heavily distrust the new measurement
                     adaptiveAlpha = baseSmoothingAlpha * 0.2f;
-                } else if (dist < 20.0f) {
+                } else if (distSq < 400.0f) {
                     // Smooth tracking: Trust the measurement more to prevent drift lagging
                     adaptiveAlpha = baseSmoothingAlpha * 1.5f;
                     if (adaptiveAlpha > 1.0f) adaptiveAlpha = 1.0f;
                 }
 
                 // Apply adaptive Exponential Moving Average (EMA)
-                anchorX = (int16_t)((1.0f - adaptiveAlpha) * anchorX + adaptiveAlpha * currentX);
-                anchorY = (int16_t)((1.0f - adaptiveAlpha) * anchorY + adaptiveAlpha * currentY);
+                anchorX = (int16_t)((1.0f - adaptiveAlpha) * anchorX + adaptiveAlpha * (float)currentX);
+                anchorY = (int16_t)((1.0f - adaptiveAlpha) * anchorY + adaptiveAlpha * (float)currentY);
 
                 framesWithoutAnchor = 0;
                 frameCount++;
@@ -127,7 +127,7 @@ private:
 
     // Thresholds
     const int16_t STATIC_SPEED_INITIAL_THRESHOLD = 15; // cm/s
-    const int16_t MAX_ANCHOR_MOVEMENT_PER_FRAME = 800; // mm
+    const float MAX_ANCHOR_MOVEMENT_PER_FRAME_SQ = 640000.0f; // 800 * 800
 
     int findAnchorIndex(RadarTarget targets[3]) {
         int bestIdx = -1;
@@ -139,9 +139,9 @@ private:
 
                 if (anchorValid) {
                     // If we already have an anchor, verify it hasn't teleported wildly
-                    int16_t dx = targets[i].x - anchorX;
-                    int16_t dy = targets[i].y - anchorY;
-                    if (sqrt(dx*dx + dy*dy) < MAX_ANCHOR_MOVEMENT_PER_FRAME) {
+                    float dx = (float)(targets[i].x - anchorX);
+                    float dy = (float)(targets[i].y - anchorY);
+                    if ((dx*dx + dy*dy) < MAX_ANCHOR_MOVEMENT_PER_FRAME_SQ) {
                         bestIdx = i;
                         break;
                     }
