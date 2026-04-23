@@ -194,14 +194,13 @@ def process_radar_frame(frame):
         
         # Only add if valid (non-zero)
         if x != 0 or y != 0:
-            dist = int(math.sqrt(x * x + y * y))
-            
+            dist_sq = x * x + y * y
             # Only track reasonable ranges (0.5m to 10m)
-            if 500 < dist < 10000:
+            if 250000 < dist_sq < 100000000:
                 new_targets.append((x, y, 0, i))
                 
                 # Debug print
-                print("T%d: %.2fm X:%d Y:%d Spd:%d" % (i + 1, dist / 1000.0, x, y, speed))
+                print("T%d: %.2fm X:%d Y:%d Spd:%d" % (i + 1, math.sqrt(dist_sq) / 1000.0, x, y, speed))
     
     # Merge new targets with existing (age existing targets)
     aged_targets = []

@@ -75,9 +75,9 @@ def draw_display():
         if age > 10:
             continue
         
-        dist = math.sqrt(x_mm * x_mm + y_mm * y_mm) / 1000.0
-        if dist < closest:
-            closest = dist
+        dist_sq = x_mm * x_mm + y_mm * y_mm
+        if dist_sq < closest * closest * 1000000.0:
+            closest = math.sqrt(dist_sq) / 1000.0
         active += 1
         
         # Draw sweep line to target (if recent)
@@ -172,9 +172,9 @@ while True:
                 
                 # Target exists if not all zeros
                 if x != 0 or y != 0:
-                    dist = int(math.sqrt(x * x + y * y))
-                    # Filter reasonable range (10cm to 8m)
-                    if 100 < dist < 8000:
+                    dist_sq = x * x + y * y
+                    # Filter reasonable range
+                    if 10000 < dist_sq < 64000000:
                         new_targets.append((x, y, 0, t_idx))
             
             # Age existing targets
@@ -186,7 +186,7 @@ while True:
                 ox, oy, oa, oi = old
                 dup = False
                 for nx, ny, _, _ in new_targets:
-                    if math.sqrt((ox - nx)**2 + (oy - ny)**2) < 300:  # 300mm threshold
+                    if (ox - nx)**2 + (oy - ny)**2 < 90000:  # 300mm threshold
                         dup = True
                         break
                 if not dup:

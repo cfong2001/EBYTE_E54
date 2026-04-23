@@ -129,7 +129,6 @@ def draw_radar_screen():
         
         if dist_m < closest_dist and age < 5:
             closest_dist = dist_m
-        
         if dist_mm <= MAX_RANGE:
             active_targets += 1
             
@@ -185,10 +184,10 @@ def parse_basic_frame(frame):
         y = s16(frame[offset + 2], frame[offset + 3])
         
         if x != 0 or y != 0:
-            dist = int(math.sqrt(x * x + y * y))
-            if 500 < dist < 10000:
+            dist_sq = x * x + y * y
+            if 250000 < dist_sq < 100000000:
                 new_targets.append((x, y, 0, i))
-                print(f"B-T{i+1}: {dist/1000:.2f}m")
+                print(f"B-T{i+1}: {math.sqrt(dist_sq)/1000:.2f}m")
     
     # Age existing targets
     aged_targets = [(x, y, age + 1, t_idx) for x, y, age, t_idx in targets if age < 15]
@@ -227,10 +226,10 @@ def parse_advanced_frame(frame):
         y = s16(frame[offset + 2], frame[offset + 3])
         
         if x != 0 or y != 0:
-            dist = int(math.sqrt(x * x + y * y))
-            if 500 < dist < 10000:
+            dist_sq = x * x + y * y
+            if 250000 < dist_sq < 100000000:
                 new_targets.append((x, y, 0, target_idx))
-                print(f"A-T{target_idx+1}: {dist/1000:.2f}m")
+                print(f"A-T{target_idx+1}: {math.sqrt(dist_sq)/1000:.2f}m")
                 target_idx += 1
         
         offset += 8

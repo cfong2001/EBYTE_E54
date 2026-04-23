@@ -116,9 +116,9 @@ def draw_display():
         x_mm, y_mm, age, idx = target_data
         
         if age < 5:
-            dist = math.sqrt(x_mm * x_mm + y_mm * y_mm) / 1000.0
-            if dist < closest_dist:
-                closest_dist = dist
+            dist_sq = x_mm * x_mm + y_mm * y_mm
+            if dist_sq < closest_dist * closest_dist * 1000000.0:
+                closest_dist = math.sqrt(dist_sq) / 1000.0
             active_count += 1
     
     draw_targets(targets)
@@ -193,8 +193,8 @@ while True:
                     # v = _s16_le(frame[offset + 4], frame[offset + 5])  # velocity not used
                     
                     # Filter valid targets
-                    dist = int(math.sqrt(x * x + y * y))
-                    if 100 < dist < 8000:  # 0.1m to 8m range
+                    dist_sq = x * x + y * y
+                    if 10000 < dist_sq < 64000000:  # 0.1m to 8m range
                         new_targets.append((x, y, 0, target_idx))
                     
                     offset += 6
@@ -209,8 +209,8 @@ while True:
             # Check if this old target is close to any new target
             is_duplicate = False
             for nx, ny, _, _ in new_targets:
-                dist = math.sqrt((ox - nx)**2 + (oy - ny)**2)
-                if dist < 300:  # 300mm threshold
+                dist_sq = (ox - nx)**2 + (oy - ny)**2
+                if dist_sq < 90000:  # 300mm threshold
                     is_duplicate = True
                     break
             if not is_duplicate:

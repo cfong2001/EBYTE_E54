@@ -139,7 +139,6 @@ def draw_display():
         
         if dist_m < closest_dist and age < 5:
             closest_dist = dist_m
-        
         if dist_mm <= MAX_RANGE:
             active_targets += 1
             
@@ -217,8 +216,8 @@ while True:
                 y = _s16_le(frame[offset + 2], frame[offset + 3])
                 
                 if x != 0 or y != 0:
-                    dist = int(math.sqrt(x * x + y * y))
-                    if 500 < dist < 10000:
+                    dist_sq = x * x + y * y
+                    if 250000 < dist_sq < 100000000:
                         new_targets.append((x, y, 0, target_idx))
                         target_idx += 1
             except:
