@@ -197,8 +197,7 @@ def find_or_create_target(x, y, target_id):
     """Find existing target or create new one (with deduplication)"""
     # Check if this is close to an existing target
     for target in targets:
-        dist = math.sqrt((target.x - x)**2 + (target.y - y)**2)
-        if dist < 300:  # 300mm threshold (same as Rob's)
+        if (target.x - x)**2 + (target.y - y)**2 < 90000:  # 300mm threshold squared (same as Rob's)
             target.update(x, y)
             return target
     
@@ -227,11 +226,7 @@ while True:
     # Parse Basic protocol frames
     while len(buffer) >= FRAME_SIZE:
         # Find sync pattern
-        sync_idx = -1
-        for i in range(len(buffer) - 3):
-            if buffer[i:i+4] == SYNC:
-                sync_idx = i
-                break
+        sync_idx = buffer.find(SYNC)
         
         if sync_idx < 0:
             if len(buffer) > 100:
@@ -260,9 +255,8 @@ while True:
                 
                 # Target exists if not all zeros
                 if x != 0 or y != 0:
-                    dist = int(math.sqrt(x * x + y * y))
-                    # Filter reasonable range
-                    if 100 < dist < 8000:
+                    # Filter reasonable range using squared distance
+                    if 10000 < x * x + y * y < 64000000:
                         find_or_create_target(x, y, t_idx)
                         any_new = True
             

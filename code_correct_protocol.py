@@ -129,11 +129,7 @@ while True:
     # Parse Basic protocol frames (AA FF 03 00 ... 55 CC)
     while len(buffer) >= FRAME_SIZE:
         # Find sync pattern
-        sync_idx = -1
-        for i in range(len(buffer) - 3):
-            if buffer[i:i+4] == SYNC:
-                sync_idx = i
-                break
+        sync_idx = buffer.find(SYNC)
         
         if sync_idx < 0:
             # No sync found, keep last few bytes
@@ -172,9 +168,8 @@ while True:
                 
                 # Target exists if not all zeros
                 if x != 0 or y != 0:
-                    dist = int(math.sqrt(x * x + y * y))
-                    # Filter reasonable range (10cm to 8m)
-                    if 100 < dist < 8000:
+                    # Filter reasonable range (10cm to 8m) using squared distance
+                    if 10000 < x * x + y * y < 64000000:
                         new_targets.append((x, y, 0, t_idx))
             
             # Age existing targets
@@ -186,7 +181,7 @@ while True:
                 ox, oy, oa, oi = old
                 dup = False
                 for nx, ny, _, _ in new_targets:
-                    if math.sqrt((ox - nx)**2 + (oy - ny)**2) < 300:  # 300mm threshold
+                    if (ox - nx)**2 + (oy - ny)**2 < 90000:  # 300mm threshold squared
                         dup = True
                         break
                 if not dup:

@@ -182,9 +182,8 @@ while True:
     
     # Process frames - look for Advanced protocol (0xAA 0x55)
     while len(buffer) >= 10:
-        try:
-            idx = buffer.index(SYNC)
-        except ValueError:
+        idx = buffer.find(SYNC)
+        if idx == -1:
             buffer = bytearray()
             break
         

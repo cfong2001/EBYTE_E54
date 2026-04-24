@@ -257,41 +257,35 @@ while True:
         found_frame = False
         
         # Try Basic Mode (0xAA 0xFF)
-        try:
-            idx = buffer.index(b'\xAA\xFF')
+        idx = buffer.find(b'\xAA\xFF')
+        if idx >= 0:
+            if idx > 0:
+                buffer = buffer[idx:]
+
+            if len(buffer) >= 30:
+                frame = buffer[0:30]
+                if parse_basic_frame(frame):
+                    buffer = buffer[30:]
+                    frame_count += 1
+                    found_frame = True
+                    break
+
+        # Try Advanced Mode (0xAA 0x55)
+        if not found_frame:
+            idx = buffer.find(b'\xAA\x55')
             if idx >= 0:
                 if idx > 0:
                     buffer = buffer[idx:]
                 
-                if len(buffer) >= 30:
-                    frame = buffer[0:30]
-                    if parse_basic_frame(frame):
-                        buffer = buffer[30:]
-                        frame_count += 1
-                        found_frame = True
-                        break
-        except ValueError:
-            pass
-        
-        # Try Advanced Mode (0xAA 0x55)
-        if not found_frame:
-            try:
-                idx = buffer.index(b'\xAA\x55')
-                if idx >= 0:
-                    if idx > 0:
-                        buffer = buffer[idx:]
-                    
-                    if len(buffer) >= 6:
-                        length = buffer[2] | (buffer[3] << 8)
-                        if len(buffer) >= length:
-                            frame = buffer[0:length]
-                            if parse_advanced_frame(frame):
-                                buffer = buffer[length:]
-                                frame_count += 1
-                                found_frame = True
-                                break
-            except ValueError:
-                pass
+                if len(buffer) >= 6:
+                    length = buffer[2] | (buffer[3] << 8)
+                    if len(buffer) >= length:
+                        frame = buffer[0:length]
+                        if parse_advanced_frame(frame):
+                            buffer = buffer[length:]
+                            frame_count += 1
+                            found_frame = True
+                            break
         
         # No sync found, discard first byte
         if not found_frame:

@@ -229,8 +229,7 @@ def draw_display():
 def find_or_create_target(x, y, target_id):
     """Find existing target or create new with 300mm deduplication"""
     for target in targets:
-        dist = math.sqrt((target.x - x)**2 + (target.y - y)**2)
-        if dist < 300:
+        if (target.x - x)**2 + (target.y - y)**2 < 90000:
             target.update(x, y)
             return target
     
@@ -263,11 +262,7 @@ while True:
     
     # Parse frames
     while len(buffer) >= FRAME_SIZE:
-        sync_idx = -1
-        for i in range(len(buffer) - 3):
-            if buffer[i:i+4] == SYNC:
-                sync_idx = i
-                break
+        sync_idx = buffer.find(SYNC)
         
         if sync_idx < 0:
             if len(buffer) > 100:
@@ -294,8 +289,7 @@ while True:
                 y = _s16_le(frame[offset + 2], frame[offset + 3])
                 
                 if x != 0 or y != 0:
-                    dist = int(math.sqrt(x * x + y * y))
-                    if 100 < dist < 8000:
+                    if 10000 < x * x + y * y < 64000000:
                         find_or_create_target(x, y, t_idx)
         else:
             buffer = buffer[2:]

@@ -57,18 +57,14 @@ while True:
     # Check for protocol signatures
     if len(buffer) >= 2:
         # Scan for Basic protocol (0xAA 0xFF)
-        try:
-            idx = buffer.index(SYNC_BASIC)
+        idx = buffer.find(SYNC_BASIC)
+        if idx >= 0:
             basic_count += 1
-        except ValueError:
-            pass
         
         # Scan for Advanced protocol (0xAA 0x55)
-        try:
-            idx = buffer.index(SYNC_ADVANCED)
+        idx = buffer.find(SYNC_ADVANCED)
+        if idx >= 0:
             advanced_count += 1
-        except ValueError:
-            pass
     
     # Update display every 0.5 seconds
     if now - last_display > 0.5:
@@ -109,8 +105,8 @@ while True:
             
             # Try to parse if we see Advanced protocol
             if advanced_count > 0 and len(buffer) >= 10:
-                try:
-                    idx = buffer.index(SYNC_ADVANCED)
+                idx = buffer.find(SYNC_ADVANCED)
+                if idx >= 0:
                     if idx + 6 < len(buffer):
                         length = buffer[idx + 2] | (buffer[idx + 3] << 8)
                         cmd = buffer[idx + 4]
@@ -129,8 +125,6 @@ while True:
                                 if x & 0x8000: x -= 0x10000
                                 if y & 0x8000: y -= 0x10000
                                 print("Target 1: X=%dmm Y=%dmm" % (x, y))
-                except Exception as e:
-                    print("Parse error: %s" % str(e))
         else:
             print("NO UART DATA - check connections!")
             print("  Radar TX -> ESP32 IO44")

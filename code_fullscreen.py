@@ -151,9 +151,8 @@ while True:
 
     # Process frames - Advanced protocol (0xAA 0x55)
     while len(buffer) >= 10:
-        try:
-            idx = buffer.index(SYNC)
-        except ValueError:
+        idx = buffer.find(SYNC)
+        if idx == -1:
             buffer = bytearray()
             break
 
@@ -192,9 +191,8 @@ while True:
                     y = _s16_le(frame[offset + 2], frame[offset + 3])
                     # v = _s16_le(frame[offset + 4], frame[offset + 5])  # velocity not used
                     
-                    # Filter valid targets
-                    dist = int(math.sqrt(x * x + y * y))
-                    if 100 < dist < 8000:  # 0.1m to 8m range
+                    # Filter valid targets using squared distance
+                    if 10000 < x * x + y * y < 64000000:  # 0.1m to 8m range
                         new_targets.append((x, y, 0, target_idx))
                     
                     offset += 6
@@ -209,8 +207,7 @@ while True:
             # Check if this old target is close to any new target
             is_duplicate = False
             for nx, ny, _, _ in new_targets:
-                dist = math.sqrt((ox - nx)**2 + (oy - ny)**2)
-                if dist < 300:  # 300mm threshold
+                if (ox - nx)**2 + (oy - ny)**2 < 90000:  # 300mm threshold squared
                     is_duplicate = True
                     break
             if not is_duplicate:
