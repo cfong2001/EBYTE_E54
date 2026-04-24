@@ -4,6 +4,7 @@ CircuitPython Code Deployment Utility
 Deploys CircuitPython code to ESP32 via serial REPL
 """
 import serial
+import serial.tools.list_ports
 import time
 import os
 import sys
@@ -140,9 +141,33 @@ def main():
             return 0
     
     # Get COM port
-    port = input("\nEnter COM port (e.g., COM5): ").strip().upper()
-    if not port.startswith("COM"):
-        port = "COM" + port
+    ports = serial.tools.list_ports.comports()
+    if not ports:
+        port = input("\nNo ports found. Enter port manually (e.g., COM5 or /dev/ttyUSB0): ").strip()
+        if not port:
+            port = "COM5"
+    else:
+        print("\nAvailable serial ports:")
+        for i, p in enumerate(ports, 1):
+            print(f"  {i}. {p.device} - {p.description}")
+
+        while True:
+            choice = input(f"\nSelect port (1-{len(ports)}) or enter path manually [default: 1]: ").strip()
+
+            if not choice:
+                port = ports[0].device
+                break
+
+            if choice.isdigit():
+                idx = int(choice) - 1
+                if 0 <= idx < len(ports):
+                    port = ports[idx].device
+                    break
+                else:
+                    print(f"Please enter a number between 1 and {len(ports)}.")
+            else:
+                port = choice
+                break
     
     # Get monitoring duration
     try:
