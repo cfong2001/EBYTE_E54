@@ -172,9 +172,9 @@ while True:
                 
                 # Target exists if not all zeros
                 if x != 0 or y != 0:
-                    dist = int(math.sqrt(x * x + y * y))
-                    # Filter reasonable range (10cm to 8m)
-                    if 100 < dist < 8000:
+                    dist_sq = x * x + y * y
+                    # Filter reasonable range (10cm to 8m, squared)
+                    if 10000 < dist_sq < 64000000:
                         new_targets.append((x, y, 0, t_idx))
             
             # Age existing targets
@@ -186,7 +186,7 @@ while True:
                 ox, oy, oa, oi = old
                 dup = False
                 for nx, ny, _, _ in new_targets:
-                    if math.sqrt((ox - nx)**2 + (oy - ny)**2) < 300:  # 300mm threshold
+                    if (ox - nx)**2 + (oy - ny)**2 < 90000:  # 300mm threshold squared
                         dup = True
                         break
                 if not dup:

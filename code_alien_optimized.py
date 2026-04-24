@@ -197,8 +197,8 @@ def find_or_create_target(x, y, target_id):
     """Find existing target or create new one (with deduplication)"""
     # Check if this is close to an existing target
     for target in targets:
-        dist = math.sqrt((target.x - x)**2 + (target.y - y)**2)
-        if dist < 300:  # 300mm threshold (same as Rob's)
+        dist_sq = (target.x - x)**2 + (target.y - y)**2
+        if dist_sq < 90000:  # 300mm threshold (same as Rob's) squared
             target.update(x, y)
             return target
     
@@ -260,9 +260,9 @@ while True:
                 
                 # Target exists if not all zeros
                 if x != 0 or y != 0:
-                    dist = int(math.sqrt(x * x + y * y))
-                    # Filter reasonable range
-                    if 100 < dist < 8000:
+                    dist_sq = x * x + y * y
+                    # Filter reasonable range squared
+                    if 10000 < dist_sq < 64000000:
                         find_or_create_target(x, y, t_idx)
                         any_new = True
             

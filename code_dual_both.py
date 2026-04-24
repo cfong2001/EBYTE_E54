@@ -137,8 +137,8 @@ while True:
                 y = _s16_le(frame[offset + 2], frame[offset + 3])
                 
                 if x != 0 or y != 0:
-                    dist = int(math.sqrt(x * x + y * y))
-                    if 100 < dist < 8000:
+                    dist_sq = x * x + y * y
+                    if 10000 < dist_sq < 64000000:
                         new_targets.append((x, y, 0, t_idx))
             
             # Update targets
@@ -148,7 +148,7 @@ while True:
                 ox, oy, oa, oi = old
                 dup = False
                 for nx, ny, _, _ in new_targets:
-                    if math.sqrt((ox - nx)**2 + (oy - ny)**2) < 300:
+                    if (ox - nx)**2 + (oy - ny)**2 < 90000:
                         dup = True
                         break
                 if not dup:
@@ -192,8 +192,8 @@ while True:
                 if offset + 6 <= len(frame) - 2:
                     x = _s16_le(frame[offset], frame[offset + 1])
                     y = _s16_le(frame[offset + 2], frame[offset + 3])
-                    dist = int(math.sqrt(x * x + y * y))
-                    if 100 < dist < 8000:
+                    dist_sq = x * x + y * y
+                    if 10000 < dist_sq < 64000000:
                         new_targets.append((x, y, 0, t_idx))
                     offset += 6
             
@@ -204,7 +204,7 @@ while True:
                 ox, oy, oa, oi = old
                 dup = False
                 for nx, ny, _, _ in new_targets:
-                    if math.sqrt((ox - nx)**2 + (oy - ny)**2) < 300:
+                    if (ox - nx)**2 + (oy - ny)**2 < 90000:
                         dup = True
                         break
                 if not dup:
