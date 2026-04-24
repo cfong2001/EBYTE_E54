@@ -5,7 +5,7 @@
 import board
 import busio
 import time
-from shared.ui_utils import draw_dotted_circle
+from shared.ui_utils import draw_dotted_circle, map_xy
 import adafruit_ssd1306
 import neopixel
 import math
@@ -189,10 +189,10 @@ def process_radar_frame(frame):
         
         # Only add if valid (non-zero)
         if x != 0 or y != 0:
-            dist = int(math.sqrt(x * x + y * y))
+            dist_sq = x * x + y * y
             
             # Only track reasonable ranges (0.5m to 10m)
-            if 500 < dist < 10000:
+            if 250000 < dist_sq < 100000000:
                 new_targets.append((x, y, 0, i))
                 
                 # Debug print
@@ -218,12 +218,10 @@ while True:
     
     # Process complete frames
     while len(buffer) >= 30:
-        try:
-            idx = buffer.index(b'\xAA\xFF')
-        except ValueError:
+        idx = buffer.find(b'\xAA\xFF')
+        if idx < 0:
             buffer = bytearray()
             break
-        
         # Align to header
         if idx > 0:
             buffer = buffer[idx:]

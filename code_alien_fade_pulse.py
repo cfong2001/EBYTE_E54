@@ -4,7 +4,7 @@
 
 import time, math
 import board, busio, neopixel
-from shared.ui_utils import draw_dotted_circle
+from shared.ui_utils import draw_dotted_circle, map_xy
 import adafruit_ssd1306
 from utils import ld2450_s16
 
@@ -71,11 +71,6 @@ bytes_in = 0
 frames_ok = 0
 pulse_start = 0
 
-def map_xy(x_mm, y_mm):
-    """Map radar coords to full screen"""
-    sx = int(max(0, min(127, (x_mm + 3000) * 127 / 6000)))
-    sy = int(max(0, min(63, 63 - (y_mm * 63 / 6000))))
-    return sx, sy
 
 def draw_blip_with_fade(sx, sy, radius, brightness):
     """
@@ -213,8 +208,8 @@ def draw_display():
 def find_or_create_target(x, y, target_id):
     """Find existing target or create new with 300mm deduplication"""
     for target in targets:
-        dist = math.sqrt((target.x - x)**2 + (target.y - y)**2)
-        if dist < 300:
+        dist_sq = (target.x - x)**2 + (target.y - y)**2
+        if dist_sq < 90000:
             target.update(x, y)
             return target
     
@@ -274,8 +269,8 @@ while True:
                 y = ld2450_s16(frame[offset + 2], frame[offset + 3])
                 
                 if x != 0 or y != 0:
-                    dist = int(math.sqrt(x * x + y * y))
-                    if 100 < dist < 8000:
+                    dist_sq = x * x + y * y
+                    if 10000 < dist_sq < 64000000:
                         find_or_create_target(x, y, t_idx)
         else:
             buffer = buffer[2:]
@@ -293,8 +288,8 @@ while True:
     
     # Stats
     if now - last_stat > 1.0:
-        active = len([t for t in targets if t.is_active()])
-        fading = len([t for t in targets if not t.is_active() and t.brightness() > 0])
+        active = sum(1 for t in targets if t.is_active())
+        fading = sum(1 for t in targets if not t.is_active() and t.brightness() > 0)
         print("RX {:5d} B/s | frames {:3d}/s | active {:d} | fading {:d}".format(
             bytes_in, frames_ok, active, fading))
         bytes_in = 0

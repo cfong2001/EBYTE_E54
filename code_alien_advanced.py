@@ -4,7 +4,7 @@
 
 import time, gc, math
 import board, busio, neopixel
-from shared.ui_utils import draw_dotted_circle
+from shared.ui_utils import draw_dotted_circle, map_xy
 import adafruit_ssd1306
 from utils import s16_le
 
@@ -171,10 +171,10 @@ while True:
     
     # Process frames - look for Advanced protocol (0xAA 0x55)
     while len(buffer) >= 10:
-        try:
-            idx = buffer.index(SYNC)
-        except ValueError:
-            buffer = bytearray()
+        idx = buffer.find(SYNC)
+        if idx < 0:
+            if len(buffer) > 100:
+                buffer = buffer[-50:]
             break
         
         if idx > 0:
@@ -206,8 +206,8 @@ while True:
                 y = s16_le(frame[offset + 2], frame[offset + 3])
                 
                 if x != 0 or y != 0:
-                    dist = int(math.sqrt(x * x + y * y))
-                    if 500 < dist < 10000:
+                    dist_sq = x * x + y * y
+                    if 250000 < dist_sq < 100000000:
                         new_targets.append((x, y, 0, target_idx))
                         target_idx += 1
             except Exception:
@@ -227,7 +227,7 @@ while True:
         last_draw = now
         
         # Update NeoPixel
-        if len([t for t in targets if t[2] < 5]) > 0:
+        if sum(1 for t in targets if t[2] < 5) > 0:
             pixel.fill((50, 0, 0))  # Red = targets
         else:
             pixel.fill((0, 10, 0))  # Green = clear

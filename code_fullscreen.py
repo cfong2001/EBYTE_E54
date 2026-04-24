@@ -4,7 +4,7 @@
 
 import time, gc, math
 import board, busio, neopixel
-from shared.ui_utils import draw_dotted_circle
+from shared.ui_utils import draw_dotted_circle, map_xy
 import adafruit_ssd1306
 from utils import s16_le
 
@@ -31,18 +31,6 @@ CY = 63   # Bottom of screen
 RADII = [20, 40, 60]  # pixels (matches your working code)
 
 # Mapping functions - FULL SCREEN
-def map_xy(x_mm, y_mm):
-    """Map radar coordinates to FULL screen
-    X: -3000 to +3000mm -> 0 to 127 pixels (full width)
-    Y: 0 to 6000mm -> 63 to 0 pixels (full height)
-    """
-    # X spans full 128 pixel width
-    sx = int(max(0, min(127, (x_mm + 3000) * 127 / 6000)))
-    
-    # Y spans full 64 pixel height, inverted (0mm at bottom)
-    sy = int(max(0, min(63, 63 - (y_mm * 63 / 6000))))
-    
-    return sx, sy
 
 # Target tracking
 targets = []
@@ -139,10 +127,10 @@ while True:
 
     # Process frames - Advanced protocol (0xAA 0x55)
     while len(buffer) >= 10:
-        try:
-            idx = buffer.index(SYNC)
-        except ValueError:
-            buffer = bytearray()
+        idx = buffer.find(SYNC)
+        if idx < 0:
+            if len(buffer) > 100:
+                buffer = buffer[-50:]
             break
 
         if idx > 0:
@@ -181,8 +169,8 @@ while True:
                     # v = s16_le(frame[offset + 4], frame[offset + 5])  # velocity not used
                     
                     # Filter valid targets
-                    dist = int(math.sqrt(x * x + y * y))
-                    if 100 < dist < 8000:  # 0.1m to 8m range
+                    dist_sq = x * x + y * y
+                    if 10000 < dist_sq < 64000000:
                         new_targets.append((x, y, 0, target_idx))
                     
                     offset += 6
@@ -197,8 +185,8 @@ while True:
             # Check if this old target is close to any new target
             is_duplicate = False
             for nx, ny, _, _ in new_targets:
-                dist = math.sqrt((ox - nx)**2 + (oy - ny)**2)
-                if dist < 300:  # 300mm threshold
+                dist_sq = (ox - nx)**2 + (oy - ny)**2
+                if dist_sq < 90000:
                     is_duplicate = True
                     break
             if not is_duplicate:

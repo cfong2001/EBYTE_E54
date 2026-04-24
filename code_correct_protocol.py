@@ -4,7 +4,7 @@
 
 import time, math
 import board, busio, neopixel
-from shared.ui_utils import draw_dotted_circle
+from shared.ui_utils import draw_dotted_circle, map_xy
 import adafruit_ssd1306
 from utils import ld2450_s16
 
@@ -25,11 +25,6 @@ FRAME_SIZE = 30
 CX, CY = 64, 63
 RADII = [20, 40, 60]
 
-def map_xy(x_mm, y_mm):
-    """Map radar coords to full screen"""
-    sx = int(max(0, min(127, (x_mm + 3000) * 127 / 6000)))
-    sy = int(max(0, min(63, 63 - (y_mm * 63 / 6000))))
-    return sx, sy
 
 targets = []
 buffer = bytearray()
@@ -149,9 +144,9 @@ while True:
                 
                 # Target exists if not all zeros
                 if x != 0 or y != 0:
-                    dist = int(math.sqrt(x * x + y * y))
+                    dist_sq = x * x + y * y
                     # Filter reasonable range (10cm to 8m)
-                    if 100 < dist < 8000:
+                    if 10000 < dist_sq < 64000000:
                         new_targets.append((x, y, 0, t_idx))
             
             # Age existing targets
@@ -163,7 +158,7 @@ while True:
                 ox, oy, oa, oi = old
                 dup = False
                 for nx, ny, _, _ in new_targets:
-                    if math.sqrt((ox - nx)**2 + (oy - ny)**2) < 300:  # 300mm threshold
+                    if ((ox - nx)**2 + (oy - ny)**2) < 90000:  # 300mm threshold
                         dup = True
                         break
                 if not dup:
@@ -183,7 +178,7 @@ while True:
     # Status report every second
     if now - last_stat > 1.0:
         print("RX {:5d} B/s  frames {:3d}/s  targets {:d}".format(
-            bytes_in, frames_ok, len([t for t in targets if t[2] < 5])))
+            bytes_in, frames_ok, sum(1 for t in targets if t[2] < 5)))
         bytes_in = 0
         frames_ok = 0
         last_stat = now
