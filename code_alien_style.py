@@ -175,6 +175,13 @@ def draw_radar_screen():
     
     oled.show()
 
+def has_active_targets(targets):
+    """Check if any targets are recent efficiently without memory allocation"""
+    for t in targets:
+        if t[2] < 5:
+            return True
+    return False
+
 def process_radar_frame(frame):
     """Parse HLK-LD2450 frame and extract targets"""
     global targets
@@ -251,7 +258,7 @@ while True:
         last_draw = now
         
         # Update NeoPixel status
-        if len([t for t in targets if t[2] < 5]) > 0:
+        if has_active_targets(targets):
             pixel.fill((50, 0, 0))  # Red when targets detected
         else:
             pixel.fill((0, 10, 0))  # Green when clear
