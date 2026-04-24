@@ -5,6 +5,7 @@
 import board
 import busio
 import time
+from shared.ui_utils import draw_dotted_circle
 import adafruit_ssd1306
 import neopixel
 import math
@@ -33,14 +34,6 @@ protocol_mode = None  # Will auto-detect
 print("Alien Motion Tracker - Dual Protocol")
 print("Auto-detecting radar protocol...")
 pixel.fill((10, 10, 0))  # Yellow = detecting
-
-def draw_dotted_circle(cx, cy, radius):
-    for angle_deg in range(0, 181, 4):
-        rad = math.radians(angle_deg - 90)
-        x = int(cx + radius * math.cos(rad))
-        y = int(cy + radius * math.sin(rad))
-        if 0 <= x < 128 and 0 <= y < 64:
-            oled.pixel(x, y, 1)
 
 def draw_angle_markers(cx, cy):
     for angle_deg in [0, 45, 90, 135, 180]:
@@ -96,7 +89,7 @@ def draw_radar_screen():
     
     # Draw dotted range rings
     for r in R_RINGS:
-        draw_dotted_circle(CX, CY, r)
+        draw_dotted_circle(oled, CX, CY, r, start_angle_deg=0, end_angle_deg=180, step_deg=4, offset_deg=-90)
     
     # Draw angle markers
     draw_angle_markers(CX, CY)

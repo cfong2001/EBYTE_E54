@@ -4,6 +4,7 @@
 
 import time, gc, math
 import board, busio, neopixel
+from shared.ui_utils import draw_dotted_circle
 import adafruit_ssd1306
 from utils import s16_le
 
@@ -38,15 +39,6 @@ sweep_angle = 0
 last_draw = time.monotonic()
 frame_count = 0
 bytes_in = 0
-
-def draw_dotted_circle(cx, cy, radius):
-    """Draw dotted circle for range rings"""
-    for angle_deg in range(0, 181, 4):
-        rad = math.radians(angle_deg - 90)
-        x = int(cx + radius * math.cos(rad))
-        y = int(cy + radius * math.sin(rad))
-        if 0 <= x < 128 and 0 <= y < 64:
-            oled.pixel(x, y, 1)
 
 def draw_angle_markers(cx, cy):
     """Draw angle markers every 45 degrees"""
@@ -107,7 +99,7 @@ def draw_display():
     
     # Draw dotted range rings
     for r in R_RINGS:
-        draw_dotted_circle(CX, CY, r)
+        draw_dotted_circle(oled, CX, CY, r, start_angle_deg=0, end_angle_deg=180, step_deg=4, offset_deg=-90)
     
     # Draw angle markers
     draw_angle_markers(CX, CY)

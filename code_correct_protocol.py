@@ -4,6 +4,7 @@
 
 import time, math
 import board, busio, neopixel
+from shared.ui_utils import draw_dotted_circle
 import adafruit_ssd1306
 from utils import ld2450_s16
 
@@ -37,15 +38,6 @@ bytes_in = 0
 frames_ok = 0
 color_wheel = 0
 
-def draw_dotted_circle(cx, cy, r):
-    steps = int(r * 6.28)
-    for i in range(0, steps, 3):
-        a = (i / steps) * 2 * math.pi
-        x = int(cx + r * math.cos(a))
-        y = int(cy + r * math.sin(a))
-        if 0 <= x < 128 and 0 <= y < 64:
-            oled.pixel(x, y, 1)
-
 def draw_display():
     global color_wheel
     
@@ -53,7 +45,7 @@ def draw_display():
     
     # Draw grid
     for r in RADII:
-        draw_dotted_circle(CX, CY, r)
+        draw_dotted_circle(oled, CX, CY, r)
     oled.line(0, CY, 127, CY, 1)
     
     # Count active targets

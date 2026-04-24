@@ -4,6 +4,7 @@
 
 import time, gc, math
 import board, busio, neopixel
+from shared.ui_utils import draw_dotted_circle
 import adafruit_ssd1306
 from utils import s16_le
 
@@ -51,21 +52,11 @@ frame_count = 0
 bytes_in = 0
 color_wheel = 0
 
-def draw_dotted_circle(cx, cy, radius):
-    """Draw dotted circle"""
-    steps = int(radius * 6.28)  # More dots for larger circles
-    for i in range(0, steps, 3):  # Every 3rd step
-        angle = (i / steps) * 2 * math.pi
-        x = int(cx + radius * math.cos(angle))
-        y = int(cy + radius * math.sin(angle))
-        if 0 <= x < 128 and 0 <= y < 64:
-            oled.pixel(x, y, 1)
-
 def draw_grid():
     """Draw full-screen grid with range circles"""
     # Draw dotted range circles from bottom center
     for r in RADII:
-        draw_dotted_circle(CX, CY, r)
+        draw_dotted_circle(oled, CX, CY, r)
     
     # Draw horizontal baseline
     oled.line(0, CY, 127, CY, 1)
