@@ -3,7 +3,7 @@
 
 import time, math
 import board, busio, neopixel
-from shared.ui_utils import draw_dotted_circle
+from shared.ui_utils import draw_dotted_circle, map_xy
 import adafruit_ssd1306
 from utils import s16_le
 
@@ -23,10 +23,6 @@ SYNC_ADV = b"\xAA\x55"
 CX, CY = 64, 63
 RADII = [20, 40, 60]
 
-def map_xy(x_mm, y_mm):
-    sx = int(max(0, min(127, (x_mm + 3000) * 127 / 6000)))
-    sy = int(max(0, min(63, 63 - (y_mm * 63 / 6000))))
-    return sx, sy
 
 targets = []
 buffer = bytearray()
@@ -98,11 +94,9 @@ while True:
     
     # Try BASIC protocol (0xAA 0xFF 0x03 0x00 ... 0x55 0xCC)
     while len(buffer) >= 30:
-        try:
-            idx = buffer.index(SYNC_BASIC)
-        except ValueError:
+        idx = buffer.find(SYNC_BASIC)
+        if idx < 0:
             break
-        
         if idx > 0:
             buffer = buffer[idx:]
         
@@ -126,8 +120,8 @@ while True:
                 y = s16_le(frame[offset + 2], frame[offset + 3])
                 
                 if x != 0 or y != 0:
-                    dist = int(math.sqrt(x * x + y * y))
-                    if 100 < dist < 8000:
+                    dist_sq = x * x + y * y
+                    if 10000 < dist_sq < 64000000:
                         new_targets.append((x, y, 0, t_idx))
             
             # Update targets
@@ -137,7 +131,7 @@ while True:
                 ox, oy, oa, oi = old
                 dup = False
                 for nx, ny, _, _ in new_targets:
-                    if math.sqrt((ox - nx)**2 + (oy - ny)**2) < 300:
+                    if ((ox - nx)**2 + (oy - ny)**2) < 90000:
                         dup = True
                         break
                 if not dup:
@@ -148,11 +142,9 @@ while True:
     
     # Try Advanced protocol (0xAA 0x55)
     while len(buffer) >= 10:
-        try:
-            idx = buffer.index(SYNC_ADV)
-        except ValueError:
+        idx = buffer.find(SYNC_ADV)
+        if idx < 0:
             break
-        
         if idx > 0:
             buffer = buffer[idx:]
         
@@ -181,8 +173,8 @@ while True:
                 if offset + 6 <= len(frame) - 2:
                     x = s16_le(frame[offset], frame[offset + 1])
                     y = s16_le(frame[offset + 2], frame[offset + 3])
-                    dist = int(math.sqrt(x * x + y * y))
-                    if 100 < dist < 8000:
+                    dist_sq = x * x + y * y
+                    if 10000 < dist_sq < 64000000:
                         new_targets.append((x, y, 0, t_idx))
                     offset += 6
             
@@ -193,7 +185,7 @@ while True:
                 ox, oy, oa, oi = old
                 dup = False
                 for nx, ny, _, _ in new_targets:
-                    if math.sqrt((ox - nx)**2 + (oy - ny)**2) < 300:
+                    if ((ox - nx)**2 + (oy - ny)**2) < 90000:
                         dup = True
                         break
                 if not dup:

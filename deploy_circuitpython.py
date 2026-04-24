@@ -4,9 +4,49 @@ CircuitPython Code Deployment Utility
 Deploys CircuitPython code to ESP32 via serial REPL
 """
 import serial
+import serial.tools.list_ports
 import time
 import os
 import sys
+import re
+
+
+def is_valid_port(port):
+    """Validate if the port is a safe serial port pattern or an available port."""
+    available_ports = [p.device for p in serial.tools.list_ports.comports()]
+    if port in available_ports:
+        return True
+
+    windows_pattern = re.compile(r'^COM[1-9][0-9]*$')
+    unix_pattern = re.compile(r'^/dev/(tty|cu)[a-zA-Z0-9_.-]+$')
+
+    if windows_pattern.match(port) or unix_pattern.match(port):
+        return True
+
+    return False
+
+def get_default_port():
+    """Find an available port to use as default, or fallback to COM5."""
+    available_ports = serial.tools.list_ports.comports()
+    if available_ports:
+        return available_ports[0].device
+    return "COM5"
+
+def find_serial_port():
+    """Prompt user for COM port or auto-detect with validation."""
+    default_port = get_default_port()
+
+    while True:
+        port = input(f"Enter COM port (e.g., {default_port}) or press Enter to use {default_port}: ").strip()
+        port = port if port else default_port
+
+        if is_valid_port(port):
+            return port
+
+        print(f"Warning: '{port}' does not appear to be a valid or safe serial port path.")
+        action = input("Enter 'r' to retry, or 'q' to quit: ").strip().lower()
+        if action == 'q':
+            sys.exit(0)
 
 def list_circuitpython_files(base_dir):
     """List available CircuitPython code files"""
@@ -140,9 +180,8 @@ def main():
             return 0
     
     # Get COM port
-    port = input("\nEnter COM port (e.g., COM5): ").strip().upper()
-    if not port.startswith("COM"):
-        port = "COM" + port
+    print()
+    port = find_serial_port()
     
     # Get monitoring duration
     try:

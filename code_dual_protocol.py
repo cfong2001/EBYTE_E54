@@ -5,7 +5,7 @@
 import board
 import busio
 import time
-from shared.ui_utils import draw_dotted_circle
+from shared.ui_utils import draw_dotted_circle, map_xy
 import adafruit_ssd1306
 import neopixel
 import math
@@ -174,9 +174,10 @@ def parse_basic_frame(frame):
         y = s16_le(frame[offset + 2], frame[offset + 3])
         
         if x != 0 or y != 0:
-            dist = int(math.sqrt(x * x + y * y))
-            if 500 < dist < 10000:
+            dist_sq = x * x + y * y
+            if 250000 < dist_sq < 100000000:
                 new_targets.append((x, y, 0, i))
+                dist = math.sqrt(dist_sq)
                 print(f"B-T{i+1}: {dist/1000:.2f}m")
     
     # Age existing targets
@@ -216,9 +217,10 @@ def parse_advanced_frame(frame):
         y = s16_le(frame[offset + 2], frame[offset + 3])
         
         if x != 0 or y != 0:
-            dist = int(math.sqrt(x * x + y * y))
-            if 500 < dist < 10000:
+            dist_sq = x * x + y * y
+            if 250000 < dist_sq < 100000000:
                 new_targets.append((x, y, 0, target_idx))
+                dist = math.sqrt(dist_sq)
                 print(f"A-T{target_idx+1}: {dist/1000:.2f}m")
                 target_idx += 1
         
@@ -246,41 +248,37 @@ while True:
         found_frame = False
         
         # Try Basic Mode (0xAA 0xFF)
-        try:
-            idx = buffer.index(b'\xAA\xFF')
-            if idx >= 0:
-                if idx > 0:
+        idx = buffer.find(b'\xAA\xFF')
+        if idx >= 0:
+            if idx > 0:
                     buffer = buffer[idx:]
                 
-                if len(buffer) >= 30:
-                    frame = buffer[0:30]
-                    if parse_basic_frame(frame):
-                        buffer = buffer[30:]
-                        frame_count += 1
-                        found_frame = True
-                        break
-        except ValueError:
-            pass
+            if len(buffer) >= 30:
+                frame = buffer[0:30]
+                if parse_basic_frame(frame):
+                    buffer = buffer[30:]
+                    frame_count += 1
+                    found_frame = True
+                    break
+        # removed except
         
         # Try Advanced Mode (0xAA 0x55)
         if not found_frame:
-            try:
-                idx = buffer.index(b'\xAA\x55')
-                if idx >= 0:
-                    if idx > 0:
+            idx = buffer.find(b'\xAA\x55')
+            if idx >= 0:
+                if idx > 0:
                         buffer = buffer[idx:]
                     
-                    if len(buffer) >= 6:
-                        length = buffer[2] | (buffer[3] << 8)
-                        if len(buffer) >= length:
-                            frame = buffer[0:length]
-                            if parse_advanced_frame(frame):
-                                buffer = buffer[length:]
-                                frame_count += 1
-                                found_frame = True
-                                break
-            except ValueError:
-                pass
+                if len(buffer) >= 6:
+                    length = buffer[2] | (buffer[3] << 8)
+                    if len(buffer) >= length:
+                        frame = buffer[0:length]
+                        if parse_advanced_frame(frame):
+                            buffer = buffer[length:]
+                            frame_count += 1
+                            found_frame = True
+                            break
+
         
         # No sync found, discard first byte
         if not found_frame:
@@ -295,7 +293,7 @@ while True:
         last_draw = now
         
         # Update NeoPixel status
-        if len([t for t in targets if t[2] < 5]) > 0:
+        if sum(1 for t in targets if t[2] < 5) > 0:
             pixel.fill((50, 0, 0))  # Red when targets detected
         elif protocol_mode:
             pixel.fill((0, 50, 0))  # Green when protocol detected

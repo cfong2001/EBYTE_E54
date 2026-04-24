@@ -38,12 +38,10 @@ while True:
         
         # Look for valid frames
         while len(buffer) >= 30:
-            try:
-                idx = buffer.index(b'\xAA\xFF')
-            except ValueError:
+            idx = buffer.find(b'\xAA\xFF')
+            if idx < 0:
                 buffer = bytearray()
                 break
-            
             if idx > 0:
                 buffer = buffer[idx:]
             

@@ -58,18 +58,16 @@ while True:
     # Check for protocol signatures
     if len(buffer) >= 2:
         # Scan for Basic protocol (0xAA 0xFF)
-        try:
-            idx = buffer.index(SYNC_BASIC)
+        idx = buffer.find(SYNC_BASIC)
+        if idx >= 0:
             basic_count += 1
-        except ValueError:
-            pass
+        # removed except
         
         # Scan for Advanced protocol (0xAA 0x55)
-        try:
-            idx = buffer.index(SYNC_ADVANCED)
+        idx = buffer.find(SYNC_ADVANCED)
+        if idx >= 0:
             advanced_count += 1
-        except ValueError:
-            pass
+        # removed except
     
     # Update display every 0.5 seconds
     if now - last_display > 0.5:
@@ -110,8 +108,8 @@ while True:
             
             # Try to parse if we see Advanced protocol
             if advanced_count > 0 and len(buffer) >= 10:
-                try:
-                    idx = buffer.index(SYNC_ADVANCED)
+                idx = buffer.find(SYNC_ADVANCED)
+                if idx >= 0:
                     if idx + 6 < len(buffer):
                         length = buffer[idx + 2] | (buffer[idx + 3] << 8)
                         cmd = buffer[idx + 4]
@@ -123,12 +121,14 @@ while True:
                             
                             # Try to extract first target
                             if count > 0 and idx + 13 < len(buffer):
-                                offset = idx + 7
-                                x = s16_le(buffer[offset], buffer[offset + 1])
-                                y = s16_le(buffer[offset + 2], buffer[offset + 3])
-                                print("Target 1: X=%dmm Y=%dmm" % (x, y))
-                except Exception as e:
-                    print("Parse error: %s" % str(e))
+                                try:
+                                    offset = idx + 7
+                                    x = s16_le(buffer[offset], buffer[offset + 1])
+                                    y = s16_le(buffer[offset + 2], buffer[offset + 3])
+                                    print("Target 1: X=%dmm Y=%dmm" % (x, y))
+                                except Exception as e:
+                                    print("Parse error: %s" % str(e))
+
         else:
             print("NO UART DATA - check connections!")
             print("  Radar TX -> ESP32 IO44")

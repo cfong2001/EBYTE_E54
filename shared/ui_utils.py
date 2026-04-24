@@ -44,3 +44,12 @@ def draw_dotted_circle(display, cx, cy, r, start_angle_deg=0, end_angle_deg=360,
             # We assume brightness is used as color for TFT or just 1 for monochrome.
             color = int(brightness) if isinstance(brightness, (int, float)) and brightness > 1 else 1
             display.pixel(x, y, color)
+
+def map_xy(x_mm, y_mm, display_width=128, display_height=64, max_range_mm=6000):
+    """
+    Map radar coordinates to screen coordinates.
+    Assumes X is horizontal (centered) and Y is vertical (distance).
+    """
+    sx = int(max(0, min(display_width - 1, (x_mm + max_range_mm/2) * (display_width - 1) / max_range_mm)))
+    sy = int(max(0, min(display_height - 1, (display_height - 1) - (y_mm * (display_height - 1) / max_range_mm))))
+    return sx, sy

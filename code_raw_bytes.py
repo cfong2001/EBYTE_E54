@@ -47,13 +47,13 @@ while True:
             # Look for common patterns
             print("\nSearching for sync patterns...")
             if b"\xAA\xFF" in buffer:
-                idx = buffer.index(b"\xAA\xFF")
+                idx = buffer.find(b"\xAA\xFF")
                 print("  Found 0xAA 0xFF (BASIC) at byte %d" % idx)
             if b"\xAA\x55" in buffer:
-                idx = buffer.index(b"\xAA\x55")
+                idx = buffer.find(b"\xAA\x55")
                 print("  Found 0xAA 0x55 (ADVANCED) at byte %d" % idx)
             if b"\xF4\xF3\xF2\xF1" in buffer:
-                idx = buffer.index(b"\xF4\xF3\xF2\xF1")
+                idx = buffer.find(b"\xF4\xF3\xF2\xF1")
                 print("  Found 0xF4 0xF3 0xF2 0xF1 (ALT) at byte %d" % idx)
             
             # Keep reasonable buffer size
