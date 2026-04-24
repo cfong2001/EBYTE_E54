@@ -72,10 +72,12 @@ def draw_sweep_to_target(x_mm, y_mm):
     
     if 0 <= angle_deg <= 180:
         # Draw line from center to max range in target direction
+        angle = math.radians(angle_deg - 90)
+        cos_a = math.cos(angle)
+        sin_a = math.sin(angle)
         for r in range(0, RADII[-1] + 1, 2):
-            angle = math.radians(angle_deg - 90)
-            x = int(CX + r * math.cos(angle))
-            y = int(CY + r * math.sin(angle))
+            x = int(CX + r * cos_a)
+            y = int(CY + r * sin_a)
             if 0 <= x < 128 and 0 <= y < 64:
                 oled.pixel(x, y, 1)
 
