@@ -5,6 +5,7 @@
 import time, math
 import board, busio, neopixel
 import adafruit_ssd1306
+from utils import ld2450_s16
 
 # Hardware
 i2c = board.STEMMA_I2C()
@@ -18,18 +19,6 @@ print("HLK-LD2450 Radar - Basic Protocol")
 SYNC = b"\xAA\xFF\x03\x00"
 FOOTER = b"\x55\xCC"
 FRAME_SIZE = 30
-
-def _s16_le(b0, b1):
-    """Convert little-endian signed int16 per LD2450 protocol
-    Protocol spec: highest bit 1=positive, 0=negative (inverted from standard)
-    """
-    v = b0 | (b1 << 8)
-    # Per protocol: if highest bit is 1, value is positive
-    # If highest bit is 0, negate the value
-    if v & 0x8000:
-        return v - 0x8000  # Positive: remove sign bit
-    else:
-        return -v if v != 0 else 0  # Negative: negate the value
 
 # Display - Full screen
 CX, CY = 64, 63
@@ -161,9 +150,9 @@ while True:
                 # Bytes 4-5: Speed (signed int16, little-endian)
                 # Bytes 6-7: Distance resolution (uint16, little-endian)
                 
-                x = _s16_le(frame[offset], frame[offset + 1])
-                y = _s16_le(frame[offset + 2], frame[offset + 3])
-                # speed = _s16_le(frame[offset + 4], frame[offset + 5])  # Not used for display
+                x = ld2450_s16(frame[offset], frame[offset + 1])
+                y = ld2450_s16(frame[offset + 2], frame[offset + 3])
+                # speed = ld2450_s16(frame[offset + 4], frame[offset + 5])  # Not used for display
                 # resolution = frame[offset + 6] | (frame[offset + 7] << 8)
                 
                 # Target exists if not all zeros

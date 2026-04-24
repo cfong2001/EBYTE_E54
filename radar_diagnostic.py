@@ -5,6 +5,7 @@ import board
 import busio
 import time
 import neopixel
+from utils import s16_le
 
 # Initialize hardware
 uart = busio.UART(board.IO43, board.IO44, baudrate=256000, receiver_buffer_size=4096, timeout=0)
@@ -59,10 +60,8 @@ while True:
                 
                 # Parse targets
                 for i, offset in enumerate([4, 12, 20]):
-                    x = frame[offset] | (frame[offset+1] << 8)
-                    y = frame[offset+2] | (frame[offset+3] << 8)
-                    if x >= 32768: x -= 65536
-                    if y >= 32768: y -= 65536
+                    x = s16_le(frame[offset], frame[offset+1])
+                    y = s16_le(frame[offset+2], frame[offset+3])
                     
                     if x != 0 or y != 0:
                         import math

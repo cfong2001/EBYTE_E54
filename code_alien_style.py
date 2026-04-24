@@ -8,17 +8,13 @@ import time
 import adafruit_ssd1306
 import neopixel
 import math
+from utils import s16_le
 
 # Initialize hardware
 i2c = board.STEMMA_I2C()
 oled = adafruit_ssd1306.SSD1306_I2C(128, 64, i2c, addr=0x3D)
 uart = busio.UART(board.IO43, board.IO44, baudrate=256000, receiver_buffer_size=4096, timeout=0)
 pixel = neopixel.NeoPixel(board.NEOPIXEL, 1, brightness=0.3)
-
-def s16(b0, b1):
-    """Convert two bytes to signed 16-bit integer"""
-    v = b0 | (b1 << 8)
-    return v - 65536 if v >= 32768 else v
 
 # Display configuration - Alien Tracker style
 CX, CY = 64, 35  # Center positioned for text area at bottom
@@ -195,9 +191,9 @@ def process_radar_frame(frame):
     # Parse 3 targets (8 bytes each, starting at byte 4)
     new_targets = []
     for i, offset in enumerate([4, 12, 20]):
-        x = s16(frame[offset], frame[offset + 1])
-        y = s16(frame[offset + 2], frame[offset + 3])
-        speed = s16(frame[offset + 4], frame[offset + 5])
+        x = s16_le(frame[offset], frame[offset + 1])
+        y = s16_le(frame[offset + 2], frame[offset + 3])
+        speed = s16_le(frame[offset + 4], frame[offset + 5])
         
         # Only add if valid (non-zero)
         if x != 0 or y != 0:

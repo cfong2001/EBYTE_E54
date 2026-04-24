@@ -5,6 +5,7 @@
 import time, gc, math
 import board, busio, neopixel
 import adafruit_ssd1306
+from utils import s16_le
 
 # ----------------- Hardware config -----------------
 i2c = board.STEMMA_I2C()
@@ -19,10 +20,6 @@ print("Full Screen Radar - Advanced Protocol")
 
 # ----------------- Protocol -----------------
 SYNC = b"\xAA\x55"
-
-def _s16_le(b0, b1):
-    v = b0 | (b1 << 8)
-    return v - 0x10000 if v & 0x8000 else v
 
 # ----------------- Display Config - FULL SCREEN -----------------
 # Center at bottom of screen like your working code
@@ -188,9 +185,9 @@ while True:
             
             for target_idx in range(count):
                 if offset + 6 <= len(frame) - 2:
-                    x = _s16_le(frame[offset], frame[offset + 1])
-                    y = _s16_le(frame[offset + 2], frame[offset + 3])
-                    # v = _s16_le(frame[offset + 4], frame[offset + 5])  # velocity not used
+                    x = s16_le(frame[offset], frame[offset + 1])
+                    y = s16_le(frame[offset + 2], frame[offset + 3])
+                    # v = s16_le(frame[offset + 4], frame[offset + 5])  # velocity not used
                     
                     # Filter valid targets
                     dist = int(math.sqrt(x * x + y * y))
