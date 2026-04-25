@@ -10,18 +10,34 @@
 // State of the application
 enum AppState {
     STATE_RADAR_VIEW,
-    STATE_MENU
+    STATE_MENU,
+    STATE_MENU_EDIT
+};
+
+enum ThemeStyle {
+    THEME_STANDARD,
+    THEME_ALIEN,
+    THEME_MINIMAL
 };
 
 class UIManager {
 public:
-    UIManager(TFT_eSPI& display) : tft(display) {
+    UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
         state = STATE_RADAR_VIEW;
         menuSelection = 0;
+
+        // Default Settings
+        theme = THEME_ALIEN;
+        sweepLineEnabled = true;
+        trailLength = 5;
+        gridEnabled = true;
         sensitivity = 5;
         locationAveraging = 5;
-        interpolationAmount = 0.5f; // New Setting
+        interpolationAmount = 0.5f;
         actionRequested = 0;
+
+        sweepAngle = 0;
+        menuOverlayY = 0;
 
         // Initialize history
         for (int i=0; i<3; i++) {
@@ -30,35 +46,48 @@ public:
             targetCurrentY[i] = 240.0f;
             lastDrawnX[i] = 120;
             lastDrawnY[i] = 240;
+
+            for (int h=0; h<10; h++) {
+                targetHistoryX[i][h] = 120.0f;
+                targetHistoryY[i][h] = 240.0f;
+            }
         }
     }
 
     void init() {
         tft.init();
         tft.setRotation(1); // landscape
-        tft.fillScreen(TFT_BLACK);
-        tft.setTextColor(TFT_WHITE, TFT_BLACK);
-        drawRadarBackground();
+
+        sprite.createSprite(240, 240);
+        sprite.setSwapBytes(true); // Needed for some TFTs
     }
 
     void handleEncoder(int dir) {
         if (state == STATE_MENU) {
             menuSelection += dir;
-            if (menuSelection < 0) menuSelection = 4;
-            if (menuSelection > 4) menuSelection = 0;
-            drawMenu();
-        } else if (state == STATE_RADAR_VIEW) {
-            // Adjust scale or other view parameters if needed in future
+            if (menuSelection < 0) menuSelection = 8;
+            if (menuSelection > 8) menuSelection = 0;
+        } else if (state == STATE_MENU_EDIT) {
+            executeMenuEdit(dir);
         }
     }
 
     void handleButton() {
         if (state == STATE_RADAR_VIEW) {
             state = STATE_MENU;
-            tft.fillScreen(TFT_BLACK);
-            drawMenu();
+            menuSelection = 0;
+            menuOverlayY = 0; // Reset animation
         } else if (state == STATE_MENU) {
-            executeMenuAction();
+            if (menuSelection == 8) { // Exit
+                state = STATE_RADAR_VIEW;
+            } else if (menuSelection == 7) { // Reset Tracking Action
+                actionRequested = 1;
+                state = STATE_RADAR_VIEW;
+            } else {
+                state = STATE_MENU_EDIT; // Enter edit mode for this setting
+            }
+        } else if (state == STATE_MENU_EDIT) {
+            state = STATE_MENU; // Save and return to menu scroll
         }
     }
 
@@ -95,13 +124,21 @@ public:
 
     // Call this frequently in the main loop to handle animations
     void renderLoop() {
-        if (state != STATE_RADAR_VIEW) return;
-
-        bool needsRedraw = false;
-
-        // 1. Move targets via interpolation
+        // 1. Update target positions via interpolation
         for (int i = 0; i < 3; i++) {
             if (targetActive[i]) {
+                // Save history only if it moved enough (distribute tails evenly)
+                float dHx = targetHistoryX[i][0] - targetCurrentX[i];
+                float dHy = targetHistoryY[i][0] - targetCurrentY[i];
+                if ((dHx*dHx + dHy*dHy) > 10.0f) { // ~3 pixels of movement
+                    for (int h = 9; h > 0; h--) {
+                        targetHistoryX[i][h] = targetHistoryX[i][h-1];
+                        targetHistoryY[i][h] = targetHistoryY[i][h-1];
+                    }
+                    targetHistoryX[i][0] = targetCurrentX[i];
+                    targetHistoryY[i][0] = targetCurrentY[i];
+                }
+
                 float diffX = (float)targetGoalX[i] - targetCurrentX[i];
                 float diffY = (float)targetGoalY[i] - targetCurrentY[i];
 
@@ -113,65 +150,110 @@ public:
                     targetCurrentX[i] += diffX * interpolationAmount;
                     targetCurrentY[i] += diffY * interpolationAmount;
                 }
-            }
-        }
-
-        // 2. Check if we actually need to draw something (to save TFT SPI bandwidth)
-        for (int i = 0; i < 3; i++) {
-            if (targetActive[i]) {
-                int currentScreenX = (int)targetCurrentX[i];
-                int currentScreenY = (int)targetCurrentY[i];
-                if (currentScreenX != lastDrawnX[i] || currentScreenY != lastDrawnY[i]) {
-                    needsRedraw = true;
+            } else if (lastTargetActive[i]) {
+                // Target lost, flush history
+                for (int h = 0; h < 10; h++) {
+                    targetHistoryX[i][h] = -100;
+                    targetHistoryY[i][h] = -100;
                 }
-            } else if (lastTargetActive[i]) { // Became inactive
-                needsRedraw = true;
             }
-        }
-
-        if (!needsRedraw) return;
-
-        // 3. Erase old targets
-        for (int i = 0; i < 3; i++) {
-            if (lastTargetActive[i]) {
-                tft.fillCircle(lastDrawnX[i], lastDrawnY[i], 5, TFT_BLACK);
-                tft.setTextColor(TFT_BLACK, TFT_BLACK);
-                tft.setCursor(lastDrawnX[i] + 8, lastDrawnY[i] - 8);
-                tft.printf("T%d", i + 1);
-            }
-        }
-
-        // Redraw background lines that might have been erased
-        drawRadarBackground();
-
-        // Draw anchor status text
-        if (anchorValid) {
-            tft.setTextColor(TFT_GREEN, TFT_BLACK);
-            tft.setCursor(5, 5);
-            tft.printf("Anchor: (%d, %d)   ", anchorX, anchorY);
-        } else {
-            tft.setTextColor(TFT_RED, TFT_BLACK);
-            tft.setCursor(5, 5);
-            tft.printf("No Anchor          ");
-        }
-
-        // Draw new targets
-        for (int i = 0; i < 3; i++) {
             lastTargetActive[i] = targetActive[i];
+        }
 
-            if (targetActive[i]) {
-                int screenX = (int)targetCurrentX[i];
-                int screenY = (int)targetCurrentY[i];
+        // 2. Clear sprite background
+        sprite.fillSprite(TFT_BLACK);
 
-                tft.fillCircle(screenX, screenY, 5, TFT_RED);
-                tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-                tft.setCursor(screenX + 8, screenY - 8);
-                tft.printf("T%d", i + 1);
+        // 3. Draw background elements
+        if (theme == THEME_MINIMAL) {
+            // Minimal: Just center point and outline
+            if (gridEnabled) {
+                sprite.drawCircle(120, 240, 180, 0x18E3); // Dark Gray
+                sprite.fillCircle(120, 240, 4, 0x18E3);
+            }
+        } else {
+            drawRadarBackground();
+        }
 
-                lastDrawnX[i] = screenX;
-                lastDrawnY[i] = screenY;
+        // 4. Draw Sweeping line
+        if (sweepLineEnabled && theme != THEME_MINIMAL) {
+            sweepAngle = (sweepAngle + 4) % 180;
+            float rad = (sweepAngle - 180) * 0.0174533f; // radians
+            uint16_t sweepColor = (theme == THEME_ALIEN) ? TFT_GREEN : TFT_DARKGREY;
+
+            // Draw a subtle wedge for trail
+            for (int a = 0; a < 15; a += 3) {
+                float tr = (sweepAngle - a - 180) * 0.0174533f;
+                int tx = 120 + 180 * cos(tr);
+                int ty = 240 + 180 * sin(tr);
+                // Simple alpha blending fake
+                uint16_t trailCol = sprite.alphaBlend((15-a)*17, sweepColor, TFT_BLACK);
+                sprite.drawLine(120, 240, tx, ty, trailCol);
             }
         }
+
+        // 5. Draw targets
+        for (int i = 0; i < 3; i++) {
+            if (targetActive[i]) {
+                int cx = (int)targetCurrentX[i];
+                int cy = (int)targetCurrentY[i];
+
+                uint16_t color = TFT_RED;
+                if (theme == THEME_ALIEN) color = TFT_GREEN;
+                else if (theme == THEME_MINIMAL) color = TFT_WHITE;
+
+                // Draw trails
+                if (trailLength > 0) {
+                    for (int h = 0; h < trailLength; h++) {
+                        int hx = (int)targetHistoryX[i][h];
+                        int hy = (int)targetHistoryY[i][h];
+                        if (hx > 0 && hy > 0) {
+                            uint8_t alpha = 255 - ((h * 255) / trailLength);
+                            uint16_t tColor = sprite.alphaBlend(alpha, color, TFT_BLACK);
+                            int tr = max(1, 4 - (h / 2));
+                            sprite.fillCircle(hx, hy, tr, tColor);
+                        }
+                    }
+                }
+
+                // Draw main blip
+                if (theme == THEME_ALIEN) {
+                    sprite.drawCircle(cx, cy, 6, color);
+                    sprite.fillCircle(cx, cy, 3, color);
+                } else if (theme == THEME_MINIMAL) {
+                    sprite.fillRect(cx - 3, cy - 3, 7, 7, color);
+                } else {
+                    sprite.fillCircle(cx, cy, 5, color);
+                }
+
+                // Text
+                if (theme != THEME_ALIEN) {
+                    sprite.setTextColor(TFT_YELLOW, TFT_BLACK);
+                    sprite.setCursor(cx + 8, cy - 8);
+                    sprite.printf("T%d", i + 1);
+                }
+            }
+        }
+
+        // 6. Anchor Status Text
+        if (theme != THEME_MINIMAL) {
+            if (anchorValid) {
+                sprite.setTextColor(TFT_GREEN, TFT_BLACK);
+                sprite.setCursor(5, 5);
+                sprite.printf("Anchor: (%d, %d)", anchorX, anchorY);
+            } else {
+                sprite.setTextColor(TFT_RED, TFT_BLACK);
+                sprite.setCursor(5, 5);
+                sprite.printf("No Anchor");
+            }
+        }
+
+        // 7. Draw Overlay Menu if active
+        if (state == STATE_MENU || state == STATE_MENU_EDIT) {
+            drawMenuOverlay();
+        }
+
+        // 8. Push to screen
+        sprite.pushSprite(0, 0);
     }
 
     // Getters for settings
@@ -186,13 +268,24 @@ public:
 
 private:
     TFT_eSPI& tft;
+    TFT_eSprite sprite;
     AppState state;
     int menuSelection;
+    int menuOverlayY;
 
-    // Settings
+    // Visual Settings
+    ThemeStyle theme;
+    bool sweepLineEnabled;
+    int trailLength;       // 0-10
+    bool gridEnabled;
+
+    // Functional Settings
     int sensitivity;       // 1-10
     int locationAveraging; // 1-10
     float interpolationAmount; // 0.1f - 1.0f
+
+    // Rendering vars
+    int sweepAngle;
 
     int actionRequested; // 1=reset
 
@@ -208,75 +301,136 @@ private:
     // Rendering history/animation states
     float targetCurrentX[3];
     float targetCurrentY[3];
+    float targetHistoryX[3][10];
+    float targetHistoryY[3][10];
 
     bool lastTargetActive[3];
     int lastDrawnX[3];
     int lastDrawnY[3];
 
     void drawRadarBackground() {
-        // Draw arcs for distance
-        tft.drawCircle(120, 240, 60, TFT_DARKGREY);
-        tft.drawCircle(120, 240, 120, TFT_DARKGREY);
-        tft.drawCircle(120, 240, 180, TFT_DARKGREY);
+        uint16_t gridColor = (theme == THEME_ALIEN) ? sprite.color565(0, 50, 0) : TFT_DARKGREY;
 
-        // Draw center line
-        tft.drawLine(120, 240, 120, 0, TFT_DARKGREY);
-        tft.drawLine(120, 240, 0, 120, TFT_DARKGREY);
-        tft.drawLine(120, 240, 240, 120, TFT_DARKGREY);
-    }
-
-    void drawMenu() {
-        tft.fillScreen(TFT_BLACK);
-        tft.setTextColor(TFT_WHITE, TFT_BLACK);
-        tft.setTextSize(2);
-        tft.setCursor(10, 10);
-        tft.println("--- MENU ---");
-
-        int interDisp = (int)(interpolationAmount * 10.0f); // 1 to 10
-        String items[] = {
-            "Return to Radar",
-            "Sensitivity: " + String(sensitivity),
-            "Loc Averaging: " + String(locationAveraging),
-            "Smoothing: " + String(interDisp),
-            "Reset Tracking"
-        };
-
-        for (int i = 0; i < 5; i++) {
-            tft.setCursor(30, 50 + i * 30);
-            if (i == menuSelection) {
-                tft.setTextColor(TFT_BLACK, TFT_WHITE);
+        if (gridEnabled) {
+            // Draw arcs for distance
+            if (theme == THEME_ALIEN) {
+                // Dotted arcs simulate
+                for (int r=60; r<=180; r+=60) {
+                    for (int a=0; a<=180; a+=5) {
+                        float rad = (a - 180) * 0.0174533f;
+                        sprite.drawPixel(120 + r * cos(rad), 240 + r * sin(rad), gridColor);
+                    }
+                }
             } else {
-                tft.setTextColor(TFT_WHITE, TFT_BLACK);
+                sprite.drawCircle(120, 240, 60, gridColor);
+                sprite.drawCircle(120, 240, 120, gridColor);
+                sprite.drawCircle(120, 240, 180, gridColor);
             }
-            tft.println(items[i]);
+
+            // Draw lines
+            sprite.drawLine(120, 240, 120, 60, gridColor);
+            sprite.drawLine(120, 240, 60, 240, gridColor);
+            sprite.drawLine(120, 240, 180, 240, gridColor);
+
+            if (theme == THEME_ALIEN) {
+                // Diagonal lines
+                sprite.drawLine(120, 240, 120 - 120*0.707, 240 - 120*0.707, gridColor);
+                sprite.drawLine(120, 240, 120 + 120*0.707, 240 - 120*0.707, gridColor);
+            }
         }
     }
 
-    void executeMenuAction() {
+    void drawMenuOverlay() {
+        // Slide in animation for overlay
+        if (menuOverlayY < 120) menuOverlayY += 10;
+
+        // Draw a semi-transparent or solid panel on the left/top
+        sprite.fillRect(0, 0, 240, menuOverlayY, sprite.alphaBlend(200, TFT_BLACK, TFT_WHITE));
+        sprite.drawLine(0, menuOverlayY, 240, menuOverlayY, TFT_DARKGREY);
+
+        if (menuOverlayY < 120) return; // Wait for animation
+
+        sprite.setTextSize(1);
+
+        String themeStr = (theme == THEME_STANDARD) ? "Standard" : (theme == THEME_ALIEN ? "Alien" : "Minimal");
+        int interDisp = (int)(interpolationAmount * 10.0f + 0.5f);
+
+        String items[9] = {
+            "Theme: " + themeStr,
+            "Sweep Line: " + String(sweepLineEnabled ? "ON" : "OFF"),
+            "Trails: " + String(trailLength),
+            "Grid: " + String(gridEnabled ? "ON" : "OFF"),
+            "Loc Avg: " + String(locationAveraging),
+            "Sensitivity: " + String(sensitivity),
+            "Smoothing: " + String(interDisp),
+            "[ Reset Tracking ]",
+            "[ Exit Menu ]"
+        };
+
+        // We only have space to show ~4-5 items, implement scrolling
+        int startIdx = max(0, menuSelection - 2);
+        if (startIdx > 3) startIdx = 3;
+
+        for (int i = 0; i < 5; i++) {
+            int idx = startIdx + i;
+            if (idx > 8) break;
+
+            int yPos = 10 + i * 20;
+
+            if (idx == menuSelection) {
+                if (state == STATE_MENU_EDIT) {
+                    sprite.fillRect(5, yPos - 2, 230, 18, TFT_DARKGREY); // Editing highlight
+                    sprite.setTextColor(TFT_GREEN, TFT_DARKGREY);
+                } else {
+                    sprite.fillRect(5, yPos - 2, 230, 18, TFT_WHITE); // Selected highlight
+                    sprite.setTextColor(TFT_BLACK, TFT_WHITE);
+                }
+            } else {
+                sprite.setTextColor(TFT_WHITE, TFT_BLACK); // Normal
+            }
+
+            sprite.setCursor(15, yPos);
+            sprite.print(items[idx]);
+        }
+    }
+
+    void executeMenuEdit(int dir) {
         switch (menuSelection) {
-            case 0:
-                state = STATE_RADAR_VIEW;
-                tft.fillScreen(TFT_BLACK);
-                drawRadarBackground();
+            case 0: { // Theme
+                int t = (int)theme + dir;
+                if (t > 2) t = 0;
+                if (t < 0) t = 2;
+                theme = (ThemeStyle)t;
+                // Apply presets
+                if (theme == THEME_ALIEN) { sweepLineEnabled = true; trailLength = 8; gridEnabled = true; }
+                else if (theme == THEME_MINIMAL) { sweepLineEnabled = false; trailLength = 0; gridEnabled = true; }
+                else { sweepLineEnabled = true; trailLength = 3; gridEnabled = true; }
+                break; }
+            case 1: // Sweep Line
+                sweepLineEnabled = !sweepLineEnabled;
                 break;
-            case 1:
-                sensitivity = (sensitivity % 10) + 1;
-                drawMenu();
+            case 2: // Trails
+                trailLength += dir;
+                if (trailLength < 0) trailLength = 0;
+                if (trailLength > 10) trailLength = 10;
                 break;
-            case 2:
-                locationAveraging = (locationAveraging % 10) + 1;
-                drawMenu();
+            case 3: // Grid
+                gridEnabled = !gridEnabled;
                 break;
-            case 3:
-                interpolationAmount += 0.1f;
-                if (interpolationAmount > 1.05f) interpolationAmount = 0.1f;
-                drawMenu();
+            case 4: // Loc Avg
+                locationAveraging += dir;
+                if (locationAveraging < 1) locationAveraging = 1;
+                if (locationAveraging > 10) locationAveraging = 10;
                 break;
-            case 4:
-                actionRequested = 1; // Signal main loop to reset tracking
-                state = STATE_RADAR_VIEW;
-                tft.fillScreen(TFT_BLACK);
-                drawRadarBackground();
+            case 5: // Sensitivity
+                sensitivity += dir;
+                if (sensitivity < 1) sensitivity = 1;
+                if (sensitivity > 10) sensitivity = 10;
+                break;
+            case 6: // Smoothing
+                interpolationAmount += (dir * 0.1f);
+                if (interpolationAmount < 0.1f) interpolationAmount = 0.1f;
+                if (interpolationAmount > 1.05f) interpolationAmount = 1.0f;
                 break;
         }
     }
