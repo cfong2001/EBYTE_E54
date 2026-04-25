@@ -117,9 +117,10 @@ public:
             }
 
             // Find if there's an anomalous anchor (e.g. one error is much higher)
+            float minErr = min(err[0], min(err[1], err[2]));
             for (int i = 0; i < 3; i++) {
-                // If error is relatively low, keep it
-                if (err[i] < 0.2f) {
+                // If error is relatively low, or close to the minimum (for the 2 stationary ones), keep it
+                if (err[i] < 0.3f || err[i] <= (minErr * 2.0f + 0.1f)) {
                     anchorIndices[validatedAnchors++] = tempAnchorIndices[i];
                 } else {
                     state[tempAnchorIndices[i]].isAnchor = false;
