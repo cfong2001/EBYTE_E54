@@ -81,6 +81,12 @@ void loop() {
         RadarTarget compensatedTargets[3];
         motionComp.process(radar.targets, compensatedTargets);
         ui.updateRadarData(compensatedTargets, motionComp.isAnchorValid(), motionComp.getAnchorX(), motionComp.getAnchorY());
+
+        // Pass motion data (velocity/acceleration) to UI for curved predictive interpolation
+        for (int i = 0; i < 3; i++) {
+            ui.setTargetMotion(i, motionComp.getTargetVelX(i), motionComp.getTargetVelY(i),
+                                  motionComp.getTargetAccX(i), motionComp.getTargetAccY(i));
+        }
     }
 
     // Render loop (decoupled, max frame rate ~30-60Hz)

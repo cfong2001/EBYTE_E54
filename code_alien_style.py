@@ -25,6 +25,7 @@ R_RINGS = [9, 18, 28]  # Ring radii for 2m, 4m, 6m
 
 # Target tracking
 targets = []
+filter_states = {} # State dict for multi-anchor stabilization
 buffer = bytearray()
 frame_count = 0
 last_draw = time.monotonic()
@@ -181,22 +182,27 @@ def process_radar_frame(frame):
         return
     
     # Parse 3 targets (8 bytes each, starting at byte 4)
-    new_targets = []
+    raw_targets = []
     for i, offset in enumerate([4, 12, 20]):
         x = s16_le(frame[offset], frame[offset + 1])
         y = s16_le(frame[offset + 2], frame[offset + 3])
         speed = s16_le(frame[offset + 4], frame[offset + 5])
         
-        # Only add if valid (non-zero)
-        if x != 0 or y != 0:
-            dist_sq = x * x + y * y
+        dist_sq = x * x + y * y
+        if (x != 0 or y != 0) and (250000 < dist_sq < 100000000):
+            raw_targets.append({'id': i, 'active': True, 'x': x, 'y': y, 'speed': speed})
+            dist = math.sqrt(dist_sq)
+            print("T%d: %.2fm X:%d Y:%d Spd:%d" % (i + 1, dist / 1000.0, x, y, speed))
+        else:
+            raw_targets.append({'id': i, 'active': False, 'x': 0, 'y': 0, 'speed': 0})
             
-            # Only track reasonable ranges (0.5m to 10m)
-            if 250000 < dist_sq < 100000000:
-                new_targets.append((x, y, 0, i))
-                
-                # Debug print
-                print("T%d: %.2fm X:%d Y:%d Spd:%d" % (i + 1, dist / 1000.0, x, y, speed))
+    from utils import calculate_multi_anchor_stabilization
+    stabilized = calculate_multi_anchor_stabilization(raw_targets, filter_states, dt=0.1)
+
+    new_targets = []
+    for t in stabilized:
+        if t['active']:
+            new_targets.append((t['x'], t['y'], 0, t['id']))
     
     # Merge new targets with existing (age existing targets)
     aged_targets = []

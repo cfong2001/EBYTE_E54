@@ -62,6 +62,16 @@ public:
         }
     }
 
+    void setTargetMotion(int index, float vx, float vy, float ax, float ay) {
+        if (index >= 0 && index < 3) {
+            // Convert mm/s to screen pixels
+            targetVelX[index] = vx * 120 / 5000;
+            targetVelY[index] = -vy * 240 / 5000; // Y is inverted on screen
+            targetAccX[index] = ax * 120 / 5000;
+            targetAccY[index] = -ay * 240 / 5000;
+        }
+    }
+
     // Call this when new radar data arrives (e.g. 10Hz) to set the goal targets
     void updateRadarData(RadarTarget targets[3], bool anchorValid, int16_t anchorX, int16_t anchorY) {
         this->anchorValid = anchorValid;
@@ -102,6 +112,12 @@ public:
         // 1. Move targets via interpolation
         for (int i = 0; i < 3; i++) {
             if (targetActive[i]) {
+                // To utilize the advanced prediction algorithm (alpha-beta filter velocities)
+                // we calculate a predicted goal based on targetVelX/Y over a time step,
+                // but since updateRadarData sets the "absolute" targetGoalX/Y from the motion
+                // compensated coordinates, we simply smoothly interpolate towards the goal, potentially
+                // using the velocity vector to curve or predict the path.
+
                 float diffX = (float)targetGoalX[i] - targetCurrentX[i];
                 float diffY = (float)targetGoalY[i] - targetCurrentY[i];
 
@@ -110,8 +126,16 @@ public:
                     targetCurrentX[i] = (float)targetGoalX[i];
                     targetCurrentY[i] = (float)targetGoalY[i];
                 } else {
-                    targetCurrentX[i] += diffX * interpolationAmount;
-                    targetCurrentY[i] += diffY * interpolationAmount;
+                    // Combine standard linear interpolation with curved predictive velocity/acceleration feed-forward
+                    // Approximates the next position step using velocity + acceleration curve
+                    float t = 0.03f; // DT ~30ms render loop
+                    float t_sq_half = (t * t) * 0.5f;
+
+                    float curveForwardX = (targetVelX[i] * t) + (targetAccX[i] * t_sq_half);
+                    float curveForwardY = (targetVelY[i] * t) + (targetAccY[i] * t_sq_half);
+
+                    targetCurrentX[i] += (diffX * interpolationAmount) + curveForwardX;
+                    targetCurrentY[i] += (diffY * interpolationAmount) + curveForwardY;
                 }
             }
         }
@@ -208,6 +232,10 @@ private:
     // Rendering history/animation states
     float targetCurrentX[3];
     float targetCurrentY[3];
+    float targetVelX[3];
+    float targetVelY[3];
+    float targetAccX[3];
+    float targetAccY[3];
 
     bool lastTargetActive[3];
     int lastDrawnX[3];
