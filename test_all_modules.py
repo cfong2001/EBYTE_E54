@@ -85,17 +85,96 @@ def test_map_xy():
 
     logger.info("  ✓ map_xy tests passed!")
 
+def test_multi_anchor_stabilization():
+    """Test 3D multi-anchor stabilization math with dynamic number of anchors"""
+    from utils import calculate_multi_anchor_stabilization
+    import math
+
+    logger.info("Running multi_anchor_stabilization tests...")
+
+    state_dict = {}
+
+    # Initial frame: 3 static targets (Anchors)
+    frame1 = [
+        {'id': 0, 'active': True, 'x': -1000, 'y': 2000, 'speed': 0},
+        {'id': 1, 'active': True, 'x': 1000, 'y': 2000, 'speed': 0},
+        {'id': 2, 'active': True, 'x': 0, 'y': 3000, 'speed': 0}
+    ]
+
+    stab1 = calculate_multi_anchor_stabilization(frame1, state_dict, dt=0.1)
+
+    # Verify initial initialization passes cleanly
+    for s in stab1:
+        assert s['active'], "Target should be active"
+
+    # Frame 2: Sensor translates +500mm X, +500mm Y (so targets appear to move -500, -500)
+    frame2 = [
+        {'id': 0, 'active': True, 'x': -1500, 'y': 1500, 'speed': 0},
+        {'id': 1, 'active': True, 'x': 500, 'y': 1500, 'speed': 0},
+        {'id': 2, 'active': True, 'x': -500, 'y': 2500, 'speed': 0}
+    ]
+
+    stab2 = calculate_multi_anchor_stabilization(frame2, state_dict, dt=0.1)
+
+    # Because they are anchors moving together, the algorithm should reject the uniform translation
+    # and pull them back toward their original positions (filtering lag applies, but direction should be correct)
+    for i in range(3):
+        # We expect the stabilized X to be closer to frame1 X than frame2 X
+        dist_f1 = abs(stab2[i]['x'] - frame1[i]['x'])
+        dist_f2 = abs(stab2[i]['x'] - frame2[i]['x'])
+        assert dist_f1 < dist_f2, f"Target {i} translation not rejected! stab: {stab2[i]['x']} orig: {frame1[i]['x']} raw: {frame2[i]['x']}"
+
+    # Frame 3: One target drops out (simulated loss). Handover test.
+    frame3 = [
+        {'id': 0, 'active': True, 'x': -1500, 'y': 1500, 'speed': 0},
+        {'id': 1, 'active': True, 'x': 500, 'y': 1500, 'speed': 0},
+        {'id': 2, 'active': False, 'x': 0, 'y': 0, 'speed': 0}
+    ]
+
+    stab3 = calculate_multi_anchor_stabilization(frame3, state_dict, dt=0.1)
+    assert not stab3[2]['active'], "Dropped target should be inactive"
+
+    # The remaining two anchors should still be able to reject rotation and translation
+
+    # Frame 4: Sensor Rotates (Yaw twist). Targets appear to rotate around the centroid
+    # Let's artificially rotate the raw points by ~90 degrees counter-clockwise around the origin
+    # to test extreme mathematical handling (though unrealistic for 1 frame)
+    frame4 = [
+        {'id': 0, 'active': True, 'x': -1500, 'y': -1500, 'speed': 0},
+        {'id': 1, 'active': True, 'x': -1500, 'y': 500, 'speed': 0},
+        {'id': 2, 'active': False, 'x': 0, 'y': 0, 'speed': 0}
+    ]
+
+    stab4 = calculate_multi_anchor_stabilization(frame4, state_dict, dt=0.1)
+
+    # Ensure no math errors (like divide by zero or sqrt of negative) occurred and output is valid float
+    assert not math.isnan(stab4[0]['x']), "NaN in stabilized math"
+    assert not math.isnan(stab4[0]['y']), "NaN in stabilized math"
+
+    # Frame 5: Zero anchors (all targets moving fast). Should fallback gracefully
+    frame5 = [
+        {'id': 0, 'active': True, 'x': -1500, 'y': -1500, 'speed': 200},
+        {'id': 1, 'active': True, 'x': -1500, 'y': 500, 'speed': 200},
+        {'id': 2, 'active': False, 'x': 0, 'y': 0, 'speed': 0}
+    ]
+    stab5 = calculate_multi_anchor_stabilization(frame5, state_dict, dt=0.1)
+
+    assert stab5[0]['x'] == frame5[0]['x'], "Zero anchors should pass raw coordinate through to filter"
+
+    logger.info("  ✓ multi_anchor_stabilization tests passed!")
+
 def main():
     parser = argparse.ArgumentParser(description="Test HLK-LD2450 utility modules")
     parser.add_argument("--s16", action="store_true", help="Run only s16_le tests")
     parser.add_argument("--ld2450", action="store_true", help="Run only ld2450_s16 tests")
     parser.add_argument("--map", action="store_true", help="Run only map_xy tests")
+    parser.add_argument("--multi", action="store_true", help="Run only multi_anchor tests")
     parser.add_argument("--all", action="store_true", help="Run all tests")
 
     args = parser.parse_args()
 
     # Default to all if nothing selected
-    if not any([args.s16, args.ld2450, args.map, args.all]):
+    if not any([args.s16, args.ld2450, args.map, args.multi, args.all]):
         args.all = True
 
     try:
@@ -107,6 +186,9 @@ def main():
 
         if args.all or args.map:
             test_map_xy()
+
+        if args.all or args.multi:
+            test_multi_anchor_stabilization()
 
         logger.info("\nAll selected tests executed successfully.")
 
