@@ -1,186 +1,122 @@
 # ESP32 Radar Tracker with HLK-LD2450
 
-Real-time radar tracking system using the HLK-LD2450 24GHz mmWave radar sensor with OLED display visualization. Features both Arduino and CircuitPython implementations for the ESP32-S3.
+## Project Description
 
-## 🎯 Features
+The ESP32 Radar Tracker is a real-time radar tracking system utilizing the HLK-LD2450 24GHz mmWave radar sensor. It processes and visualizes target position data on an OLED or TFT display. The system features dual platform support, offering implementations in both C++ (PlatformIO framework) for optimal performance and CircuitPython for secondary prototyping and alternative visual interfaces. The core tracking system supports up to three simultaneous targets, interpolating their positions and compensating for motion.
 
-- **Multi-Target Tracking**: Simultaneously tracks up to 3 targets with X/Y coordinates
-- **Real-time Visualization**: OLED display with animated radar sweep and target positions
-- **Dual Platform Support**: 
-  - Arduino C++ with optimized performance
-  - CircuitPython with multiple visualization modes
-- **Multiple Visualization Modes**:
-  - Classic radar sweep display
-  - Alien-style animated tracking
-  - Diagnostic data output
-  - Raw protocol debugging
+## Hardware Requirements
 
-## 📡 Hardware Requirements
+- **Microcontroller**: ESP32-S3 (Tested on generic ESP32-S3 DevKitC-1 boards) or standard ESP32 (esp32dev).
+- **Radar Sensor**: HLK-LD2450 24GHz mmWave Radar Sensor.
+- **Display**: 0.96" OLED (128x64, I2C, SSD1306) or compatible SPI TFT display.
+- **Input**: Push-button rotary encoder, additional momentary push-button.
 
-- **ESP32-S3** (tested on ProS3 board)
-- **HLK-LD2450** 24GHz mmWave Radar Sensor
-- **0.96" OLED Display** (128x64, I2C, SSD1306)
-- USB-C cable for programming and power
+## Pinouts
 
-### Wiring Diagram
+The standard wiring configuration is as follows. Note that these may vary depending on the chosen board definition in the firmware configuration.
 
-**Radar to ESP32:**
-- TX → RX (GPIO 44)
-- RX → TX (GPIO 43)
-- VCC → 5V
-- GND → GND
+**Radar (HLK-LD2450) to ESP32:**
+- TX (Sensor) -> RX (ESP32 GPIO 16)
+- RX (Sensor) -> TX (ESP32 GPIO 17)
+- VCC -> 5V
+- GND -> GND
 
-**OLED to ESP32:**
-- SDA → GPIO 8
-- SCL → GPIO 9
-- VCC → 3.3V
-- GND → GND
+**TFT Display (SPI - ESP32-S3 default):**
+- MOSI -> GPIO 11
+- SCLK -> GPIO 12
+- CS -> GPIO 10
+- DC -> GPIO 9
+- RST -> GPIO 14
 
-## 🚀 Quick Start
+**Input Devices:**
+- Encoder Pin A -> GPIO 25
+- Encoder Pin B -> GPIO 26
+- Main Button -> GPIO 27
 
-### Arduino Setup
+## Folder Overview
 
-1. Install Arduino IDE with ESP32 support
-2. Install required libraries:
-   - Adafruit SSD1306
-   - Adafruit GFX Library
-3. Open `arduino/ESP32_Radar_Tracker.ino`
-4. Select board: **ESP32-S3 Dev Module**
-5. Upload to your ESP32
+The repository is structured to strictly separate hardware implementations, testing tools, and documentation.
 
-### CircuitPython Setup
+- `arduino/`: Contains C++ projects intended for compilation via the PlatformIO framework.
+- `circuitpython/`: Contains Python scripts for deployment directly to devices running the CircuitPython runtime.
+- `utils/`: Contains PC-side testing tools, deployment scripts, and shared functionality definitions.
+- `shared/`: Contains UI logic shared across different visualization modes.
+- `src/`: Core C++ source files, including system initialization and main loop logic.
+- `docs/`: Reference documentation, manuals, and protocol specifications.
 
-1. Install CircuitPython 9.x on your ESP32-S3
-2. Install required libraries on device:
-   - adafruit_displayio_ssd1306
-   - adafruit_display_text
-3. Choose a visualization mode from `circuitpython/` folder
-4. Deploy using the utility tool:
+## Build/Installation Guide
 
-```powershell
-python utils/deploy_circuitpython.py
-```
+### C++ (PlatformIO) Build Instructions
 
-Available CircuitPython modes:
-- `code_correct_protocol.py` - Standard radar sweep display
-- `code_alien_style.py` - Sci-fi animated tracking
-- `code_dual_both.py` - Dual protocol support
-- `code_diagnostic.py` - Debug output
-- `code_realtime_sweep.py` - Fast refresh radar sweep
+The primary build environment utilizes PlatformIO.
 
-## 🛠️ Utilities
+1. Ensure Python 3 is installed on your system.
+2. Install the PlatformIO core:
+   `python3 -m pip install platformio`
+3. Navigate to the root directory of the repository.
+4. Compile the project for the target board using the specified environment:
+   `pio run -e esp32-s3`
+   (Substitute `esp32dev` if using the older generation hardware).
+5. Upload the compiled firmware to the microcontroller:
+   `pio run -e esp32-s3 -t upload`
 
-### Serial Monitor
-Monitor ESP32 serial output in real-time:
-```powershell
-python utils/serial_monitor.py
-```
+### CircuitPython Deployment Instructions
 
-### Code Deployment
-Deploy CircuitPython code to ESP32:
-```powershell
-python utils/deploy_circuitpython.py
-```
+If you intend to run the CircuitPython implementation, deploy scripts using the utility tool:
 
-See [utils/README.md](utils/README.md) for detailed utility documentation.
+`python3 utils/deploy_circuitpython.py`
 
-## 📊 HLK-LD2450 Sensor Details
+When using CircuitPython, hardware-specific scripts can be syntax checked locally using:
+`python3 -m py_compile <filename.py>`
 
-- **Detection Range**: 0-6 meters
-- **Angle Coverage**: ±60°
-- **Maximum Targets**: 3 simultaneous
-- **Protocol**: UART (115200 baud)
-- **Update Rate**: ~10 Hz
-- **Technology**: 24GHz FMCW radar
+After executing tests or local py_compile checks, remove artifacts using `rm -rf __pycache__` to prevent bytecode contamination.
 
-## 🎨 Visualization Modes
+## Build Flags
 
-### Arduino Version
-- Clean radar sweep with target markers
-- Distance and position text overlay
-- 128x64 optimized graphics
+The project configuration (`platformio.ini`) requires specific build flags to function correctly with the underlying libraries, specifically for the display driver and USB configurations.
 
-### CircuitPython Versions
+### `esp32dev` Environment Build Flags
+- `-DUSER_SETUP_LOADED=1`
+- `-DST7789_DRIVER=1`
+- `-DTFT_WIDTH=240`
+- `-DTFT_HEIGHT=240`
+- `-DTFT_MOSI=23`
+- `-DTFT_SCLK=18`
+- `-DTFT_CS=15`
+- `-DTFT_DC=2`
+- `-DTFT_RST=4`
+- `-DLOAD_GLCD=1`
+- `-DLOAD_FONT2=1`
+- `-DLOAD_FONT4=1`
+- `-DSPI_FREQUENCY=40000000`
 
-**Standard Mode** (`code_correct_protocol.py`)
-- Classic radar sweep animation
-- Target position markers
-- Distance labels
+### `esp32-s3` Environment Build Flags
+- `-DARDUINO_USB_MODE=1`
+- `-DARDUINO_USB_CDC_ON_BOOT=1`
+- `-DUSER_SETUP_LOADED=1`
+- `-DST7789_DRIVER=1`
+- `-DTFT_WIDTH=240`
+- `-DTFT_HEIGHT=240`
+- `-DTFT_MOSI=11`
+- `-DTFT_SCLK=12`
+- `-DTFT_CS=10`
+- `-DTFT_DC=9`
+- `-DTFT_RST=14`
+- `-DLOAD_GLCD=1`
+- `-DLOAD_FONT2=1`
+- `-DLOAD_FONT4=1`
+- `-DSPI_FREQUENCY=40000000`
 
-**Alien Style** (`code_alien_style.py`)
-- Animated target tracking
-- Fade effects
-- Sci-fi aesthetic
+## Settings Wiki
 
-**Diagnostic Mode** (`code_diagnostic.py`)
-- Raw data output
-- Protocol debugging
-- Sensor status monitoring
+The system allows configuration changes through the rotary encoder interface. Parameters are stored in Non-Volatile Storage (NVS) via the `Preferences.h` library, persisting across reboots.
 
-## 🔧 Troubleshooting
+### Menus
+Due to the constraints of the single rotary encoder control scheme, settings are organized hierarchically:
 
-### No Radar Data
-1. Check UART wiring (TX/RX)
-2. Verify sensor power (5V)
-3. Run diagnostic mode to check protocol
+1. **Main Display View**: Shows target tracking and status.
+2. **Options Menu**: Push encoder button to enter. Scroll to navigate sub-menus.
 
-### Display Not Working
-1. Verify I2C address (0x3C default)
-2. Check SDA/SCL wiring
-3. Run `i2c_scan.py` to detect display
-
-### COM Port Issues
-- Windows: Check Device Manager for COM port
-- Linux/Mac: Use `ls /dev/tty*` to find port
-- Ensure no other program is using the port
-
-## �� Project Structure
-
-```
-esp32-radar-tracker/
-├── arduino/              # Arduino C++ implementation
-│   ├── ESP32_Radar_Tracker.ino
-│   ├── HLK_LD2450.h     # Radar protocol parser
-│   └── RadarDisplay.h   # OLED graphics
-├── circuitpython/       # Multiple CircuitPython versions
-│   ├── code_correct_protocol.py
-│   ├── code_alien_style.py
-│   ├── code_diagnostic.py
-│   └── ...              # Various visualization modes
-├── utils/               # Deployment and monitoring tools
-│   ├── deploy_circuitpython.py
-│   ├── serial_monitor.py
-│   └── README.md
-├── docs/                # Additional documentation
-├── requirements.txt     # Python dependencies
-└── README.md
-```
-
-## 🤝 Contributing
-
-Contributions welcome! Areas for improvement:
-- Additional visualization modes
-- Enhanced target tracking algorithms
-- Multi-sensor support
-- Data logging features
-
-## 📝 License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Adafruit**: Display libraries and CircuitPython support
-- **Hi-Link**: HLK-LD2450 sensor and protocol documentation
-- **ESP32 Community**: Hardware support and examples
-
-## 📚 Resources
-
-- [HLK-LD2450 Datasheet](https://www.hlktech.net/index.php?id=1163)
-- [CircuitPython Documentation](https://circuitpython.org/)
-- [ESP32-S3 Technical Reference](https://www.espressif.com/en/products/socs/esp32-s3)
-- [Adafruit SSD1306 Guide](https://learn.adafruit.com/monochrome-oled-breakouts)
-
----
-
-**Status**: ✅ Fully functional - tested with ESP32-S3 ProS3 and HLK-LD2450
+### Parameter Definitions
+- **Tracking Reset**: Forces a recalibration of the motion compensation alpha-beta filter algorithms. Used if targets appear misaligned.
+- **Location Averaging**: Sets the strength of predictive smoothing applied to target coordinate telemetry. Higher values reduce jitter but increase response latency.
