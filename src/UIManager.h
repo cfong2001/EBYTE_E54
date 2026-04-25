@@ -37,6 +37,13 @@ enum TelemetryMode {
     TELEMETRY_ALL
 };
 
+enum TargetIcon {
+    ICON_CIRCLE,
+    ICON_SQUARE,
+    ICON_TRIANGLE,
+    ICON_SMART
+};
+
 class UIManager {
 public:
     ZoneManager zoneManager;
@@ -48,6 +55,7 @@ public:
         menuSelection = 0;
 
         theme = THEME_ALIEN;
+        targetIcon = ICON_SMART;
         sweepLineEnabled = true;
         trailLength = 5;
         gridEnabled = true;
@@ -76,6 +84,9 @@ public:
             rawTargetY[i] = 0;
             rawTargetSpeed[i] = 0;
             simAlpha[i] = 0.0f;
+            smoothVecX[i] = 0.0f;
+            smoothVecY[i] = 0.0f;
+            smoothSpeed[i] = 0.0f;
 
             for (int h=0; h<10; h++) {
                 targetHistoryX[i][h] = 120.0f;
@@ -87,6 +98,7 @@ public:
     void loadSettings() {
         preferences.begin("radar_ui", false);
         theme = (ThemeStyle)preferences.getInt("theme", THEME_ALIEN);
+        targetIcon = (TargetIcon)preferences.getInt("icon", ICON_SMART);
         sweepLineEnabled = preferences.getBool("sweep", true);
         trailLength = preferences.getInt("trails", 5);
         gridEnabled = preferences.getBool("grid", true);
@@ -103,6 +115,7 @@ public:
     void saveSettings() {
         preferences.begin("radar_ui", false);
         preferences.putInt("theme", theme);
+        preferences.putInt("icon", targetIcon);
         preferences.putBool("sweep", sweepLineEnabled);
         preferences.putInt("trails", trailLength);
         preferences.putBool("grid", gridEnabled);
@@ -279,6 +292,12 @@ public:
                     targetHistoryY[i][h] = -100;
                 }
                 simAlpha[i] = 0.0f;
+                smoothVecX[i] = 0.0f;
+                smoothVecY[i] = 0.0f;
+                smoothSpeed[i] = 0.0f;
+            smoothVecX[i] = 0.0f;
+            smoothVecY[i] = 0.0f;
+            smoothSpeed[i] = 0.0f;
             }
             lastTargetActive[i] = targetActive[i];
         }
@@ -355,21 +374,64 @@ public:
                 }
 
                 // Reticles
-                if (theme == THEME_ALIEN) {
-                    sprite.drawCircle(cx, cy, 6, color);
-                    sprite.fillCircle(cx, cy, 2, color);
-                    sprite.drawLine(cx-8, cy, cx-4, cy, color);
-                    sprite.drawLine(cx+4, cy, cx+8, cy, color);
-                    sprite.drawLine(cx, cy-8, cx, cy-4, color);
-                    sprite.drawLine(cx, cy+4, cx, cy+8, color);
-                } else if (theme == THEME_MINIMAL) {
+                if (targetIcon == ICON_CIRCLE) {
+                    sprite.fillCircle(cx, cy, 4, color);
+                }
+                else if (targetIcon == ICON_SQUARE) {
                     sprite.fillRect(cx - 3, cy - 3, 7, 7, color);
-                } else {
-                    sprite.fillCircle(cx, cy, 3, color);
-                    sprite.drawLine(cx-6, cy, cx-2, cy, color);
-                    sprite.drawLine(cx+2, cy, cx+6, cy, color);
-                    sprite.drawLine(cx, cy-6, cx, cy-2, color);
-                    sprite.drawLine(cx, cy+2, cx, cy+6, color);
+                }
+                else if (targetIcon == ICON_TRIANGLE) {
+                    sprite.fillTriangle(cx, cy - 5, cx - 4, cy + 3, cx + 4, cy + 3, color);
+                }
+                else if (targetIcon == ICON_SMART) {
+                    sprite.drawCircle(cx, cy, 3, color);
+
+                    int absSpd = abs(rawTargetSpeed[i]);
+                    float rawDx = targetCurrentX[i] - targetHistoryX[i][2];
+                    float rawDy = targetCurrentY[i] - targetHistoryY[i][2];
+
+                    // Deadzone threshold for movement
+                    if (absSpd > 10 && (abs(rawDx) > 0.5f || abs(rawDy) > 0.5f)) {
+                        float len = sqrt(rawDx*rawDx + rawDy*rawDy);
+                        float nx = rawDx / len;
+                        float ny = rawDy / len;
+
+                        // EMA Filtering
+                        smoothVecX[i] = (smoothVecX[i] * 0.7f) + (nx * 0.3f);
+                        smoothVecY[i] = (smoothVecY[i] * 0.7f) + (ny * 0.3f);
+                        smoothSpeed[i] = (smoothSpeed[i] * 0.8f) + ((float)absSpd * 0.2f);
+                    } else {
+                        // Decay the speed smoothly to 0 so the arrow shrinks gracefully
+                        smoothSpeed[i] *= 0.8f;
+                    }
+
+                    // Only draw arrow if we have enough smoothed speed
+                    if (smoothSpeed[i] > 5.0f) {
+                        float stickLen = 5.0f + (smoothSpeed[i] / 10.0f);
+                        if (stickLen > 25.0f) stickLen = 25.0f;
+
+                        // Re-normalize the smoothed vector
+                        float sLen = sqrt(smoothVecX[i]*smoothVecX[i] + smoothVecY[i]*smoothVecY[i]);
+                        if (sLen > 0.01f) {
+                            float nSvx = smoothVecX[i] / sLen;
+                            float nSvy = smoothVecY[i] / sLen;
+
+                            int ex = cx + (int)(nSvx * stickLen);
+                            int ey = cy + (int)(nSvy * stickLen);
+
+                            sprite.drawLine(cx, cy, ex, ey, color);
+
+                            float arrowAngle = atan2(nSvy, nSvx);
+                            int ax1 = ex - (int)(4 * cos(arrowAngle - 0.5f));
+                            int ay1 = ey - (int)(4 * sin(arrowAngle - 0.5f));
+                            int ax2 = ex - (int)(4 * cos(arrowAngle + 0.5f));
+                            int ay2 = ey - (int)(4 * sin(arrowAngle + 0.5f));
+                            sprite.drawLine(ex, ey, ax1, ay1, color);
+                            sprite.drawLine(ex, ey, ax2, ay2, color);
+                        }
+                    } else {
+                        sprite.fillCircle(cx, cy, 2, color);
+                    }
                 }
 
                 // Telemetry Text
@@ -380,22 +442,21 @@ public:
                     int angle = (int)(atan2((float)rawTargetX[i], (float)rawTargetY[i]) * 180.0f / PI);
                     float speed_ms = (float)rawTargetSpeed[i] / 10.0f; // Assuming 10s of cm/s or similar, pseudo-calc
 
-                    sprite.setCursor(cx + 8, cy - 12);
-
+                    sprite.setCursor(cx + 12, cy - 12);
                     if (telemetryMode == TELEMETRY_DIST_ANG) {
                         sprite.printf("%.1fm %d", dist_m, angle);
                     } else if (telemetryMode == TELEMETRY_VELOCITY) {
-                        sprite.printf("%.1fm/s", speed_ms);
+                        sprite.printf("%.1f", speed_ms);
                     } else if (telemetryMode == TELEMETRY_RAW) {
                         sprite.printf("%d,%d", rawTargetX[i], rawTargetY[i]);
                     } else if (telemetryMode == TELEMETRY_ALL) {
                         sprite.printf("T%d %.1fm %d", i+1, dist_m, angle);
-                        sprite.setCursor(cx + 8, cy - 2);
-                        sprite.printf("%.1fm/s", speed_ms);
+                        sprite.setCursor(cx + 12, cy - 2);
+                        sprite.printf("%.1f", speed_ms);
                     }
                 } else if (theme != THEME_ALIEN && telemetryMode == TELEMETRY_OFF) {
                     sprite.setTextColor(color, TFT_BLACK);
-                    sprite.setCursor(cx + 8, cy - 8);
+                    sprite.setCursor(cx + 12, cy - 8);
                     sprite.printf("T%d", i + 1);
                 }
             }
@@ -440,6 +501,7 @@ private:
     unsigned long bootStartTime;
 
     ThemeStyle theme;
+    TargetIcon targetIcon;
     bool sweepLineEnabled;
     int trailLength;
     bool gridEnabled;
@@ -472,6 +534,9 @@ private:
     float targetHistoryX[3][10];
     float targetHistoryY[3][10];
     float simAlpha[3];
+    float smoothVecX[3];
+    float smoothVecY[3];
+    float smoothSpeed[3];
 
     float targetVelX[3];
     float targetVelY[3];
@@ -601,8 +666,12 @@ private:
             sprite.setCursor(15, 5); sprite.print("--- VISUAL SETTINGS ---");
 
             String themeStr = (theme == THEME_STANDARD) ? "Standard" : (theme == THEME_ALIEN ? "Alien" : "Minimal");
+            String iconStr = (targetIcon == ICON_CIRCLE) ? "CIRCLE" :
+                             (targetIcon == ICON_SQUARE) ? "SQUARE" :
+                             (targetIcon == ICON_TRIANGLE) ? "TRIANGLE" : "SMART";
             items[numItems++] = "< Back";
             items[numItems++] = "Theme: " + themeStr;
+            items[numItems++] = "Icon: " + iconStr;
             items[numItems++] = "Sweep Line: " + String(sweepLineEnabled ? "ON" : "OFF");
             items[numItems++] = "Sweep Mode: " + String(simulatedSweep ? "SIMULATED" : "VISUAL");
             items[numItems++] = "Trails: " + String(trailLength);
@@ -723,6 +792,12 @@ private:
                 if (theme == THEME_ALIEN) { sweepLineEnabled = true; trailLength = 8; gridEnabled = true; }
                 else if (theme == THEME_MINIMAL) { sweepLineEnabled = false; trailLength = 0; gridEnabled = true; }
                 else { sweepLineEnabled = true; trailLength = 3; gridEnabled = true; }
+                return;
+            }
+            if (idx++ == menuSelection) {
+                int ic = (int)targetIcon + dir;
+                if (ic > 3) ic = 0; if (ic < 0) ic = 3;
+                targetIcon = (TargetIcon)ic;
                 return;
             }
             if (idx++ == menuSelection) { sweepLineEnabled = !sweepLineEnabled; return; }

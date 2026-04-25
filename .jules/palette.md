@@ -14,3 +14,7 @@
 ## 2026-04-25 - [Data Telemetry & Simulated Sweeps]
 **Learning:** Displaying data requires distinct user intentions. Sometimes users want raw radar coordinates, sometimes derived distance/angle, and sometimes just velocity. Categorizing these into an enum (`TelemetryMode`) in a "Target Data" sub-menu provides immense utility. Furthermore, calculating simulated sweeps by matching the hardware's reported physical angle to the UI's sweep angle provides a highly authentic "legacy radar" mode.
 **Action:** When implementing readouts, avoid reversing display pixels back into world units; intercept and cache the raw telemetry data (`rawTargetX`, `rawTargetSpeed`) before it hits the UI layer. Group dense settings into `MenuPage` hierarchies.
+
+## 2026-04-25 - [Visualizing Vectors from Radar Noise]
+**Learning:** Drawing velocity vectors (arrows) directly from frame-to-frame delta changes in radar hardware results in unacceptable UI jitter when the target is stationary (due to inherent mm-level signal noise).
+**Action:** When translating raw hardware positional changes into UI visual vectors, always wrap the logic in a speed/movement threshold deadzone (e.g. >10 cm/s) and pass the calculated vectors through a low-pass filter like an Exponential Moving Average (EMA) before rendering.
