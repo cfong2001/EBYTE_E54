@@ -78,8 +78,19 @@ void loop() {
 
     // Process radar (10Hz from E54)
     if (radar.update()) {
+        bool activeArr[3] = {radar.targets[0].active, radar.targets[1].active, radar.targets[2].active};
+        int16_t xArr[3] = {radar.targets[0].x, radar.targets[1].x, radar.targets[2].x};
+        int16_t yArr[3] = {radar.targets[0].y, radar.targets[1].y, radar.targets[2].y};
+        ui.zoneManager.updateFuzzing(activeArr, xArr, yArr);
+
         RadarTarget compensatedTargets[3];
         motionComp.process(radar.targets, compensatedTargets);
+
+        for(int i=0; i<3; i++) {
+            if (compensatedTargets[i].active && ui.zoneManager.isDead(compensatedTargets[i].x, compensatedTargets[i].y)) {
+                compensatedTargets[i].active = false;
+            }
+        }
         ui.updateRadarData(compensatedTargets, motionComp.isAnchorValid(), motionComp.getAnchorX(), motionComp.getAnchorY());
 
         // Pass motion data (velocity/acceleration) to UI for curved predictive interpolation
