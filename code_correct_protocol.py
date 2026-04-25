@@ -27,6 +27,7 @@ RADII = [20, 40, 60]
 
 
 targets = []
+filter_states = {} # State dict for multi-anchor stabilization
 buffer = bytearray()
 last_draw = time.monotonic()
 bytes_in = 0
@@ -127,7 +128,7 @@ while True:
             buffer = buffer[FRAME_SIZE:]
             
             # Parse 3 targets (8 bytes each, starting at offset 4)
-            new_targets = []
+            raw_targets = []
             for t_idx in range(3):
                 offset = 4 + (t_idx * 8)
                 
@@ -139,15 +140,22 @@ while True:
                 
                 x = ld2450_s16(frame[offset], frame[offset + 1])
                 y = ld2450_s16(frame[offset + 2], frame[offset + 3])
-                # speed = ld2450_s16(frame[offset + 4], frame[offset + 5])  # Not used for display
-                # resolution = frame[offset + 6] | (frame[offset + 7] << 8)
+                speed = ld2450_s16(frame[offset + 4], frame[offset + 5])
                 
                 # Target exists if not all zeros
-                if x != 0 or y != 0:
-                    dist_sq = x * x + y * y
-                    # Filter reasonable range (10cm to 8m)
-                    if 10000 < dist_sq < 64000000:
-                        new_targets.append((x, y, 0, t_idx))
+                dist_sq = x * x + y * y
+                if (x != 0 or y != 0) and (10000 < dist_sq < 64000000):
+                    raw_targets.append({'id': t_idx, 'active': True, 'x': x, 'y': y, 'speed': speed})
+                else:
+                    raw_targets.append({'id': t_idx, 'active': False, 'x': 0, 'y': 0, 'speed': 0})
+
+            from utils import calculate_multi_anchor_stabilization
+            stabilized = calculate_multi_anchor_stabilization(raw_targets, filter_states, dt=0.1)
+
+            new_targets = []
+            for t in stabilized:
+                if t['active']:
+                    new_targets.append((t['x'], t['y'], 0, t['id']))
             
             # Age existing targets
             aged = [(x, y, age + 1, i) for x, y, age, i in targets if age < 15]
