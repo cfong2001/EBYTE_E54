@@ -15,11 +15,11 @@
   COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
   IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
   CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-  On a personal note, if you develop an application or product using this library 
+  On a personal note, if you develop an application or product using this library
   and make millions of dollars, I'm happy for you!
 */
 
-/* 
+/*
   Code by Kris Kasprzak kris.kasprzak@yahoo.com
   This library is intended to be used with EBYTE transcievers, small wireless units for MCU's such as
   Teensy and Arduino. This library let's users program the operating parameters and both send and recieve data.
@@ -35,7 +35,7 @@
   5.0			12/4/2020	Kasprzak		moved Reset to public, added Clear to SetMode to avoid buffer corruption during programming
   5.5			1/26/2022	Kasprzak		implemented attempt parameter and adjusted the pinmode delays--in an attempt to make NANO's connect more successful
   5.7			8/10/2024	Kasprzak		fixed attempt iterator if connection is not made
-  
+
 */
 
 #include <EBYTE.h>
@@ -60,7 +60,9 @@ EBYTE::EBYTE(Stream *s, uint8_t PIN_M0, uint8_t PIN_M1, uint8_t PIN_AUX)
 	_M1 = PIN_M1;
 	_AUX = PIN_AUX;
 
-		
+	_mode = 0xFF;
+
+
 }
 
 /*
@@ -77,9 +79,9 @@ bool EBYTE::init(uint8_t Attempts) {
 	pinMode(_M1, OUTPUT);
 
 	_Attempts = Attempts;
-	
+
 	delay(PIN_RECOVER);
-	
+
 	if (_Attempts < 1){
 		_Attempts = 1;
 	}
@@ -97,7 +99,7 @@ bool EBYTE::init(uint8_t Attempts) {
 	}
 	// now get parameters to put unit defaults into the class variables
 	ok = ReadParameters();
-	
+
 
 	if (!ok) {
 		return false;
@@ -114,7 +116,7 @@ Method to indicate availability
 bool EBYTE::available() {
 
 	return _s->available();
-	
+
 }
 
 /*
@@ -124,23 +126,23 @@ Method to indicate availability
 void EBYTE::flush() {
 
 	_s->flush();
-	
+
 }
 
 /*
-Method to write a single byte...not sure how useful this really is. If you need to send 
+Method to write a single byte...not sure how useful this really is. If you need to send
 more that one byte, put the data into a data structure and send it in a big chunk
 */
 
 void EBYTE::SendByte( uint8_t TheByte) {
 
 	_s->write(TheByte);
-	
+
 }
 
 
 /*
-Method to get a single byte...not sure how useful this really is. If you need to get 
+Method to get a single byte...not sure how useful this really is. If you need to get
 more that one byte, put the data into a data structure and send/receive it in a big chunk
 */
 
@@ -152,7 +154,7 @@ uint8_t EBYTE::GetByte() {
 
 
 /*
-Method to send a chunk of data provided data is in a struct--my personal favorite as you 
+Method to send a chunk of data provided data is in a struct--my personal favorite as you
 need not parse or worry about sprintf() inability to handle floats
 TTP: put your structure definition into a .h file and include in both the sender and reciever
 sketches
@@ -164,16 +166,16 @@ bool EBYTE::SendStruct(const void *TheStructure, uint16_t size_) {
 
 
 		_buf = _s->write((uint8_t *) TheStructure, size_);
-		
+
 		CompleteTask(1000);
-		
+
 		return (_buf == size_);
 
 }
 
 
 /*
-Method to get a chunk of data provided data is in a struct--my personal favorite as you 
+Method to get a chunk of data provided data is in a struct--my personal favorite as you
 need not parse or worry about sprintf() inability to handle floats
 TTP: put your structure definition into a .h file and include in both the sender and reciever
 sketches
@@ -183,7 +185,7 @@ types each handle ints floats differently
 
 
 bool EBYTE::GetStruct(const void *TheStructure, uint16_t size_) {
-	
+
 	_buf = _s->readBytes((uint8_t *) TheStructure, size_);
 
 	CompleteTask(1000);
@@ -208,12 +210,12 @@ void EBYTE::CompleteTask(unsigned long timeout) {
 
 	// if AUX pin was supplied and look for HIGH state
 	// note you can omit using AUX if no pins are available, but you will have to use delay() to let module finish
-	
+
 	// per data sheet control after aux goes high is 2ms so delay for at least that long
 	// some MCU are slow so give 50 ms
-	
+
 	if (_AUX != -1) {
-		
+
 		while (digitalRead(_AUX) == LOW) {
 			//Serial.println("waiting for aux");
 			delay(2);
@@ -238,12 +240,14 @@ method to set the mode (program, normal, etc.)
 */
 
 void EBYTE::SetMode(uint8_t mode) {
-	
+
+	if (_mode == mode) return;
+
 	// data sheet claims module needs some extra time after mode setting (2ms)
 	// most of my projects uses 10 ms, but 40ms is safer
 
 	delay(PIN_RECOVER);
-	
+
 	if (mode == EBYTE_MODE_NORMAL) {
 		digitalWrite(_M0, LOW);
 		digitalWrite(_M1, LOW);
@@ -278,7 +282,8 @@ void EBYTE::SetMode(uint8_t mode) {
 
 	// wait until aux pin goes back low
 	CompleteTask(4000);
-	
+
+	_mode = mode;
 }
 
 
@@ -293,7 +298,7 @@ void EBYTE::SetMode(uint8_t mode) {
 // look at the data sheet for default values
 //  Trans.SetAddressH(0);
 //  Trans.SetAddressL(0);
-//  Trans.SetSpeed(0b00011100);  
+//  Trans.SetSpeed(0b00011100);
 //  Trans.SetChannel(1);
 //  Trans.SetOptions(0b01000100);
 //  Trans.SaveParameters(PERMANENT);
@@ -301,7 +306,7 @@ void EBYTE::SetMode(uint8_t mode) {
 
 void EBYTE::Reset() {
 
-	
+
 	SetMode(MODE_PROGRAM);
 
 	_s->write(0xC4);
@@ -375,7 +380,7 @@ void EBYTE::SetAirDataRate(uint8_t val) {
 
 	_AirDataRate = val;
 	BuildSpeedByte();
-	
+
 }
 
 uint8_t EBYTE::GetAirDataRate() {
@@ -507,12 +512,12 @@ method to save parameters to the module
 */
 
 void EBYTE::SaveParameters(uint8_t val) {
-	
+
 	SetMode(MODE_PROGRAM);
 	/*
 	ClearBuffer();
 
-	
+
 	Serial.print("val: ");
 	Serial.println(val);
 
@@ -543,10 +548,10 @@ void EBYTE::SaveParameters(uint8_t val) {
 	delay(PIN_RECOVER);
 
 	CompleteTask(4000);
-	
+
 	SetMode(EBYTE_MODE_NORMAL);
 
-	
+
 }
 
 /*
@@ -593,11 +598,11 @@ void EBYTE::PrintParameters() {
 }
 
 /*
-method to read parameters, 
+method to read parameters,
 */
 
 bool EBYTE::ReadParameters() {
-	
+
 	_Params[0] = 0;
 	_Params[1] = 0;
 	_Params[2] = 0;
@@ -629,7 +634,7 @@ bool EBYTE::ReadParameters() {
 	_OptionWakeup = (_Options & 0X38) >> 3;
 	_OptionFEC = (_Options & 0X07) >> 2;
 	_OptionPower = (_Options & 0X03);
-	
+
 	SetMode(EBYTE_MODE_NORMAL);
 
 	if (0xC0 != _Params[0]){
@@ -637,7 +642,7 @@ bool EBYTE::ReadParameters() {
 	}
 
 	return true;
-	
+
 }
 
 
@@ -649,33 +654,33 @@ bool EBYTE::ReadModelData() {
 	_Params[3] = 0;
 	_Params[4] = 0;
 	_Params[5] = 0;
-	
+
 	bool found = false;
 	int i = 0;
-	
+
 	SetMode(MODE_PROGRAM);
 	_s->write(0xC3);
 	_s->write(0xC3);
 	_s->write(0xC3);
 	_s->readBytes((uint8_t*)& _Params, (uint8_t) sizeof(_Params));
-	_Save = _Params[0];	
+	_Save = _Params[0];
 	_Model = _Params[1];
 	_Version = _Params[2];
-	_Features = _Params[3];	
+	_Features = _Params[3];
 	SetMode(EBYTE_MODE_NORMAL);
-	
+
 	//Serial.print("_Params[0] ");Serial.println(_Save);
 	//Serial.print("_Params[1] ");Serial.println(_Model);
 	//Serial.print("_Params[2] ");Serial.println(_Version);
 	//Serial.print("_Params[3] ");Serial.println(_Features);
-	
-		
+
+
 	if (0xC3 != _Save) {
-		
-	
+
+
 		// i'm not terribly sure this is the best way to retry
 		// may need to set the mode back to normal first....
-		for (i = 0; i < _Attempts; i++){	
+		for (i = 0; i < _Attempts; i++){
 			SetMode(MODE_PROGRAM);
 			_Params[0] = 0;
 			_Params[1] = 0;
@@ -687,12 +692,12 @@ bool EBYTE::ReadModelData() {
 			_s->write(0xC3);
 			_s->write(0xC3);
 			_s->write(0xC3);
-	
+
 			_s->readBytes((uint8_t*)& _Params, (uint8_t) sizeof(_Params));
-			_Save = _Params[0];	
+			_Save = _Params[0];
 			_Model = _Params[1];
 			_Version = _Params[2];
-			_Features = _Params[3];	
+			_Features = _Params[3];
 			SetMode(EBYTE_MODE_NORMAL);
 			//Serial.print("_Attempts ");Serial.println(_Attempts);
 			//Serial.print("_Params[0] ");Serial.println(_Params[0]);
@@ -701,8 +706,8 @@ bool EBYTE::ReadModelData() {
 			//Serial.print("_Params[3] ");Serial.println(_Params[3]);
 			//Serial.print("_Params[4] ");Serial.println(_Params[4]);
 			//Serial.print("_Params[5] ");Serial.println(_Params[5]);
-			
-			
+
+
 			if (0xC3 == _Params[0]){
 				found = true;
 				break;
@@ -719,7 +724,7 @@ bool EBYTE::ReadModelData() {
 	SetMode(EBYTE_MODE_NORMAL);
 
 	return found;
-	
+
 }
 
 /*
@@ -729,7 +734,7 @@ method to get module model and E50-TTL-100 will return 50
 uint8_t EBYTE::GetModel() {
 
 	return _Model;
-	
+
 }
 
 /*
@@ -739,7 +744,7 @@ method to get module version (undocumented as to the value)
 uint8_t EBYTE::GetVersion() {
 
 	return _Version;
-	
+
 }
 
 /*
@@ -757,7 +762,7 @@ uint8_t EBYTE::GetFeatures() {
 method to clear the serial buffer
 
 without clearing the buffer, i find getting the parameters very unreliable after programming.
-i suspect stuff in the buffer affects rogramming 
+i suspect stuff in the buffer affects rogramming
 hence, let's clean it out
 this is called as part of the setmode
 
@@ -769,9 +774,9 @@ void EBYTE::ClearBuffer(){
 	while(_s->available()) {
 		_s->read();
 		if ((millis() - amt) > 5000) {
-          		Serial.println("runaway");
-          		break;
-        	}
+			Serial.println("runaway");
+			break;
+		}
 	}
 
 }
