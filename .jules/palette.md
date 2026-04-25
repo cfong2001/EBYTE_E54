@@ -10,3 +10,7 @@
 ## 2026-04-25 - [Tactical Micro-UX & Persistence]
 **Learning:** Hard-coded variables in complex UIs frustrate users if lost on power-cycle. Transitioning to NVS using `Preferences.h` is critical for hardware tools. Additionally, small UX details like target color-coding (Orange, Blue, Purple vs Monochromatic) drastically reduce cognitive load, and replacing static text boot screens with animated progressive line-drawing mimics high-end instrumentation.
 **Action:** Default to implementing NVS `saveSettings()` and `loadSettings()` for any user-facing configuration structs. Use distinct colors per tracked ID rather than per-theme unless monochrome is strictly requested.
+
+## 2024-05-24 - Progressive Visual Feedback
+**Learning:** Replacing abrupt binary visual triggers (like fast-blinking indicators) with progressive, state-driven feedback (such as smoothly blended colors and pulsing animations) greatly enhances the UI's professional and tactical feel. It provides users with a clearer, more nuanced understanding of proximity/danger without startling them or causing visual fatigue.
+**Action:** When designing warning or threshold indicators, use continuous variables (like danger levels or distances) to drive smooth interpolations in color, size, and animation speed rather than relying on simple ON/OFF states.
