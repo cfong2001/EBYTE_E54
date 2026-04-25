@@ -1,13 +1,13 @@
-# ESP32 Radar Tracker with HLK-LD2450
+# ESP32 Radar Tracker with EBYTE E54-24LD12D
 
 ## Project Description
 
-The ESP32 Radar Tracker is a real-time radar tracking system utilizing the HLK-LD2450 24GHz mmWave radar sensor. It processes and visualizes target position data on an OLED or TFT display. The system features dual platform support, offering implementations in both C++ (PlatformIO framework) for optimal performance and CircuitPython for secondary prototyping and alternative visual interfaces. The core tracking system supports up to three simultaneous targets, interpolating their positions and compensating for motion.
+The ESP32 Radar Tracker is a real-time radar tracking system utilizing the EBYTE E54-24LD12D 24GHz mmWave radar sensor. It processes and visualizes target position data on an OLED or TFT display. The system features dual platform support, offering implementations in both C++ (PlatformIO framework) for optimal performance and CircuitPython for secondary prototyping and alternative visual interfaces. The core tracking system supports up to three simultaneous targets, interpolating their positions and compensating for motion.
 
 ## Hardware Requirements
 
 - **Microcontroller**: ESP32-S3 (Tested on generic ESP32-S3 DevKitC-1 boards) or standard ESP32 (esp32dev).
-- **Radar Sensor**: HLK-LD2450 24GHz mmWave Radar Sensor.
+- **Radar Sensor**: EBYTE E54-24LD12D 24GHz mmWave Radar Sensor.
 - **Display**: 0.96" OLED (128x64, I2C, SSD1306) or compatible SPI TFT display.
 - **Input**: Push-button rotary encoder, additional momentary push-button.
 
@@ -15,7 +15,7 @@ The ESP32 Radar Tracker is a real-time radar tracking system utilizing the HLK-L
 
 The standard wiring configuration is as follows. Note that these may vary depending on the chosen board definition in the firmware configuration.
 
-**Radar (HLK-LD2450) to ESP32:**
+**Radar (EBYTE E54-24LD12D) to ESP32:**
 - TX (Sensor) -> RX (ESP32 GPIO 16)
 - RX (Sensor) -> TX (ESP32 GPIO 17)
 - VCC -> 5V
@@ -109,14 +109,12 @@ The project configuration (`platformio.ini`) requires specific build flags to fu
 
 ## Settings Wiki
 
-The system allows configuration changes through the rotary encoder interface. Parameters are stored in Non-Volatile Storage (NVS) via the `Preferences.h` library, persisting across reboots.
+Settings are managed via the rotary encoder and stored in NVS (`Preferences.h`).
 
 ### Menus
-Due to the constraints of the single rotary encoder control scheme, settings are organized hierarchically:
+1. **Main Display View**: Default tracking interface.
+2. **Options Menu**: Press encoder to access. Scroll to navigate.
 
-1. **Main Display View**: Shows target tracking and status.
-2. **Options Menu**: Push encoder button to enter. Scroll to navigate sub-menus.
-
-### Parameter Definitions
-- **Tracking Reset**: Forces a recalibration of the motion compensation alpha-beta filter algorithms. Used if targets appear misaligned.
-- **Location Averaging**: Sets the strength of predictive smoothing applied to target coordinate telemetry. Higher values reduce jitter but increase response latency.
+### Parameters
+- **Tracking Reset**: Recalibrates motion compensation filters.
+- **Location Averaging**: Adjusts predictive smoothing strength (higher = less jitter, more latency).
