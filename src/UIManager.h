@@ -183,6 +183,16 @@ public:
         }
     }
 
+    void setTargetMotion(int index, float vx, float vy, float ax, float ay) {
+        if (index >= 0 && index < 3) {
+            // Convert mm/s to screen pixels
+            targetVelX[index] = vx * 120 / 5000;
+            targetVelY[index] = -vy * 240 / 5000; // Y is inverted on screen
+            targetAccX[index] = ax * 120 / 5000;
+            targetAccY[index] = -ay * 240 / 5000;
+        }
+    }
+
     // Call this when new radar data arrives (e.g. 10Hz) to set the goal targets
 
     void updateRadarData(RadarTarget targets[3], bool anchorValid, int16_t anchorX, int16_t anchorY) {
@@ -519,6 +529,10 @@ private:
 
     float targetCurrentX[3];
     float targetCurrentY[3];
+    float targetVelX[3];
+    float targetVelY[3];
+    float targetAccX[3];
+    float targetAccY[3];
 
     float targetHistoryX[3][10];
     float targetHistoryY[3][10];
