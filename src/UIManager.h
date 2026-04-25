@@ -295,9 +295,6 @@ public:
                 smoothVecX[i] = 0.0f;
                 smoothVecY[i] = 0.0f;
                 smoothSpeed[i] = 0.0f;
-            smoothVecX[i] = 0.0f;
-            smoothVecY[i] = 0.0f;
-            smoothSpeed[i] = 0.0f;
             }
             lastTargetActive[i] = targetActive[i];
         }
@@ -390,35 +387,26 @@ public:
                     float rawDx = targetCurrentX[i] - targetHistoryX[i][2];
                     float rawDy = targetCurrentY[i] - targetHistoryY[i][2];
 
-                    // Deadzone threshold for movement
                     if (absSpd > 10 && (abs(rawDx) > 0.5f || abs(rawDy) > 0.5f)) {
                         float len = sqrt(rawDx*rawDx + rawDy*rawDy);
                         float nx = rawDx / len;
                         float ny = rawDy / len;
-
-                        // EMA Filtering
                         smoothVecX[i] = (smoothVecX[i] * 0.7f) + (nx * 0.3f);
                         smoothVecY[i] = (smoothVecY[i] * 0.7f) + (ny * 0.3f);
                         smoothSpeed[i] = (smoothSpeed[i] * 0.8f) + ((float)absSpd * 0.2f);
                     } else {
-                        // Decay the speed smoothly to 0 so the arrow shrinks gracefully
                         smoothSpeed[i] *= 0.8f;
                     }
 
-                    // Only draw arrow if we have enough smoothed speed
                     if (smoothSpeed[i] > 5.0f) {
                         float stickLen = 5.0f + (smoothSpeed[i] / 10.0f);
                         if (stickLen > 25.0f) stickLen = 25.0f;
-
-                        // Re-normalize the smoothed vector
                         float sLen = sqrt(smoothVecX[i]*smoothVecX[i] + smoothVecY[i]*smoothVecY[i]);
                         if (sLen > 0.01f) {
                             float nSvx = smoothVecX[i] / sLen;
                             float nSvy = smoothVecY[i] / sLen;
-
                             int ex = cx + (int)(nSvx * stickLen);
                             int ey = cy + (int)(nSvy * stickLen);
-
                             sprite.drawLine(cx, cy, ex, ey, color);
 
                             float arrowAngle = atan2(nSvy, nSvx);
@@ -442,21 +430,22 @@ public:
                     int angle = (int)(atan2((float)rawTargetX[i], (float)rawTargetY[i]) * 180.0f / PI);
                     float speed_ms = (float)rawTargetSpeed[i] / 10.0f; // Assuming 10s of cm/s or similar, pseudo-calc
 
-                    sprite.setCursor(cx + 12, cy - 12);
+                    sprite.setCursor(cx + 8, cy - 12);
+
                     if (telemetryMode == TELEMETRY_DIST_ANG) {
                         sprite.printf("%.1fm %d", dist_m, angle);
                     } else if (telemetryMode == TELEMETRY_VELOCITY) {
-                        sprite.printf("%.1f", speed_ms);
+                        sprite.printf("%.1fm/s", speed_ms);
                     } else if (telemetryMode == TELEMETRY_RAW) {
                         sprite.printf("%d,%d", rawTargetX[i], rawTargetY[i]);
                     } else if (telemetryMode == TELEMETRY_ALL) {
                         sprite.printf("T%d %.1fm %d", i+1, dist_m, angle);
-                        sprite.setCursor(cx + 12, cy - 2);
-                        sprite.printf("%.1f", speed_ms);
+                        sprite.setCursor(cx + 8, cy - 2);
+                        sprite.printf("%.1fm/s", speed_ms);
                     }
                 } else if (theme != THEME_ALIEN && telemetryMode == TELEMETRY_OFF) {
                     sprite.setTextColor(color, TFT_BLACK);
-                    sprite.setCursor(cx + 12, cy - 8);
+                    sprite.setCursor(cx + 8, cy - 8);
                     sprite.printf("T%d", i + 1);
                 }
             }
