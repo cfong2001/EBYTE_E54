@@ -41,13 +41,16 @@ class Target:
     def time_since_seen(self):
         return time.monotonic() - self.last_seen
     
-    def update(self, x, y):
+    def update(self, x, y, vel_x=0, vel_y=0):
+        # We can predict position visually here if we wanted,
+        # but the main update is from the compensated coordinate.
         self.x = x
         self.y = y
         self.last_seen = time.monotonic()
         self.active = True
 
 targets = []
+filter_states = {} # State dict for multi-anchor stabilization
 buffer = bytearray()
 bytes_in = 0
 frames_ok = 0
@@ -225,20 +228,31 @@ while True:
             
             # Parse 3 targets
             any_new = False
+            raw_targets = []
+
             for t_idx in range(3):
                 offset = 4 + (t_idx * 8)
                 
                 x = ld2450_s16(frame[offset], frame[offset + 1])
                 y = ld2450_s16(frame[offset + 2], frame[offset + 3])
+                s = ld2450_s16(frame[offset + 4], frame[offset + 5])
                 
                 # Target exists if not all zeros
-                if x != 0 or y != 0:
-                    dist_sq = x * x + y * y
-                    # Filter reasonable range
-                    if 10000 < dist_sq < 64000000:
-                        find_or_create_target(x, y, t_idx)
-                        any_new = True
+                dist_sq = x * x + y * y
+                if (x != 0 or y != 0) and (10000 < dist_sq < 64000000):
+                    raw_targets.append({'id': t_idx, 'active': True, 'x': x, 'y': y, 'speed': s})
+                else:
+                    raw_targets.append({'id': t_idx, 'active': False, 'x': 0, 'y': 0, 'speed': 0})
+
+            # Apply Multi-Anchor Stabilization
+            from utils import calculate_multi_anchor_stabilization
+            stabilized = calculate_multi_anchor_stabilization(raw_targets, filter_states, dt=0.1)
             
+            for t in stabilized:
+                if t['active']:
+                    find_or_create_target(t['x'], t['y'], t['id'])
+                    any_new = True
+
             # Trigger pulse animation when new targets detected
             if any_new:
                 pulse_start = time.monotonic()

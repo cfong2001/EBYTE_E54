@@ -66,6 +66,7 @@ class Target:
             return 0.0  # Dead
 
 targets = []
+filter_states = {} # State dict for multi-anchor stabilization
 buffer = bytearray()
 bytes_in = 0
 frames_ok = 0
@@ -262,16 +263,27 @@ while True:
             buffer = buffer[FRAME_SIZE:]
             
             # Parse 3 targets
+            raw_targets = []
             for t_idx in range(3):
                 offset = 4 + (t_idx * 8)
                 
                 x = ld2450_s16(frame[offset], frame[offset + 1])
                 y = ld2450_s16(frame[offset + 2], frame[offset + 3])
+                s = ld2450_s16(frame[offset + 4], frame[offset + 5])
                 
-                if x != 0 or y != 0:
-                    dist_sq = x * x + y * y
-                    if 10000 < dist_sq < 64000000:
-                        find_or_create_target(x, y, t_idx)
+                dist_sq = x * x + y * y
+                if (x != 0 or y != 0) and (10000 < dist_sq < 64000000):
+                    raw_targets.append({'id': t_idx, 'active': True, 'x': x, 'y': y, 'speed': s})
+                else:
+                    raw_targets.append({'id': t_idx, 'active': False, 'x': 0, 'y': 0, 'speed': 0})
+
+            # Apply Multi-Anchor Stabilization
+            from utils import calculate_multi_anchor_stabilization
+            stabilized = calculate_multi_anchor_stabilization(raw_targets, filter_states, dt=0.1)
+
+            for t in stabilized:
+                if t['active']:
+                    find_or_create_target(t['x'], t['y'], t['id'])
         else:
             buffer = buffer[2:]
     

@@ -62,6 +62,15 @@ public:
         }
     }
 
+    void setTargetVelocity(int index, float vx, float vy) {
+        if (index >= 0 && index < 3) {
+            // Convert mm/s or cm/s to screen pixels per second/frame here if needed
+            // For now, store it for the predictive interpolation step.
+            targetVelX[index] = vx * 120 / 5000;
+            targetVelY[index] = -vy * 240 / 5000; // Y is inverted on screen
+        }
+    }
+
     // Call this when new radar data arrives (e.g. 10Hz) to set the goal targets
     void updateRadarData(RadarTarget targets[3], bool anchorValid, int16_t anchorX, int16_t anchorY) {
         this->anchorValid = anchorValid;
@@ -102,6 +111,12 @@ public:
         // 1. Move targets via interpolation
         for (int i = 0; i < 3; i++) {
             if (targetActive[i]) {
+                // To utilize the advanced prediction algorithm (alpha-beta filter velocities)
+                // we calculate a predicted goal based on targetVelX/Y over a time step,
+                // but since updateRadarData sets the "absolute" targetGoalX/Y from the motion
+                // compensated coordinates, we simply smoothly interpolate towards the goal, potentially
+                // using the velocity vector to curve or predict the path.
+
                 float diffX = (float)targetGoalX[i] - targetCurrentX[i];
                 float diffY = (float)targetGoalY[i] - targetCurrentY[i];
 
@@ -110,8 +125,13 @@ public:
                     targetCurrentX[i] = (float)targetGoalX[i];
                     targetCurrentY[i] = (float)targetGoalY[i];
                 } else {
-                    targetCurrentX[i] += diffX * interpolationAmount;
-                    targetCurrentY[i] += diffY * interpolationAmount;
+                    // Combine standard linear interpolation with predictive velocity feed-forward
+                    // The feed-forward term (targetVel) slightly nudges the interpolation in the direction of travel
+                    float feedForwardX = targetVelX[i] * 0.05f; // DT ~30ms
+                    float feedForwardY = targetVelY[i] * 0.05f;
+
+                    targetCurrentX[i] += (diffX * interpolationAmount) + feedForwardX;
+                    targetCurrentY[i] += (diffY * interpolationAmount) + feedForwardY;
                 }
             }
         }
@@ -208,6 +228,8 @@ private:
     // Rendering history/animation states
     float targetCurrentX[3];
     float targetCurrentY[3];
+    float targetVelX[3];
+    float targetVelY[3];
 
     bool lastTargetActive[3];
     int lastDrawnX[3];

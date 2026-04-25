@@ -33,6 +33,7 @@ RADII = [20, 40, 60]  # pixels
 
 # Target tracking
 targets = []
+filter_states = {} # State dict for multi-anchor stabilization
 buffer = bytearray()
 last_draw = time.monotonic()
 frame_count = 0
@@ -170,7 +171,7 @@ while True:
 
         # Parse frame for targets
         frames_ok += 1
-        new_targets = []
+        raw_targets = []
 
         # Extract targets from payload (starts at byte 6)
         if len(frame) > 7:
@@ -181,13 +182,23 @@ while True:
                 if offset + 6 <= len(frame) - 2:
                     x = s16_le(frame[offset], frame[offset + 1])
                     y = s16_le(frame[offset + 2], frame[offset + 3])
+                    s = s16_le(frame[offset + 4], frame[offset + 5])
                     
-                    # Filter valid targets
                     dist_sq = x * x + y * y
-                    if 10000 < dist_sq < 64000000:
-                        new_targets.append((x, y, 0, target_idx))
-                    
+                    if (x != 0 or y != 0) and (10000 < dist_sq < 64000000):
+                        raw_targets.append({'id': target_idx, 'active': True, 'x': x, 'y': y, 'speed': s})
+                    else:
+                        raw_targets.append({'id': target_idx, 'active': False, 'x': 0, 'y': 0, 'speed': 0})
                     offset += 6
+
+        # Apply Multi-Anchor Stabilization
+        from utils import calculate_multi_anchor_stabilization
+        stabilized = calculate_multi_anchor_stabilization(raw_targets, filter_states, dt=0.1)
+
+        new_targets = []
+        for t in stabilized:
+            if t['active']:
+                new_targets.append((t['x'], t['y'], 0, t['id']))
 
         # Age existing targets and merge
         aged_targets = [(x, y, age + 1, idx) for x, y, age, idx in targets if age < 15]
