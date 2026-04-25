@@ -6,8 +6,8 @@
 #include <RotaryEncoder.h>
 #include <OneButton.h>
 #include "E54_Radar.h"
+#include "ZoneManager.h"
 
-// State of the application
 enum AppState {
     STATE_RADAR_VIEW,
     STATE_MENU,
@@ -22,11 +22,12 @@ enum ThemeStyle {
 
 class UIManager {
 public:
+    ZoneManager zoneManager;
+
     UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
         state = STATE_RADAR_VIEW;
         menuSelection = 0;
 
-        // Default Settings
         theme = THEME_ALIEN;
         sweepLineEnabled = true;
         trailLength = 5;
@@ -38,8 +39,8 @@ public:
 
         sweepAngle = 0;
         menuOverlayY = 0;
+        maxMenuSelection = 0;
 
-        // Initialize history
         for (int i=0; i<3; i++) {
             lastTargetActive[i] = false;
             targetCurrentX[i] = 120.0f;
@@ -56,17 +57,16 @@ public:
 
     void init() {
         tft.init();
-        tft.setRotation(1); // landscape
-
+        tft.setRotation(1);
         sprite.createSprite(240, 240);
-        sprite.setSwapBytes(true); // Needed for some TFTs
+        sprite.setSwapBytes(true);
     }
 
     void handleEncoder(int dir) {
         if (state == STATE_MENU) {
             menuSelection += dir;
-            if (menuSelection < 0) menuSelection = 8;
-            if (menuSelection > 8) menuSelection = 0;
+            if (menuSelection > maxMenuSelection) menuSelection = 0;
+            if (menuSelection < 0) menuSelection = maxMenuSelection;
         } else if (state == STATE_MENU_EDIT) {
             executeMenuEdit(dir);
         }
@@ -76,22 +76,21 @@ public:
         if (state == STATE_RADAR_VIEW) {
             state = STATE_MENU;
             menuSelection = 0;
-            menuOverlayY = 0; // Reset animation
+            menuOverlayY = 0;
         } else if (state == STATE_MENU) {
-            if (menuSelection == 8) { // Exit
+            if (menuSelection == maxMenuSelection) {
                 state = STATE_RADAR_VIEW;
-            } else if (menuSelection == 7) { // Reset Tracking Action
+            } else if (menuSelection == maxMenuSelection - 1) {
                 actionRequested = 1;
                 state = STATE_RADAR_VIEW;
             } else {
-                state = STATE_MENU_EDIT; // Enter edit mode for this setting
+                state = STATE_MENU_EDIT;
             }
         } else if (state == STATE_MENU_EDIT) {
-            state = STATE_MENU; // Save and return to menu scroll
+            state = STATE_MENU;
         }
     }
 
-    // Call this when new radar data arrives (e.g. 10Hz) to set the goal targets
     void updateRadarData(RadarTarget targets[3], bool anchorValid, int16_t anchorX, int16_t anchorY) {
         this->anchorValid = anchorValid;
         this->anchorX = anchorX;
@@ -109,12 +108,11 @@ public:
                     targetGoalY[i] = 240 - (targets[i].y * 240 / 5000);
 
                     if (targetGoalX[i] < 0 || targetGoalX[i] >= 240 || targetGoalY[i] < 0 || targetGoalY[i] >= 240) {
-                        targetActive[i] = false; // Off screen
+                        targetActive[i] = false;
                     }
                 }
             }
 
-            // Snap immediately to goal if it just became active
             if (targetActive[i] && !lastTargetActive[i]) {
                 targetCurrentX[i] = (float)targetGoalX[i];
                 targetCurrentY[i] = (float)targetGoalY[i];
@@ -122,15 +120,12 @@ public:
         }
     }
 
-    // Call this frequently in the main loop to handle animations
     void renderLoop() {
-        // 1. Update target positions via interpolation
         for (int i = 0; i < 3; i++) {
             if (targetActive[i]) {
-                // Save history only if it moved enough (distribute tails evenly)
                 float dHx = targetHistoryX[i][0] - targetCurrentX[i];
                 float dHy = targetHistoryY[i][0] - targetCurrentY[i];
-                if ((dHx*dHx + dHy*dHy) > 10.0f) { // ~3 pixels of movement
+                if ((dHx*dHx + dHy*dHy) > 10.0f) {
                     for (int h = 9; h > 0; h--) {
                         targetHistoryX[i][h] = targetHistoryX[i][h-1];
                         targetHistoryY[i][h] = targetHistoryY[i][h-1];
@@ -142,7 +137,6 @@ public:
                 float diffX = (float)targetGoalX[i] - targetCurrentX[i];
                 float diffY = (float)targetGoalY[i] - targetCurrentY[i];
 
-                // If diff is very small, snap it.
                 if (abs(diffX) < 0.5f && abs(diffY) < 0.5f) {
                     targetCurrentX[i] = (float)targetGoalX[i];
                     targetCurrentY[i] = (float)targetGoalY[i];
@@ -151,7 +145,6 @@ public:
                     targetCurrentY[i] += diffY * interpolationAmount;
                 }
             } else if (lastTargetActive[i]) {
-                // Target lost, flush history
                 for (int h = 0; h < 10; h++) {
                     targetHistoryX[i][h] = -100;
                     targetHistoryY[i][h] = -100;
@@ -160,38 +153,33 @@ public:
             lastTargetActive[i] = targetActive[i];
         }
 
-        // 2. Clear sprite background
         sprite.fillSprite(TFT_BLACK);
 
-        // 3. Draw background elements
         if (theme == THEME_MINIMAL) {
-            // Minimal: Just center point and outline
             if (gridEnabled) {
-                sprite.drawCircle(120, 240, 180, 0x18E3); // Dark Gray
+                sprite.drawCircle(120, 240, 180, 0x18E3);
                 sprite.fillCircle(120, 240, 4, 0x18E3);
             }
         } else {
             drawRadarBackground();
         }
 
-        // 4. Draw Sweeping line
+        drawZones();
+
         if (sweepLineEnabled && theme != THEME_MINIMAL) {
             sweepAngle = (sweepAngle + 4) % 180;
-            float rad = (sweepAngle - 180) * 0.0174533f; // radians
+            float rad = (sweepAngle - 180) * 0.0174533f;
             uint16_t sweepColor = (theme == THEME_ALIEN) ? TFT_GREEN : TFT_DARKGREY;
 
-            // Draw a subtle wedge for trail
             for (int a = 0; a < 15; a += 3) {
                 float tr = (sweepAngle - a - 180) * 0.0174533f;
                 int tx = 120 + 180 * cos(tr);
                 int ty = 240 + 180 * sin(tr);
-                // Simple alpha blending fake
                 uint16_t trailCol = sprite.alphaBlend((15-a)*17, sweepColor, TFT_BLACK);
                 sprite.drawLine(120, 240, tx, ty, trailCol);
             }
         }
 
-        // 5. Draw targets
         for (int i = 0; i < 3; i++) {
             if (targetActive[i]) {
                 int cx = (int)targetCurrentX[i];
@@ -201,7 +189,6 @@ public:
                 if (theme == THEME_ALIEN) color = TFT_GREEN;
                 else if (theme == THEME_MINIMAL) color = TFT_WHITE;
 
-                // Draw trails
                 if (trailLength > 0) {
                     for (int h = 0; h < trailLength; h++) {
                         int hx = (int)targetHistoryX[i][h];
@@ -215,7 +202,12 @@ public:
                     }
                 }
 
-                // Draw main blip
+                if (zoneManager.isWarning(i)) {
+                    if ((millis() / 200) % 2 == 0) color = TFT_YELLOW;
+                    else color = TFT_RED;
+                    sprite.drawCircle(cx, cy, 8, color);
+                }
+
                 if (theme == THEME_ALIEN) {
                     sprite.drawCircle(cx, cy, 6, color);
                     sprite.fillCircle(cx, cy, 3, color);
@@ -225,7 +217,6 @@ public:
                     sprite.fillCircle(cx, cy, 5, color);
                 }
 
-                // Text
                 if (theme != THEME_ALIEN) {
                     sprite.setTextColor(TFT_YELLOW, TFT_BLACK);
                     sprite.setCursor(cx + 8, cy - 8);
@@ -234,7 +225,6 @@ public:
             }
         }
 
-        // 6. Anchor Status Text
         if (theme != THEME_MINIMAL) {
             if (anchorValid) {
                 sprite.setTextColor(TFT_GREEN, TFT_BLACK);
@@ -247,16 +237,13 @@ public:
             }
         }
 
-        // 7. Draw Overlay Menu if active
         if (state == STATE_MENU || state == STATE_MENU_EDIT) {
             drawMenuOverlay();
         }
 
-        // 8. Push to screen
         sprite.pushSprite(0, 0);
     }
 
-    // Getters for settings
     int getSensitivity() { return sensitivity; }
     int getLocationAveraging() { return locationAveraging; }
 
@@ -272,24 +259,20 @@ private:
     AppState state;
     int menuSelection;
     int menuOverlayY;
+    int maxMenuSelection;
 
-    // Visual Settings
     ThemeStyle theme;
     bool sweepLineEnabled;
-    int trailLength;       // 0-10
+    int trailLength;
     bool gridEnabled;
 
-    // Functional Settings
-    int sensitivity;       // 1-10
-    int locationAveraging; // 1-10
-    float interpolationAmount; // 0.1f - 1.0f
+    int sensitivity;
+    int locationAveraging;
+    float interpolationAmount;
 
-    // Rendering vars
     int sweepAngle;
+    int actionRequested;
 
-    int actionRequested; // 1=reset
-
-    // Data model
     bool anchorValid;
     int16_t anchorX;
     int16_t anchorY;
@@ -298,7 +281,6 @@ private:
     int targetGoalX[3];
     int targetGoalY[3];
 
-    // Rendering history/animation states
     float targetCurrentX[3];
     float targetCurrentY[3];
     float targetHistoryX[3][10];
@@ -308,13 +290,40 @@ private:
     int lastDrawnX[3];
     int lastDrawnY[3];
 
+    void drawRadialWedge(int minDist, int maxDist, int minAngle, int maxAngle, uint16_t color) {
+        int maxR = (maxDist * 180) / 6000;
+        int minR = (minDist * 180) / 6000;
+        if (maxR > 180) maxR = 180;
+        if (minR > 180) minR = 180;
+        for (int a = minAngle; a <= maxAngle; a++) {
+            float rad = (a - 90) * 0.0174533f;
+            float cosA = cos(rad);
+            float sinA = sin(rad);
+            sprite.drawLine(120 + minR*cosA, 240 + minR*sinA, 120 + maxR*cosA, 240 + maxR*sinA, color);
+        }
+    }
+
+    void drawZones() {
+        if (zoneManager.getDeadPreset() != ZONE_OFF) {
+            RadialZone z = zoneManager.getActiveDeadZone();
+            drawRadialWedge(z.minDist, z.maxDist, z.minAngle, z.maxAngle, sprite.color565(30, 0, 0));
+        }
+        if (zoneManager.getWarnPreset() != ZONE_OFF) {
+            RadialZone z = zoneManager.getActiveWarnZone();
+            float danger = zoneManager.getDangerLevel();
+            uint16_t baseColor = sprite.color565(50, 50, 0);
+            uint16_t activeColor = sprite.color565(255, 100, 0);
+            uint8_t alpha = (uint8_t)(danger * 255.0f);
+            uint16_t wedgeColor = sprite.alphaBlend(alpha, activeColor, baseColor);
+            drawRadialWedge(z.minDist, z.maxDist, z.minAngle, z.maxAngle, wedgeColor);
+        }
+    }
+
     void drawRadarBackground() {
         uint16_t gridColor = (theme == THEME_ALIEN) ? sprite.color565(0, 50, 0) : TFT_DARKGREY;
 
         if (gridEnabled) {
-            // Draw arcs for distance
             if (theme == THEME_ALIEN) {
-                // Dotted arcs simulate
                 for (int r=60; r<=180; r+=60) {
                     for (int a=0; a<=180; a+=5) {
                         float rad = (a - 180) * 0.0174533f;
@@ -327,13 +336,11 @@ private:
                 sprite.drawCircle(120, 240, 180, gridColor);
             }
 
-            // Draw lines
             sprite.drawLine(120, 240, 120, 60, gridColor);
             sprite.drawLine(120, 240, 60, 240, gridColor);
             sprite.drawLine(120, 240, 180, 240, gridColor);
 
             if (theme == THEME_ALIEN) {
-                // Diagonal lines
                 sprite.drawLine(120, 240, 120 - 120*0.707, 240 - 120*0.707, gridColor);
                 sprite.drawLine(120, 240, 120 + 120*0.707, 240 - 120*0.707, gridColor);
             }
@@ -341,52 +348,82 @@ private:
     }
 
     void drawMenuOverlay() {
-        // Slide in animation for overlay
         if (menuOverlayY < 120) menuOverlayY += 10;
 
-        // Draw a semi-transparent or solid panel on the left/top
         sprite.fillRect(0, 0, 240, menuOverlayY, sprite.alphaBlend(200, TFT_BLACK, TFT_WHITE));
         sprite.drawLine(0, menuOverlayY, 240, menuOverlayY, TFT_DARKGREY);
 
-        if (menuOverlayY < 120) return; // Wait for animation
+        if (menuOverlayY < 120) return;
 
         sprite.setTextSize(1);
 
         String themeStr = (theme == THEME_STANDARD) ? "Standard" : (theme == THEME_ALIEN ? "Alien" : "Minimal");
         int interDisp = (int)(interpolationAmount * 10.0f + 0.5f);
 
-        String items[9] = {
-            "Theme: " + themeStr,
-            "Sweep Line: " + String(sweepLineEnabled ? "ON" : "OFF"),
-            "Trails: " + String(trailLength),
-            "Grid: " + String(gridEnabled ? "ON" : "OFF"),
-            "Loc Avg: " + String(locationAveraging),
-            "Sensitivity: " + String(sensitivity),
-            "Smoothing: " + String(interDisp),
-            "[ Reset Tracking ]",
-            "[ Exit Menu ]"
-        };
+        String warnStr = (zoneManager.getWarnPreset() == ZONE_OFF) ? "OFF" :
+                         (zoneManager.getWarnPreset() == ZONE_CLOSE) ? "CLOSE" :
+                         (zoneManager.getWarnPreset() == ZONE_MEDIUM) ? "MED" :
+                         (zoneManager.getWarnPreset() == ZONE_FAR) ? "FAR" : "CUSTOM";
 
-        // We only have space to show ~4-5 items, implement scrolling
+        String deadStr = (zoneManager.getDeadPreset() == ZONE_OFF) ? "OFF" :
+                         (zoneManager.getDeadPreset() == ZONE_CLOSE) ? "CLOSE" :
+                         (zoneManager.getDeadPreset() == ZONE_MEDIUM) ? "MED" :
+                         (zoneManager.getDeadPreset() == ZONE_FAR) ? "FAR" : "CUSTOM";
+
+        String items[24];
+        int numItems = 0;
+
+        items[numItems++] = "Theme: " + themeStr;
+        items[numItems++] = "Warn Zone: " + warnStr;
+        if (zoneManager.getWarnPreset() == ZONE_CUSTOM) {
+            items[numItems++] = " W-MinD: " + String(zoneManager.getWarnCustom().minDist);
+            items[numItems++] = " W-MaxD: " + String(zoneManager.getWarnCustom().maxDist);
+            items[numItems++] = " W-MinA: " + String(zoneManager.getWarnCustom().minAngle);
+            items[numItems++] = " W-MaxA: " + String(zoneManager.getWarnCustom().maxAngle);
+        }
+        if (zoneManager.getWarnPreset() != ZONE_OFF) {
+            items[numItems++] = "Warn Fuzz: " + String(zoneManager.getFuzzingThreshold()) + "%";
+            items[numItems++] = "Warn Time: " + String(zoneManager.getHistoryWindow() * 100) + "ms";
+        }
+
+        items[numItems++] = "Dead Zone: " + deadStr;
+        if (zoneManager.getDeadPreset() == ZONE_CUSTOM) {
+            items[numItems++] = " D-MinD: " + String(zoneManager.getDeadCustom().minDist);
+            items[numItems++] = " D-MaxD: " + String(zoneManager.getDeadCustom().maxDist);
+            items[numItems++] = " D-MinA: " + String(zoneManager.getDeadCustom().minAngle);
+            items[numItems++] = " D-MaxA: " + String(zoneManager.getDeadCustom().maxAngle);
+        }
+
+        items[numItems++] = "Sweep Line: " + String(sweepLineEnabled ? "ON" : "OFF");
+        items[numItems++] = "Trails: " + String(trailLength);
+        items[numItems++] = "Grid: " + String(gridEnabled ? "ON" : "OFF");
+        items[numItems++] = "Loc Avg: " + String(locationAveraging);
+        items[numItems++] = "Sensitivity: " + String(sensitivity);
+        items[numItems++] = "Smoothing: " + String(interDisp);
+        items[numItems++] = "[ Reset Tracking ]";
+        items[numItems++] = "[ Exit Menu ]";
+
+        maxMenuSelection = numItems - 1;
+
         int startIdx = max(0, menuSelection - 2);
-        if (startIdx > 3) startIdx = 3;
+        if (startIdx > numItems - 5) startIdx = max(0, numItems - 5);
 
         for (int i = 0; i < 5; i++) {
             int idx = startIdx + i;
-            if (idx > 8) break;
+            if (idx >= numItems) break;
 
             int yPos = 10 + i * 20;
 
             if (idx == menuSelection) {
                 if (state == STATE_MENU_EDIT) {
-                    sprite.fillRect(5, yPos - 2, 230, 18, TFT_DARKGREY); // Editing highlight
+                    sprite.fillRect(5, yPos - 2, 230, 18, TFT_DARKGREY);
                     sprite.setTextColor(TFT_GREEN, TFT_DARKGREY);
                 } else {
-                    sprite.fillRect(5, yPos - 2, 230, 18, TFT_WHITE); // Selected highlight
+                    sprite.fillRect(5, yPos - 2, 230, 18, TFT_WHITE);
                     sprite.setTextColor(TFT_BLACK, TFT_WHITE);
                 }
             } else {
-                sprite.setTextColor(TFT_WHITE, TFT_BLACK); // Normal
+                sprite.setTextColor(TFT_WHITE, TFT_BLACK);
             }
 
             sprite.setCursor(15, yPos);
@@ -395,43 +432,70 @@ private:
     }
 
     void executeMenuEdit(int dir) {
-        switch (menuSelection) {
-            case 0: { // Theme
-                int t = (int)theme + dir;
-                if (t > 2) t = 0;
-                if (t < 0) t = 2;
-                theme = (ThemeStyle)t;
-                // Apply presets
-                if (theme == THEME_ALIEN) { sweepLineEnabled = true; trailLength = 8; gridEnabled = true; }
-                else if (theme == THEME_MINIMAL) { sweepLineEnabled = false; trailLength = 0; gridEnabled = true; }
-                else { sweepLineEnabled = true; trailLength = 3; gridEnabled = true; }
-                break; }
-            case 1: // Sweep Line
-                sweepLineEnabled = !sweepLineEnabled;
-                break;
-            case 2: // Trails
-                trailLength += dir;
-                if (trailLength < 0) trailLength = 0;
-                if (trailLength > 10) trailLength = 10;
-                break;
-            case 3: // Grid
-                gridEnabled = !gridEnabled;
-                break;
-            case 4: // Loc Avg
-                locationAveraging += dir;
-                if (locationAveraging < 1) locationAveraging = 1;
-                if (locationAveraging > 10) locationAveraging = 10;
-                break;
-            case 5: // Sensitivity
-                sensitivity += dir;
-                if (sensitivity < 1) sensitivity = 1;
-                if (sensitivity > 10) sensitivity = 10;
-                break;
-            case 6: // Smoothing
-                interpolationAmount += (dir * 0.1f);
-                if (interpolationAmount < 0.1f) interpolationAmount = 0.1f;
-                if (interpolationAmount > 1.05f) interpolationAmount = 1.0f;
-                break;
+        int idx = 0;
+        if (idx++ == menuSelection) {
+            int t = (int)theme + dir;
+            if (t > 2) t = 0; if (t < 0) t = 2;
+            theme = (ThemeStyle)t;
+            if (theme == THEME_ALIEN) { sweepLineEnabled = true; trailLength = 8; gridEnabled = true; }
+            else if (theme == THEME_MINIMAL) { sweepLineEnabled = false; trailLength = 0; gridEnabled = true; }
+            else { sweepLineEnabled = true; trailLength = 3; gridEnabled = true; }
+            return;
+        }
+
+        if (idx++ == menuSelection) {
+            int p = (int)zoneManager.getWarnPreset() + dir;
+            if (p > 4) p = 0; if (p < 0) p = 4;
+            zoneManager.setWarnPreset((ZonePreset)p);
+            return;
+        }
+
+        if (zoneManager.getWarnPreset() == ZONE_CUSTOM) {
+            RadialZone z = zoneManager.getWarnCustom();
+            if (idx++ == menuSelection) { z.minDist += dir * 100; if(z.minDist < 0) z.minDist=0; zoneManager.setWarnCustom(z); return; }
+            if (idx++ == menuSelection) { z.maxDist += dir * 100; if(z.maxDist < z.minDist) z.maxDist=z.minDist; zoneManager.setWarnCustom(z); return; }
+            if (idx++ == menuSelection) { z.minAngle += dir * 5; if(z.minAngle < -90) z.minAngle=-90; zoneManager.setWarnCustom(z); return; }
+            if (idx++ == menuSelection) { z.maxAngle += dir * 5; if(z.maxAngle > 90) z.maxAngle=90; zoneManager.setWarnCustom(z); return; }
+        }
+
+        if (zoneManager.getWarnPreset() != ZONE_OFF) {
+            if (idx++ == menuSelection) {
+                int f = zoneManager.getFuzzingThreshold() + dir * 5;
+                if (f < 0) f = 0; if (f > 100) f = 100;
+                zoneManager.setFuzzingThreshold(f);
+                return;
+            }
+            if (idx++ == menuSelection) {
+                zoneManager.setHistoryWindow(zoneManager.getHistoryWindow() + dir);
+                return;
+            }
+        }
+
+        if (idx++ == menuSelection) {
+            int p = (int)zoneManager.getDeadPreset() + dir;
+            if (p > 4) p = 0; if (p < 0) p = 4;
+            zoneManager.setDeadPreset((ZonePreset)p);
+            return;
+        }
+
+        if (zoneManager.getDeadPreset() == ZONE_CUSTOM) {
+            RadialZone z = zoneManager.getDeadCustom();
+            if (idx++ == menuSelection) { z.minDist += dir * 100; if(z.minDist < 0) z.minDist=0; zoneManager.setDeadCustom(z); return; }
+            if (idx++ == menuSelection) { z.maxDist += dir * 100; if(z.maxDist < z.minDist) z.maxDist=z.minDist; zoneManager.setDeadCustom(z); return; }
+            if (idx++ == menuSelection) { z.minAngle += dir * 5; if(z.minAngle < -90) z.minAngle=-90; zoneManager.setDeadCustom(z); return; }
+            if (idx++ == menuSelection) { z.maxAngle += dir * 5; if(z.maxAngle > 90) z.maxAngle=90; zoneManager.setDeadCustom(z); return; }
+        }
+
+        if (idx++ == menuSelection) { sweepLineEnabled = !sweepLineEnabled; return; }
+        if (idx++ == menuSelection) { trailLength += dir; if (trailLength < 0) trailLength = 0; if (trailLength > 10) trailLength = 10; return; }
+        if (idx++ == menuSelection) { gridEnabled = !gridEnabled; return; }
+        if (idx++ == menuSelection) { locationAveraging += dir; if (locationAveraging < 1) locationAveraging = 1; if (locationAveraging > 10) locationAveraging = 10; return; }
+        if (idx++ == menuSelection) { sensitivity += dir; if (sensitivity < 1) sensitivity = 1; if (sensitivity > 10) sensitivity = 10; return; }
+        if (idx++ == menuSelection) {
+            interpolationAmount += (dir * 0.1f);
+            if (interpolationAmount < 0.1f) interpolationAmount = 0.1f;
+            if (interpolationAmount > 1.05f) interpolationAmount = 1.0f;
+            return;
         }
     }
 };
