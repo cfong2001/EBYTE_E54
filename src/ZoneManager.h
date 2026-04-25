@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <math.h>
+#include <Preferences.h>
 
 enum ZonePreset {
     ZONE_OFF,
@@ -19,34 +20,73 @@ struct RadialZone {
     int maxAngle;  // degrees
 };
 
+#include <Preferences.h>
+
 class ZoneManager {
 public:
+    Preferences preferences;
+
     ZoneManager() {
         warnPreset = ZONE_OFF;
         deadPreset = ZONE_OFF;
         warnCustom = {1000, 3000, -30, 30};
         deadCustom = {0, 1000, -90, 90};
-        fuzzingThreshold = 50; // 50%
-        historyWindow = 10;    // 10 frames = ~1 second
+        fuzzingThreshold = 50;
+        historyWindow = 10;
 
         for(int i=0; i<3; i++) {
             historyCount[i] = 0;
-            for(int j=0; j<30; j++) {
-                warnHistory[i][j] = false;
-            }
+            for(int j=0; j<30; j++) warnHistory[i][j] = false;
         }
     }
 
-    void setWarnPreset(ZonePreset p) { warnPreset = p; }
-    void setDeadPreset(ZonePreset p) { deadPreset = p; }
-    void setWarnCustom(RadialZone z) { warnCustom = z; }
-    void setDeadCustom(RadialZone z) { deadCustom = z; }
-    void setFuzzingThreshold(int percent) { fuzzingThreshold = percent; }
+    void loadSettings() {
+        preferences.begin("radar_zones", false);
+        warnPreset = (ZonePreset)preferences.getInt("warnP", ZONE_OFF);
+        deadPreset = (ZonePreset)preferences.getInt("deadP", ZONE_OFF);
+        warnCustom.minDist = preferences.getInt("wC_minD", 1000);
+        warnCustom.maxDist = preferences.getInt("wC_maxD", 3000);
+        warnCustom.minAngle = preferences.getInt("wC_minA", -30);
+        warnCustom.maxAngle = preferences.getInt("wC_maxA", 30);
+        deadCustom.minDist = preferences.getInt("dC_minD", 0);
+        deadCustom.maxDist = preferences.getInt("dC_maxD", 1000);
+        deadCustom.minAngle = preferences.getInt("dC_minA", -90);
+        deadCustom.maxAngle = preferences.getInt("dC_maxA", 90);
+        fuzzingThreshold = preferences.getInt("fuzzT", 50);
+        historyWindow = preferences.getInt("histW", 10);
+        preferences.end();
+    }
+
+    void saveSettings() {
+        preferences.begin("radar_zones", false);
+        preferences.putInt("warnP", warnPreset);
+        preferences.putInt("deadP", deadPreset);
+        preferences.putInt("wC_minD", warnCustom.minDist);
+        preferences.putInt("wC_maxD", warnCustom.maxDist);
+        preferences.putInt("wC_minA", warnCustom.minAngle);
+        preferences.putInt("wC_maxA", warnCustom.maxAngle);
+        preferences.putInt("dC_minD", deadCustom.minDist);
+        preferences.putInt("dC_maxD", deadCustom.maxDist);
+        preferences.putInt("dC_minA", deadCustom.minAngle);
+        preferences.putInt("dC_maxA", deadCustom.maxAngle);
+        preferences.putInt("fuzzT", fuzzingThreshold);
+        preferences.putInt("histW", historyWindow);
+        preferences.end();
+    }
+
+    void setWarnPreset(ZonePreset p) { warnPreset = p; saveSettings(); }
+    void setDeadPreset(ZonePreset p) { deadPreset = p; saveSettings(); }
+    void setWarnCustom(RadialZone z) { warnCustom = z; saveSettings(); }
+    void setDeadCustom(RadialZone z) { deadCustom = z; saveSettings(); }
+    void setFuzzingThreshold(int percent) { fuzzingThreshold = percent; saveSettings(); }
     void setHistoryWindow(int frames) {
         if (frames > 30) frames = 30;
         if (frames < 1) frames = 1;
         historyWindow = frames;
+        saveSettings();
     }
+
+
 
     ZonePreset getWarnPreset() { return warnPreset; }
     ZonePreset getDeadPreset() { return deadPreset; }
@@ -117,7 +157,10 @@ public:
                 if (warnHistory[i][h]) hits++;
             }
             float percent = (float)hits / (float)checkFrames;
-            float danger = percent / ((float)fuzzingThreshold / 100.0f);
+            float danger = 1.0f;
+            if (fuzzingThreshold > 0) {
+                danger = percent / ((float)fuzzingThreshold / 100.0f);
+            }
             if (danger > 1.0f) danger = 1.0f;
             if (danger > maxDanger) maxDanger = danger;
         }

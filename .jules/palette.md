@@ -6,3 +6,7 @@
 ## 2026-04-25 - [Dynamic Menu & Fuzzing Visual Feedback]
 **Learning:** Hardcoding static array lengths for menus breaks easily when options expand and contract based on dependencies (e.g. selecting "Custom" zones revealing X/Y parameter dials). Alpha blending (`sprite.alphaBlend`) based on floating-point danger levels (0.0 - 1.0) creates highly intuitive, gradual threat visualization instead of binary flashing.
 **Action:** Always maintain a dynamic index pointer `numItems` for UI overlay menus. For critical alerts, use mathematical thresholds derived from history arrays (fuzzing) and convert those to alpha channels to drive UI color transitions smoothly.
+
+## 2026-04-25 - [Tactical Micro-UX & Persistence]
+**Learning:** Hard-coded variables in complex UIs frustrate users if lost on power-cycle. Transitioning to NVS using `Preferences.h` is critical for hardware tools. Additionally, small UX details like target color-coding (Orange, Blue, Purple vs Monochromatic) drastically reduce cognitive load, and replacing static text boot screens with animated progressive line-drawing mimics high-end instrumentation.
+**Action:** Default to implementing NVS `saveSettings()` and `loadSettings()` for any user-facing configuration structs. Use distinct colors per tracked ID rather than per-theme unless monochrome is strictly requested.

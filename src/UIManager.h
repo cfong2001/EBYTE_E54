@@ -7,8 +7,10 @@
 #include <OneButton.h>
 #include "E54_Radar.h"
 #include "ZoneManager.h"
+#include <Preferences.h>
 
 enum AppState {
+    STATE_BOOT,
     STATE_RADAR_VIEW,
     STATE_MENU,
     STATE_MENU_EDIT
@@ -23,6 +25,7 @@ enum ThemeStyle {
 class UIManager {
 public:
     ZoneManager zoneManager;
+    Preferences preferences;
 
     UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
         state = STATE_RADAR_VIEW;
@@ -32,6 +35,7 @@ public:
         sweepLineEnabled = true;
         trailLength = 5;
         gridEnabled = true;
+        startupAnimEnabled = true;
         sensitivity = 5;
         locationAveraging = 5;
         interpolationAmount = 0.5f;
@@ -40,6 +44,7 @@ public:
         sweepAngle = 0;
         menuOverlayY = 0;
         maxMenuSelection = 0;
+        bootStartTime = 0;
 
         for (int i=0; i<3; i++) {
             lastTargetActive[i] = false;
@@ -47,7 +52,6 @@ public:
             targetCurrentY[i] = 240.0f;
             lastDrawnX[i] = 120;
             lastDrawnY[i] = 240;
-
             for (int h=0; h<10; h++) {
                 targetHistoryX[i][h] = 120.0f;
                 targetHistoryY[i][h] = 240.0f;
@@ -55,11 +59,49 @@ public:
         }
     }
 
+    void loadSettings() {
+        preferences.begin("radar_ui", false);
+        theme = (ThemeStyle)preferences.getInt("theme", THEME_ALIEN);
+        sweepLineEnabled = preferences.getBool("sweep", true);
+        trailLength = preferences.getInt("trails", 5);
+        gridEnabled = preferences.getBool("grid", true);
+        startupAnimEnabled = preferences.getBool("startup", true);
+        sensitivity = preferences.getInt("sens", 5);
+        locationAveraging = preferences.getInt("locAvg", 5);
+        // prefs only save ints/strings easily
+        interpolationAmount = (float)preferences.getInt("interp", 5) / 10.0f;
+        preferences.end();
+    }
+
+    void saveSettings() {
+        preferences.begin("radar_ui", false);
+        preferences.putInt("theme", theme);
+        preferences.putBool("sweep", sweepLineEnabled);
+        preferences.putInt("trails", trailLength);
+        preferences.putBool("grid", gridEnabled);
+        preferences.putBool("startup", startupAnimEnabled);
+        preferences.putInt("sens", sensitivity);
+        preferences.putInt("locAvg", locationAveraging);
+        int interDisp = (int)(interpolationAmount * 10.0f + 0.5f);
+        preferences.putInt("interp", interDisp);
+        preferences.end();
+    }
+
     void init() {
+        zoneManager.loadSettings();
+        loadSettings();
+
         tft.init();
         tft.setRotation(1);
         sprite.createSprite(240, 240);
         sprite.setSwapBytes(true);
+
+        if (startupAnimEnabled) {
+            state = STATE_BOOT;
+            bootStartTime = millis();
+        } else {
+            state = STATE_RADAR_VIEW;
+        }
     }
 
     void handleEncoder(int dir) {
@@ -79,14 +121,17 @@ public:
             menuOverlayY = 0;
         } else if (state == STATE_MENU) {
             if (menuSelection == maxMenuSelection) {
+                saveSettings();
                 state = STATE_RADAR_VIEW;
             } else if (menuSelection == maxMenuSelection - 1) {
                 actionRequested = 1;
+                saveSettings();
                 state = STATE_RADAR_VIEW;
             } else {
                 state = STATE_MENU_EDIT;
             }
         } else if (state == STATE_MENU_EDIT) {
+            saveSettings();
             state = STATE_MENU;
         }
     }
@@ -121,6 +166,10 @@ public:
     }
 
     void renderLoop() {
+        if (state == STATE_BOOT) {
+            drawBootScreen();
+            return;
+        }
         for (int i = 0; i < 3; i++) {
             if (targetActive[i]) {
                 float dHx = targetHistoryX[i][0] - targetCurrentX[i];
@@ -168,14 +217,14 @@ public:
 
         if (sweepLineEnabled && theme != THEME_MINIMAL) {
             sweepAngle = (sweepAngle + 4) % 180;
-            float rad = (sweepAngle - 180) * 0.0174533f;
             uint16_t sweepColor = (theme == THEME_ALIEN) ? TFT_GREEN : TFT_DARKGREY;
 
-            for (int a = 0; a < 15; a += 3) {
+            for (int a = 0; a < 30; a += 2) {
                 float tr = (sweepAngle - a - 180) * 0.0174533f;
                 int tx = 120 + 180 * cos(tr);
                 int ty = 240 + 180 * sin(tr);
-                uint16_t trailCol = sprite.alphaBlend((15-a)*17, sweepColor, TFT_BLACK);
+                uint8_t alpha = 255 - ((a * 255) / 30);
+                uint16_t trailCol = sprite.alphaBlend(alpha, sweepColor, TFT_BLACK);
                 sprite.drawLine(120, 240, tx, ty, trailCol);
             }
         }
@@ -185,9 +234,18 @@ public:
                 int cx = (int)targetCurrentX[i];
                 int cy = (int)targetCurrentY[i];
 
-                uint16_t color = TFT_RED;
-                if (theme == THEME_ALIEN) color = TFT_GREEN;
-                else if (theme == THEME_MINIMAL) color = TFT_WHITE;
+                uint16_t color;
+                if (theme == THEME_MINIMAL) {
+                    color = TFT_WHITE;
+                } else if (theme == THEME_ALIEN) {
+                    if (i == 0) color = sprite.color565(0, 255, 0); // Green
+                    else if (i == 1) color = sprite.color565(0, 255, 255); // Cyan
+                    else color = sprite.color565(255, 0, 255); // Magenta
+                } else {
+                    if (i == 0) color = sprite.color565(255, 100, 0); // Orange
+                    else if (i == 1) color = sprite.color565(0, 150, 255); // Blue
+                    else color = sprite.color565(200, 0, 255); // Purple
+                }
 
                 if (trailLength > 0) {
                     for (int h = 0; h < trailLength; h++) {
@@ -208,13 +266,24 @@ public:
                     sprite.drawCircle(cx, cy, 8, color);
                 }
 
+                // Tactical Target Reticles
                 if (theme == THEME_ALIEN) {
                     sprite.drawCircle(cx, cy, 6, color);
-                    sprite.fillCircle(cx, cy, 3, color);
+                    sprite.fillCircle(cx, cy, 2, color);
+                    // Add small crosshair lines
+                    sprite.drawLine(cx-8, cy, cx-4, cy, color);
+                    sprite.drawLine(cx+4, cy, cx+8, cy, color);
+                    sprite.drawLine(cx, cy-8, cx, cy-4, color);
+                    sprite.drawLine(cx, cy+4, cx, cy+8, color);
                 } else if (theme == THEME_MINIMAL) {
                     sprite.fillRect(cx - 3, cy - 3, 7, 7, color);
                 } else {
-                    sprite.fillCircle(cx, cy, 5, color);
+                    // Standard theme tactical reticle
+                    sprite.fillCircle(cx, cy, 3, color);
+                    sprite.drawLine(cx-6, cy, cx-2, cy, color);
+                    sprite.drawLine(cx+2, cy, cx+6, cy, color);
+                    sprite.drawLine(cx, cy-6, cx, cy-2, color);
+                    sprite.drawLine(cx, cy+2, cx, cy+6, color);
                 }
 
                 if (theme != THEME_ALIEN) {
@@ -260,11 +329,13 @@ private:
     int menuSelection;
     int menuOverlayY;
     int maxMenuSelection;
+    unsigned long bootStartTime;
 
     ThemeStyle theme;
     bool sweepLineEnabled;
     int trailLength;
     bool gridEnabled;
+    bool startupAnimEnabled;
 
     int sensitivity;
     int locationAveraging;
@@ -289,6 +360,53 @@ private:
     bool lastTargetActive[3];
     int lastDrawnX[3];
     int lastDrawnY[3];
+
+
+    void drawBootScreen() {
+        sprite.fillSprite(TFT_BLACK);
+        unsigned long elapsed = millis() - bootStartTime;
+
+        // Progress defines how far the animation has expanded (0 to 180 pixel radius)
+        int maxR = (elapsed * 180) / 1000;
+        if (maxR > 180) maxR = 180;
+
+        uint16_t gridColor = (theme == THEME_ALIEN) ? sprite.color565(0, 100, 0) : sprite.color565(100, 100, 100);
+
+        // Animated sweeping rings
+        for (int r = 60; r <= 180; r += 60) {
+            if (maxR >= r) {
+                // Draw partial circle based on how far past the ring we are
+                int sweepDeg = ((maxR - r) * 180) / 30; // Fast expand
+                if (sweepDeg > 360) sweepDeg = 360;
+
+                // Draw expanding arc
+                for (int a = -180; a < -180 + sweepDeg; a += 5) {
+                    float rad = a * 0.0174533f;
+                    sprite.drawPixel(120 + r * cos(rad), 240 + r * sin(rad), gridColor);
+                }
+            }
+        }
+
+        // Animated Crosshairs (Center lines)
+        if (maxR > 0) {
+            sprite.drawLine(120, 240, 120, 240 - maxR, gridColor);
+            sprite.drawLine(120, 240, 120 - maxR, 240, gridColor);
+            sprite.drawLine(120, 240, 120 + maxR, 240, gridColor);
+        }
+
+        // Boot Text
+        sprite.setTextColor(gridColor, TFT_BLACK);
+        sprite.setTextSize(1);
+        if (elapsed < 300) sprite.setCursor(100, 120), sprite.print("INIT");
+        else if (elapsed < 600) sprite.setCursor(90, 120), sprite.print("CALIBRATING");
+        else if (elapsed < 1000) sprite.setCursor(95, 120), sprite.print("SCANNING...");
+
+        sprite.pushSprite(0, 0);
+
+        if (elapsed > 1200) {
+            state = STATE_RADAR_VIEW;
+        }
+    }
 
     void drawRadialWedge(int minDist, int maxDist, int minAngle, int maxAngle, uint16_t color) {
         int maxR = (maxDist * 180) / 6000;
@@ -397,6 +515,7 @@ private:
         items[numItems++] = "Sweep Line: " + String(sweepLineEnabled ? "ON" : "OFF");
         items[numItems++] = "Trails: " + String(trailLength);
         items[numItems++] = "Grid: " + String(gridEnabled ? "ON" : "OFF");
+        items[numItems++] = "Boot Anim: " + String(startupAnimEnabled ? "ON" : "OFF");
         items[numItems++] = "Loc Avg: " + String(locationAveraging);
         items[numItems++] = "Sensitivity: " + String(sensitivity);
         items[numItems++] = "Smoothing: " + String(interDisp);
@@ -489,6 +608,7 @@ private:
         if (idx++ == menuSelection) { sweepLineEnabled = !sweepLineEnabled; return; }
         if (idx++ == menuSelection) { trailLength += dir; if (trailLength < 0) trailLength = 0; if (trailLength > 10) trailLength = 10; return; }
         if (idx++ == menuSelection) { gridEnabled = !gridEnabled; return; }
+        if (idx++ == menuSelection) { startupAnimEnabled = !startupAnimEnabled; return; }
         if (idx++ == menuSelection) { locationAveraging += dir; if (locationAveraging < 1) locationAveraging = 1; if (locationAveraging > 10) locationAveraging = 10; return; }
         if (idx++ == menuSelection) { sensitivity += dir; if (sensitivity < 1) sensitivity = 1; if (sensitivity > 10) sensitivity = 10; return; }
         if (idx++ == menuSelection) {
