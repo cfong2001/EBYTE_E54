@@ -161,6 +161,48 @@ def test_multi_anchor_stabilization():
 
     assert stab5[0]['x'] == frame5[0]['x'], "Zero anchors should pass raw coordinate through to filter"
 
+    # Frame 6: Dynamic Anchor Validation
+    # Let's say we have 3 targets that are previously stable
+    state_dict = {}
+    frame6_1 = [
+        {'id': 0, 'active': True, 'x': 0, 'y': 1000, 'speed': 0},
+        {'id': 1, 'active': True, 'x': 1000, 'y': 1000, 'speed': 0},
+        {'id': 2, 'active': True, 'x': -1000, 'y': 1000, 'speed': 0}
+    ]
+    calculate_multi_anchor_stabilization(frame6_1, state_dict, dt=0.1)
+
+    # Give the filter a moment to settle state so they are considered stable anchors
+    calculate_multi_anchor_stabilization(frame6_1, state_dict, dt=0.1)
+    calculate_multi_anchor_stabilization(frame6_1, state_dict, dt=0.1)
+
+    # Next frame: targets 0 and 1 stay perfectly rigid together (they moved +100x),
+    # but target 2 moves -500x (breaking rigidity heavily). It should be rejected as an anchor.
+    frame6_2 = [
+        {'id': 0, 'active': True, 'x': 100, 'y': 1000, 'speed': 0},
+        {'id': 1, 'active': True, 'x': 1100, 'y': 1000, 'speed': 0},
+        {'id': 2, 'active': True, 'x': -1500, 'y': 1000, 'speed': 0}
+    ]
+    calculate_multi_anchor_stabilization(frame6_2, state_dict, dt=0.1)
+
+    # In a 3-point geometry where one moves, the two that maintain distance relative to each other
+    # will have lower combined error than the one that moved relative to both.
+    # Note: because it's a simulated jump without velocity ramp-up, the Alpha-Beta filter might temporarily
+    # flag all as anomalous due to high instantaneous residual, but the important part is 2 is definitely rejected.
+    assert state_dict[2]['is_anchor'] == False, f"Anomalous moving target failed to be rejected from anchors. state: {state_dict[2]}"
+
+    # Frame 7: Acceleration test
+    # Target 0 starts accelerating positively in X
+    frame7_1 = [{'id': 0, 'active': True, 'x': 0, 'y': 0, 'speed': 0}]
+    frame7_2 = [{'id': 0, 'active': True, 'x': 10, 'y': 0, 'speed': 100}]
+    frame7_3 = [{'id': 0, 'active': True, 'x': 30, 'y': 0, 'speed': 200}]
+
+    sd2 = {}
+    calculate_multi_anchor_stabilization(frame7_1, sd2, dt=0.1)
+    calculate_multi_anchor_stabilization(frame7_2, sd2, dt=0.1)
+    stab_7 = calculate_multi_anchor_stabilization(frame7_3, sd2, dt=0.1)
+
+    assert sd2[0]['acc_x'] > 0, "Acceleration not properly calculated/tracked"
+
     logger.info("  ✓ multi_anchor_stabilization tests passed!")
 
 def main():

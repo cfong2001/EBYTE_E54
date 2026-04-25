@@ -82,9 +82,10 @@ void loop() {
         motionComp.process(radar.targets, compensatedTargets);
         ui.updateRadarData(compensatedTargets, motionComp.isAnchorValid(), motionComp.getAnchorX(), motionComp.getAnchorY());
 
-        // Pass velocities to UI for predictive interpolation
+        // Pass motion data (velocity/acceleration) to UI for curved predictive interpolation
         for (int i = 0; i < 3; i++) {
-            ui.setTargetVelocity(i, motionComp.getTargetVelX(i), motionComp.getTargetVelY(i));
+            ui.setTargetMotion(i, motionComp.getTargetVelX(i), motionComp.getTargetVelY(i),
+                                  motionComp.getTargetAccX(i), motionComp.getTargetAccY(i));
         }
     }
 

@@ -54,19 +54,68 @@ def calculate_multi_anchor_stabilization(targets, state_dict, dt=0.1):
         predicted.append((px, py))
 
     # 2. Identify Anchors
-    anchors = []
+    temp_anchors = []
     STATIC_SPEED_THRESHOLD = 30 # cm/s (15 * 2)
     for i, t in enumerate(targets):
         tid = t['id']
         st = state_dict[tid]
         if t['active'] and st['active']:
             if abs(t.get('speed', 0)) < STATIC_SPEED_THRESHOLD:
-                anchors.append(i)
+                temp_anchors.append(i)
                 st['is_anchor'] = True
             else:
                 st['is_anchor'] = False
         else:
             st['is_anchor'] = False
+
+    # Dynamic Anchor Validation (Cross-Target Rigidity Rejection)
+    anchors = []
+    num_anchors = len(temp_anchors)
+    if num_anchors == 3:
+        err = [0.0, 0.0, 0.0]
+        for i in range(3):
+            a = temp_anchors[i]
+            for j in range(i + 1, 3):
+                b = temp_anchors[j]
+                dQx = targets[a]['x'] - targets[b]['x']
+                dQy = targets[a]['y'] - targets[b]['y']
+                dist_q_sq = dQx*dQx + dQy*dQy
+
+                dPx = predicted[a][0] - predicted[b][0]
+                dPy = predicted[a][1] - predicted[b][1]
+                dist_p_sq = dPx*dPx + dPy*dPy
+
+                diff = abs(dist_q_sq - dist_p_sq) / (dist_p_sq + 1.0)
+                err[i] += diff
+                err[j] += diff
+        # Find the minimum error. In a 3-point system where 1 point moves,
+        # the two points that don't move relative to each other will share the lowest error component.
+        # Find if there is an anomalous anchor:
+        min_err = min(err)
+        for i in range(3):
+            # Allow up to 0.3 absolute error, or relatively close to the minimum error
+            if err[i] < 0.3 or err[i] <= (min_err * 2.0 + 0.1):
+                anchors.append(temp_anchors[i])
+            else:
+                state_dict[targets[temp_anchors[i]]['id']]['is_anchor'] = False
+
+    elif num_anchors == 2:
+        a = temp_anchors[0]
+        b = temp_anchors[1]
+        dQx = targets[a]['x'] - targets[b]['x']
+        dQy = targets[a]['y'] - targets[b]['y']
+        dPx = predicted[a][0] - predicted[b][0]
+        dPy = predicted[a][1] - predicted[b][1]
+
+        diff = abs((dQx*dQx + dQy*dQy) - (dPx*dPx + dPy*dPy)) / ((dPx*dPx + dPy*dPy) + 1.0)
+        if diff < 0.2:
+            anchors = temp_anchors
+        else:
+            state_dict[targets[a]['id']]['is_anchor'] = False
+            state_dict[targets[b]['id']]['is_anchor'] = False
+
+    elif num_anchors == 1:
+        anchors = temp_anchors
 
     # 3. Calculate Global Rigid Transformation (Kabsch algorithm in 2D)
     Cp_x, Cp_y, Cq_x, Cq_y = 0.0, 0.0, 0.0, 0.0
@@ -98,14 +147,19 @@ def calculate_multi_anchor_stabilization(targets, state_dict, dt=0.1):
                 cos_t = C / M
                 sin_t = S / M
 
-    # 4. Stabilize and update Alpha-Beta filters
-    base_alpha, base_beta = 0.6, 0.12
+    # 4. Stabilize and update Alpha-Beta-Gamma filters
+    base_alpha, base_beta, base_gamma = 0.6, 0.12, 0.05
     stabilized = []
 
     for i, t in enumerate(targets):
         tid = t['id']
         st = state_dict[tid]
-        res = {'id': tid, 'active': t['active'], 'x': t['x'], 'y': t['y'], 'vel_x': 0.0, 'vel_y': 0.0}
+
+        if 'acc_x' not in st:
+            st['acc_x'] = 0.0
+            st['acc_y'] = 0.0
+
+        res = {'id': tid, 'active': t['active'], 'x': t['x'], 'y': t['y'], 'vel_x': 0.0, 'vel_y': 0.0, 'acc_x': 0.0, 'acc_y': 0.0}
 
         if t['active']:
             qx, qy = t['x'], t['y']
@@ -128,8 +182,10 @@ def calculate_multi_anchor_stabilization(targets, state_dict, dt=0.1):
                 st['y'] = stab_y
                 st['vel_x'] = 0.0
                 st['vel_y'] = 0.0
+                st['acc_x'] = 0.0
+                st['acc_y'] = 0.0
             else:
-                alpha, beta = base_alpha, base_beta
+                alpha, beta, gamma = base_alpha, base_beta, base_gamma
                 resid_x = stab_x - predicted[i][0]
                 resid_y = stab_y - predicted[i][1]
                 dist_sq = resid_x * resid_x + resid_y * resid_y
@@ -138,20 +194,34 @@ def calculate_multi_anchor_stabilization(targets, state_dict, dt=0.1):
                     if dist_sq > 10000.0:
                         alpha *= 0.2
                         beta *= 0.1
+                        gamma *= 0.1
                     elif dist_sq < 400.0:
                         alpha = min(1.0, alpha * 1.5)
                         beta *= 1.5
+                        gamma *= 1.5
                 else:
                     alpha = min(1.0, alpha * 2.0)
                     beta = alpha * 0.2
+                    gamma = alpha * 0.05
 
                 st['x'] = predicted[i][0] + alpha * resid_x
                 st['y'] = predicted[i][1] + alpha * resid_y
                 st['vel_x'] = st['vel_x'] + (beta * resid_x / dt)
                 st['vel_y'] = st['vel_y'] + (beta * resid_y / dt)
 
+                dt_sq_half = (dt * dt) * 0.5
+                st['acc_x'] = st['acc_x'] + (gamma * resid_x / dt_sq_half)
+                st['acc_y'] = st['acc_y'] + (gamma * resid_y / dt_sq_half)
+
+                # Constrain acceleration
+                max_acc = 5000.0
+                st['acc_x'] = max(-max_acc, min(max_acc, st['acc_x']))
+                st['acc_y'] = max(-max_acc, min(max_acc, st['acc_y']))
+
             res['vel_x'] = st['vel_x']
             res['vel_y'] = st['vel_y']
+            res['acc_x'] = st['acc_x']
+            res['acc_y'] = st['acc_y']
         else:
             st['active'] = False
             st['is_anchor'] = False

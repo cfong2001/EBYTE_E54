@@ -41,7 +41,7 @@ class Target:
     def time_since_seen(self):
         return time.monotonic() - self.last_seen
     
-    def update(self, x, y, vel_x=0, vel_y=0):
+    def update(self, x, y, vel_x=0, vel_y=0, acc_x=0, acc_y=0):
         # We can predict position visually here if we wanted,
         # but the main update is from the compensated coordinate.
         self.x = x
@@ -179,7 +179,6 @@ def find_or_create_target(x, y, target_id):
     for target in targets:
         dist_sq = (target.x - x)**2 + (target.y - y)**2
         if dist_sq < 90000:
-            target.update(x, y)
             return target
     
     # Create new target
@@ -250,7 +249,8 @@ while True:
             
             for t in stabilized:
                 if t['active']:
-                    find_or_create_target(t['x'], t['y'], t['id'])
+                    target = find_or_create_target(t['x'], t['y'], t['id'])
+                    target.update(t['x'], t['y'], t['vel_x'], t['vel_y'], t['acc_x'], t['acc_y'])
                     any_new = True
 
             # Trigger pulse animation when new targets detected

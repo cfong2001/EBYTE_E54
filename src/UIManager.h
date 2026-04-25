@@ -62,12 +62,13 @@ public:
         }
     }
 
-    void setTargetVelocity(int index, float vx, float vy) {
+    void setTargetMotion(int index, float vx, float vy, float ax, float ay) {
         if (index >= 0 && index < 3) {
-            // Convert mm/s or cm/s to screen pixels per second/frame here if needed
-            // For now, store it for the predictive interpolation step.
+            // Convert mm/s to screen pixels
             targetVelX[index] = vx * 120 / 5000;
             targetVelY[index] = -vy * 240 / 5000; // Y is inverted on screen
+            targetAccX[index] = ax * 120 / 5000;
+            targetAccY[index] = -ay * 240 / 5000;
         }
     }
 
@@ -125,13 +126,16 @@ public:
                     targetCurrentX[i] = (float)targetGoalX[i];
                     targetCurrentY[i] = (float)targetGoalY[i];
                 } else {
-                    // Combine standard linear interpolation with predictive velocity feed-forward
-                    // The feed-forward term (targetVel) slightly nudges the interpolation in the direction of travel
-                    float feedForwardX = targetVelX[i] * 0.05f; // DT ~30ms
-                    float feedForwardY = targetVelY[i] * 0.05f;
+                    // Combine standard linear interpolation with curved predictive velocity/acceleration feed-forward
+                    // Approximates the next position step using velocity + acceleration curve
+                    float t = 0.03f; // DT ~30ms render loop
+                    float t_sq_half = (t * t) * 0.5f;
 
-                    targetCurrentX[i] += (diffX * interpolationAmount) + feedForwardX;
-                    targetCurrentY[i] += (diffY * interpolationAmount) + feedForwardY;
+                    float curveForwardX = (targetVelX[i] * t) + (targetAccX[i] * t_sq_half);
+                    float curveForwardY = (targetVelY[i] * t) + (targetAccY[i] * t_sq_half);
+
+                    targetCurrentX[i] += (diffX * interpolationAmount) + curveForwardX;
+                    targetCurrentY[i] += (diffY * interpolationAmount) + curveForwardY;
                 }
             }
         }
@@ -230,6 +234,8 @@ private:
     float targetCurrentY[3];
     float targetVelX[3];
     float targetVelY[3];
+    float targetAccX[3];
+    float targetAccY[3];
 
     bool lastTargetActive[3];
     int lastDrawnX[3];
