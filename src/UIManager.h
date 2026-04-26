@@ -451,6 +451,28 @@ public:
             }
         }
 
+        // Draw Top/Bottom Bars
+        sprite.fillRect(0, 0, 240, 16, TACTICAL_BG); // Clear top bar area
+        sprite.fillRect(0, 224, 240, 16, TACTICAL_BG); // Clear bottom bar area
+
+        sprite.drawLine(0, 16, 240, 16, sprite.alphaBlend(100, TACTICAL_CYAN, TACTICAL_BG));
+        sprite.drawLine(0, 224, 240, 224, sprite.alphaBlend(100, TACTICAL_CYAN, TACTICAL_BG));
+
+        sprite.setTextColor(TACTICAL_CYAN, TACTICAL_BG);
+        sprite.setTextSize(1);
+        sprite.setCursor(5, 4);
+        sprite.print("((o)) RADAR_V1.0");
+
+        sprite.setCursor(215, 4);
+        sprite.print("BAT");
+
+        sprite.setCursor(5, 228);
+        if (state == STATE_RADAR_VIEW) {
+            sprite.print("[VIEW]  MENU");
+        } else {
+            sprite.print(" VIEW  [MENU]");
+        }
+
         if (theme != THEME_MINIMAL) {
             if (anchorValid) {
                 sprite.setTextColor(TACTICAL_CYAN, TACTICAL_BG);
@@ -606,27 +628,32 @@ private:
 
     void drawRadarBackground() {
         uint16_t gridColor = (theme == THEME_ALIEN) ? TACTICAL_CYAN : TFT_DARKGREY;
-        gridColor = sprite.alphaBlend(100, gridColor, TACTICAL_BG); // Dimmer lines
+        gridColor = sprite.alphaBlend(80, gridColor, TACTICAL_BG); // Dimmer lines
         if (gridEnabled) {
             // Tactical crosshair
-            sprite.drawLine(0, 240, 240, 240, gridColor);
-            sprite.drawLine(120, 0, 120, 240, gridColor);
+            sprite.drawLine(0, 120, 240, 120, gridColor);
+            sprite.drawLine(120, 16, 120, 224, gridColor); // Avoid drawing over top/bottom bars
+
+            // Faint concentric circles
+            for (int r = 40; r <= 100; r += 30) {
+                sprite.drawCircle(120, 120, r, sprite.alphaBlend(50, TACTICAL_CYAN, TACTICAL_BG));
+            }
 
             // Ticks along axes
-            for (int r = 60; r <= 180; r += 60) {
-                sprite.drawLine(120 - 5, 240 - r, 120 + 5, 240 - r, gridColor); // Vertical axis ticks
-                sprite.drawLine(120 - r, 240 - 5, 120 - r, 240 + 5, gridColor); // Left horizontal ticks
-                sprite.drawLine(120 + r, 240 - 5, 120 + r, 240 + 5, gridColor); // Right horizontal ticks
+            for (int r = 30; r <= 90; r += 30) {
+                sprite.drawLine(120 - 3, 120 - r, 120 + 3, 120 - r, gridColor); // Vertical axis ticks
+                sprite.drawLine(120 - r, 120 - 3, 120 - r, 120 + 3, gridColor); // Horizontal axis ticks
+                sprite.drawLine(120 + r, 120 - 3, 120 + r, 120 + 3, gridColor);
             }
         }
     }
 
     void drawMenuOverlay() {
-        if (menuOverlayY < 120) menuOverlayY += 10;
+        if (menuOverlayY < 200) menuOverlayY += 15;
 
         sprite.fillRect(0, 0, 240, menuOverlayY, sprite.alphaBlend(220, TACTICAL_BG, TFT_WHITE));
         sprite.drawLine(0, menuOverlayY, 240, menuOverlayY, TACTICAL_CYAN);
-        if (menuOverlayY < 120) return;
+        if (menuOverlayY < 200) return;
 
         sprite.setTextSize(1);
         String items[24];
@@ -636,9 +663,12 @@ private:
             sprite.setTextColor(TACTICAL_CYAN, TACTICAL_BG);
             sprite.setCursor(15, 5); sprite.print("CONFIG MENU");
 
-            items[numItems++] = "> VISUAL SETTINGS";
-            items[numItems++] = "> ZONE CONFIG";
-            items[numItems++] = "> TARGET DATA & SENS";
+            items[numItems++] = "VISUAL SETTINGS";
+            items[numItems++] = "  [DISPLAY/HUD]";
+            items[numItems++] = "ZONE CONFIG";
+            items[numItems++] = "  [BOUNDARIES]";
+            items[numItems++] = "TARGET DATA";
+            items[numItems++] = "  [GAIN/FILTER]";
             items[numItems++] = "[ Exit Menu ]";
         }
         else if (activePage == PAGE_VISUALS) {
@@ -720,14 +750,14 @@ private:
             int idx = startIdx + i;
             if (idx >= numItems) break;
 
-            int yPos = 25 + i * 20;
+            int yPos = 35 + i * 25;
 
             if (idx == menuSelection) {
                 if (state == STATE_MENU_EDIT) {
-                    sprite.fillRect(5, yPos - 2, 230, 18, TACTICAL_CYAN);
+                    sprite.fillRect(5, yPos - 4, 230, 24, TACTICAL_CYAN);
                     sprite.setTextColor(TACTICAL_BG, TACTICAL_CYAN);
                 } else {
-                    sprite.fillRect(5, yPos - 2, 230, 18, TACTICAL_CYAN);
+                    sprite.fillRect(5, yPos - 4, 230, 24, TACTICAL_CYAN);
                     sprite.setTextColor(TACTICAL_BG, TACTICAL_CYAN);
                 }
             } else {
@@ -741,10 +771,10 @@ private:
 
     void handleMenuClick() {
         if (activePage == PAGE_MAIN) {
-            if (menuSelection == 0) { activePage = PAGE_VISUALS; menuSelection = 0; }
-            else if (menuSelection == 1) { activePage = PAGE_ZONES; menuSelection = 0; }
-            else if (menuSelection == 2) { activePage = PAGE_DATA; menuSelection = 0; }
-            else if (menuSelection == 3) { state = STATE_RADAR_VIEW; }
+            if (menuSelection == 0 || menuSelection == 1) { activePage = PAGE_VISUALS; menuSelection = 0; }
+            else if (menuSelection == 2 || menuSelection == 3) { activePage = PAGE_ZONES; menuSelection = 0; }
+            else if (menuSelection == 4 || menuSelection == 5) { activePage = PAGE_DATA; menuSelection = 0; }
+            else if (menuSelection == 6) { state = STATE_RADAR_VIEW; }
         }
         else if (activePage == PAGE_VISUALS) {
             if (menuSelection == 0) { activePage = PAGE_MAIN; menuSelection = 0; }
