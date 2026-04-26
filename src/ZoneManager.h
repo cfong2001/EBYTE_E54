@@ -104,6 +104,9 @@ public:
         long minDistSq = (long)z.minDist * z.minDist;
         long maxDistSq = (long)z.maxDist * z.maxDist;
         if (distSq < minDistSq || distSq > maxDistSq) return false;
+
+        if (z.minAngle <= -90 && z.maxAngle >= 90) return true;
+
         float angleRad = atan2f((float)x, (float)y);
         int angleDeg = (int)(angleRad * 180.0f / PI);
         if (angleDeg < z.minAngle || angleDeg > z.maxAngle) return false;

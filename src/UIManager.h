@@ -136,6 +136,7 @@ public:
 
         tft.init();
         tft.setRotation(1);
+        tft.initDMA();
         sprite.createSprite(240, 240);
         sprite.setSwapBytes(true);
 
@@ -467,7 +468,9 @@ public:
             drawMenuOverlay();
         }
 
-        sprite.pushSprite(0, 0);
+        tft.startWrite();
+        tft.pushImageDMA(0, 0, 240, 240, (uint16_t*)sprite.getPointer());
+        tft.endWrite();
     }
 
     int getSensitivity() { return sensitivity; }
@@ -567,7 +570,7 @@ private:
         else if (elapsed < 600) sprite.setCursor(90, 120), sprite.print("CALIBRATING");
         else if (elapsed < 1000) sprite.setCursor(95, 120), sprite.print("SCANNING...");
 
-        sprite.pushSprite(0, 0);
+        tft.startWrite(); tft.pushImageDMA(0, 0, 240, 240, (uint16_t*)sprite.getPointer()); tft.endWrite();
 
         if (elapsed > 1200) {
             state = STATE_RADAR_VIEW;
