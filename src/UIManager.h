@@ -27,28 +27,6 @@ enum MenuPage {
     PAGE_DATA
 };
 
-class UIManager {
-public:
-    const char* getPageName() {
-        switch(activePage) {
-            case PAGE_MAIN: return "MAIN";
-            case PAGE_VISUALS: return "VISUALS";
-            case PAGE_ZONES: return "ZONES";
-            case PAGE_DATA: return "DATA";
-            default: return "UNKNOWN";
-        }
-    }
-
-    const char* getStateName() {
-        switch(state) {
-            case STATE_BOOT: return "BOOT";
-            case STATE_RADAR_VIEW: return "RADAR";
-            case STATE_MENU: return "MENU";
-            case STATE_MENU_EDIT: return "EDIT";
-            default: return "UNKNOWN";
-        }
-    }
-
 enum ThemeStyle {
     THEME_STANDARD,
     THEME_ALIEN,
@@ -71,6 +49,26 @@ enum TargetIcon {
 };
 
 class UIManager {
+public:
+    const char* getPageName() {
+        switch(activePage) {
+            case PAGE_MAIN: return "MAIN";
+            case PAGE_VISUALS: return "VISUALS";
+            case PAGE_ZONES: return "ZONES";
+            case PAGE_DATA: return "DATA";
+            default: return "UNKNOWN";
+        }
+    }
+
+    const char* getStateName() {
+        switch(state) {
+            case STATE_BOOT: return "BOOT";
+            case STATE_RADAR_VIEW: return "RADAR";
+            case STATE_MENU: return "MENU";
+            case STATE_MENU_EDIT: return "EDIT";
+            default: return "UNKNOWN";
+        }
+    }
 public:
     ZoneManager zoneManager;
     Preferences preferences;
