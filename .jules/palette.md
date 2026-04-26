@@ -16,3 +16,7 @@
 ## 2025-04-26 - [Advanced UI Composition & Component Layering]
 **Learning:** Extracting advanced composition data from AI UI tools involves analyzing spatial relationships and distinct components (like Navigation Bars and sweeping grid composites) rather than just color substitutions.
 **Action:** When refining an application, break down visual structure into distinct drawing blocks. Implement `drawTopBar()` or `drawBottomNav()` functions or explicit rendering phases within the main loop to handle complex spatial layers explicitly without clashing with the main UI canvas area.
+
+## 2024-05-24 - Progressive Visual Feedback
+**Learning:** Replacing abrupt binary visual triggers (like fast-blinking indicators) with progressive, state-driven feedback (such as smoothly blended colors and pulsing animations) greatly enhances the UI's professional and tactical feel. It provides users with a clearer, more nuanced understanding of proximity/danger without startling them or causing visual fatigue.
+**Action:** When designing warning or threshold indicators, use continuous variables (like danger levels or distances) to drive smooth interpolations in color, size, and animation speed rather than relying on simple ON/OFF states.

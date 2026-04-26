@@ -254,7 +254,7 @@ public:
                 float diffX = (float)targetGoalX[i] - targetCurrentX[i];
                 float diffY = (float)targetGoalY[i] - targetCurrentY[i];
 
-                if (abs(diffX) < 0.5f && abs(diffY) < 0.5f) {
+                if (fabsf(diffX) < 0.5f && fabsf(diffY) < 0.5f) {
                     targetCurrentX[i] = (float)targetGoalX[i];
                     targetCurrentY[i] = (float)targetGoalY[i];
                 } else {
@@ -272,7 +272,7 @@ public:
 
                 // Simulated Sweep Capture Logic
                 if (simulatedSweep) {
-                    float targetRad = atan2(rawTargetX[i], rawTargetY[i]);
+                    float targetRad = atan2f(rawTargetX[i], rawTargetY[i]);
                     int targetDeg = (int)(targetRad * 180.0f / PI);
 
                     // The visual sweepAngle goes from 0 to 180. We map it to -90 to 90.
@@ -321,8 +321,8 @@ public:
             uint16_t sweepColor = (theme == THEME_ALIEN) ? TACTICAL_CYAN : TFT_DARKGREY;
             for (int a = 0; a < 30; a += 2) {
                 float tr = (sweepAngle - a - 180) * 0.0174533f;
-                int tx = 120 + 180 * cos(tr);
-                int ty = 240 + 180 * sin(tr);
+                int tx = 120 + 180 * cosf(tr);
+                int ty = 240 + 180 * sinf(tr);
                 uint8_t alpha = 255 - ((a * 255) / 30);
                 uint16_t trailCol = sprite.alphaBlend(alpha, sweepColor, TACTICAL_BG);
                 sprite.drawLine(120, 240, tx, ty, trailCol);
@@ -368,6 +368,16 @@ public:
                         uint16_t wCol = sprite.alphaBlend(currentAlpha, TACTICAL_ERROR, TACTICAL_BG);
                         sprite.drawCircle(cx, cy, 8, wCol);
                     }
+                float danger = zoneManager.getTargetDangerLevel(i);
+                if (danger > 0.01f) {
+                    uint16_t dangerColor = sprite.alphaBlend((uint8_t)(danger * 255.0f), TFT_RED, TFT_YELLOW);
+                    uint16_t wCol = sprite.alphaBlend(currentAlpha, dangerColor, TFT_BLACK);
+
+                    float pulseSpeed = 300.0f - (danger * 200.0f);
+                    float pulse = (sin(millis() / pulseSpeed) + 1.0f) * 0.5f; // 0.0 to 1.0
+                    int r = 6 + (int)(pulse * 4.0f * danger); // 6 to 10 depending on danger
+
+                    sprite.drawCircle(cx, cy, r, wCol);
                 }
 
                 // Reticles
@@ -387,8 +397,8 @@ public:
                     float rawDx = targetCurrentX[i] - targetHistoryX[i][2];
                     float rawDy = targetCurrentY[i] - targetHistoryY[i][2];
 
-                    if (absSpd > 10 && (abs(rawDx) > 0.5f || abs(rawDy) > 0.5f)) {
-                        float len = sqrt(rawDx*rawDx + rawDy*rawDy);
+                    if (absSpd > 10 && (fabsf(rawDx) > 0.5f || fabsf(rawDy) > 0.5f)) {
+                        float len = sqrtf(rawDx*rawDx + rawDy*rawDy);
                         float nx = rawDx / len;
                         float ny = rawDy / len;
                         smoothVecX[i] = (smoothVecX[i] * 0.7f) + (nx * 0.3f);
@@ -401,7 +411,7 @@ public:
                     if (smoothSpeed[i] > 5.0f) {
                         float stickLen = 5.0f + (smoothSpeed[i] / 10.0f);
                         if (stickLen > 25.0f) stickLen = 25.0f;
-                        float sLen = sqrt(smoothVecX[i]*smoothVecX[i] + smoothVecY[i]*smoothVecY[i]);
+                        float sLen = sqrtf(smoothVecX[i]*smoothVecX[i] + smoothVecY[i]*smoothVecY[i]);
                         if (sLen > 0.01f) {
                             float nSvx = smoothVecX[i] / sLen;
                             float nSvy = smoothVecY[i] / sLen;
@@ -409,11 +419,11 @@ public:
                             int ey = cy + (int)(nSvy * stickLen);
                             sprite.drawLine(cx, cy, ex, ey, color);
 
-                            float arrowAngle = atan2(nSvy, nSvx);
-                            int ax1 = ex - (int)(4 * cos(arrowAngle - 0.5f));
-                            int ay1 = ey - (int)(4 * sin(arrowAngle - 0.5f));
-                            int ax2 = ex - (int)(4 * cos(arrowAngle + 0.5f));
-                            int ay2 = ey - (int)(4 * sin(arrowAngle + 0.5f));
+                            float arrowAngle = atan2f(nSvy, nSvx);
+                            int ax1 = ex - (int)(4 * cosf(arrowAngle - 0.5f));
+                            int ay1 = ey - (int)(4 * sinf(arrowAngle - 0.5f));
+                            int ax2 = ex - (int)(4 * cosf(arrowAngle + 0.5f));
+                            int ay2 = ey - (int)(4 * sinf(arrowAngle + 0.5f));
                             sprite.drawLine(ex, ey, ax1, ay1, color);
                             sprite.drawLine(ex, ey, ax2, ay2, color);
                         }
@@ -426,8 +436,8 @@ public:
                 if (theme != THEME_ALIEN && telemetryMode != TELEMETRY_OFF) {
                     sprite.setTextColor(color, TFT_BLACK);
 
-                    float dist_m = sqrt((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) / 1000.0f;
-                    int angle = (int)(atan2((float)rawTargetX[i], (float)rawTargetY[i]) * 180.0f / PI);
+                    float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) / 1000.0f;
+                    int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 180.0f / PI);
                     float speed_ms = (float)rawTargetSpeed[i] / 10.0f; // Assuming 10s of cm/s or similar, pseudo-calc
 
                     sprite.setCursor(cx + 8, cy - 12);
@@ -572,7 +582,7 @@ private:
                 if (sweepDeg > 360) sweepDeg = 360;
                 for (int a = -180; a < -180 + sweepDeg; a += 5) {
                     float rad = a * 0.0174533f;
-                    sprite.drawPixel(120 + r * cos(rad), 240 + r * sin(rad), gridColor);
+                    sprite.drawPixel(120 + r * cosf(rad), 240 + r * sinf(rad), gridColor);
                 }
             }
         }
@@ -603,8 +613,8 @@ private:
         if (minR > 180) minR = 180;
         for (int a = minAngle; a <= maxAngle; a++) {
             float rad = (a - 90) * 0.0174533f;
-            float cosA = cos(rad);
-            float sinA = sin(rad);
+            float cosA = cosf(rad);
+            float sinA = sinf(rad);
             sprite.drawLine(120 + minR*cosA, 240 + minR*sinA, 120 + maxR*cosA, 240 + maxR*sinA, color);
         }
     }
@@ -637,6 +647,17 @@ private:
             // Faint concentric circles
             for (int r = 40; r <= 100; r += 30) {
                 sprite.drawCircle(120, 120, r, sprite.alphaBlend(50, TACTICAL_CYAN, TACTICAL_BG));
+            if (theme == THEME_ALIEN) {
+                for (int r=60; r<=180; r+=60) {
+                    for (int a=0; a<=180; a+=5) {
+                        float rad = (a - 180) * 0.0174533f;
+                        sprite.drawPixel(120 + r * cosf(rad), 240 + r * sinf(rad), gridColor);
+                    }
+                }
+            } else {
+                sprite.drawCircle(120, 240, 60, gridColor);
+                sprite.drawCircle(120, 240, 120, gridColor);
+                sprite.drawCircle(120, 240, 180, gridColor);
             }
 
             // Ticks along axes
