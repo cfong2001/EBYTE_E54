@@ -656,7 +656,7 @@ private:
         if (menuOverlayY < 200) return;
 
         sprite.setTextSize(1);
-        String items[24];
+        static String items[24];
         int numItems = 0;
 
         if (activePage == PAGE_MAIN) {

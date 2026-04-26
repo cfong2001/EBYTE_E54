@@ -1,0 +1,3 @@
+## 2026-04-25 - [Memory Leak Prevention in High-FPS Menus]
+**Learning:** Initializing an array of Arduino `String` objects (e.g. `String items[24];`) inside a high-frequency display loop (like `drawMenuOverlay` called at 30Hz) causes rapid heap fragmentation and subsequent CPU stalls as the ESP32 struggles to garbage-collect and reallocate memory continuously.
+**Action:** Always declare string arrays used for high-frequency UI rendering as `static` (e.g. `static String items[24];`) or elevate them to class members. This prevents continuous memory allocation/deallocation overhead, vastly improving UI responsiveness.
