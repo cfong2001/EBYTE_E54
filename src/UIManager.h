@@ -401,7 +401,6 @@ public:
 
                     sprite.drawCircle(cx, cy, r, wCol);
                 }
-                }
 
                 // Reticles
                 if (targetIcon == ICON_CIRCLE) {
