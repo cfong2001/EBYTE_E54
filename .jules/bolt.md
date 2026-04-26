@@ -15,3 +15,9 @@
 ## 2024-05-18 - [Optimization] ESP32 Performance Enhancements
 **Learning:** For optimal ESP32 rendering with TFT_eSPI, especially on screens sized 240x240 and above, initializing DMA (`tft.initDMA()`) combined with full-frame sprites enables PSRAM usage (if available) and allows the display transfer to occur concurrently with CPU logic (`tft.pushImageDMA()`). Pinning radar read processing to Core 0 with `xTaskCreatePinnedToCore` provides uninterrupted UI and inputs on Core 1 while securing serial data perfectly.
 **Action:** Always enable DMA for heavy UI processing on ESP32 and distribute time-critical serial polling and UI rendering across separate cores using FreeRTOS tasks and mutexes for safety.
+## 2026-04-26 - [C++ Memory & Optimization]
+**Learning:** Initializing objects with reference variables inside a C++ header class body can cause compiler scope and 'unqualified-id' errors (especially on PlatformIO/ESP32 using ). Dynamic String creation () in a loop directly causes excessive memory fragmentation and performance regressions on constrained memory targets like the ESP32.
+**Action:** Replace  inline initializations with pointers instantiated in the constructor. Use  with static  arrays instead of  class concatenations to minimize overhead.
+## 2026-04-26 - [C++ Memory & Optimization]
+**Learning:** Initializing objects with reference variables inside a C++ header class body can cause compiler scope and 'unqualified-id' errors (especially on PlatformIO/ESP32 using `TFT_eSprite`). Dynamic String creation in a loop directly causes excessive memory fragmentation and performance regressions on constrained memory targets like the ESP32.
+**Action:** Replace `TFT_eSprite sprite` inline initializations with pointers instantiated in the constructor. Use `snprintf` with static `char` arrays instead of `String` class concatenations to minimize overhead.
