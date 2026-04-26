@@ -504,6 +504,7 @@ public:
         tft.pushImageDMA(0, 0, 240, 240, (uint16_t*)sprite.getPointer());
         tft.endWrite();
     }
+    }
 
     int getSensitivity() { return sensitivity; }
     int getLocationAveraging() { return locationAveraging; }
@@ -650,6 +651,7 @@ private:
             // Faint concentric circles
             for (int r = 40; r <= 100; r += 30) {
                 sprite.drawCircle(120, 120, r, sprite.alphaBlend(50, TACTICAL_CYAN, TACTICAL_BG));
+            }
             if (theme == THEME_ALIEN) {
                 for (int r=60; r<=180; r+=60) {
                     for (int a=0; a<=180; a+=5) {

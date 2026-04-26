@@ -6,11 +6,13 @@
 #include "E54_Radar.h"
 #include "MotionCompensation.h"
 #include "UIManager.h"
+#include "PerformanceMonitor.h"
 
 // Hardware instances
 HardwareSerial radarUART(1);
 E54_Radar radar(radarUART);
 MotionCompensation motionComp;
+PerformanceMonitor perfMonitor;
 
 TFT_eSPI tft = TFT_eSPI();
 UIManager ui(tft);
@@ -87,6 +89,7 @@ void setup() {
     // Initialize radar
     radar.begin(RADAR_RX_PIN, RADAR_TX_PIN);
     motionComp.init();
+    perfMonitor.begin();
 
     // Initialize UI
     ui.init();
