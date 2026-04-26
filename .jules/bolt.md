@@ -1,3 +1,6 @@
+## 2026-04-25 - [Memory Leak Prevention in High-FPS Menus]
+**Learning:** Initializing an array of Arduino `String` objects (e.g. `String items[24];`) inside a high-frequency display loop (like `drawMenuOverlay` called at 30Hz) causes rapid heap fragmentation and subsequent CPU stalls as the ESP32 struggles to garbage-collect and reallocate memory continuously.
+**Action:** Always declare string arrays used for high-frequency UI rendering as `static` (e.g. `static String items[24];`) or elevate them to class members. This prevents continuous memory allocation/deallocation overhead, vastly improving UI responsiveness.
 ## 2025-04-25 - HardwareSerial Buffer Size Optimization
 **Learning:** For ESP32 hardware using high-speed UART (like 256000 bps for E54 radars), the default 256-byte HardwareSerial RX buffer can easily overflow within ~10ms if `loop()` execution delays.
 **Action:** Use `HardwareSerial::setRxBufferSize(1024)` before calling `begin()` when working with baud rates 115200 or higher to prevent packet loss and improve reliability.
