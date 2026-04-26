@@ -15,21 +15,24 @@ MotionCompensation motionComp;
 TFT_eSPI tft = TFT_eSPI();
 UIManager ui(tft);
 
-// Pins (Can be overridden in platformio.ini via build_flags)
+// Pins (Adjust as needed for the specific ESP32 board wiring)
 #ifndef PIN_ENCODER_A
 #define PIN_ENCODER_A 25
 #endif
+
 #ifndef PIN_ENCODER_B
 #define PIN_ENCODER_B 26
 #endif
+
 #ifndef PIN_BUTTON
 #define PIN_BUTTON    27
 #endif
+
 #ifndef RADAR_RX_PIN
-#define RADAR_RX_PIN  16
+#define RADAR_RX_PIN 16
 #endif
 #ifndef RADAR_TX_PIN
-#define RADAR_TX_PIN  17
+#define RADAR_TX_PIN 17
 #endif
 
 RotaryEncoder encoder(PIN_ENCODER_A, PIN_ENCODER_B, RotaryEncoder::LatchMode::TWO03);
