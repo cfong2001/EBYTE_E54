@@ -27,6 +27,28 @@ enum MenuPage {
     PAGE_DATA
 };
 
+class UIManager {
+public:
+    const char* getPageName() {
+        switch(activePage) {
+            case PAGE_MAIN: return "MAIN";
+            case PAGE_VISUALS: return "VISUALS";
+            case PAGE_ZONES: return "ZONES";
+            case PAGE_DATA: return "DATA";
+            default: return "UNKNOWN";
+        }
+    }
+
+    const char* getStateName() {
+        switch(state) {
+            case STATE_BOOT: return "BOOT";
+            case STATE_RADAR_VIEW: return "RADAR";
+            case STATE_MENU: return "MENU";
+            case STATE_MENU_EDIT: return "EDIT";
+            default: return "UNKNOWN";
+        }
+    }
+
 enum ThemeStyle {
     THEME_STANDARD,
     THEME_ALIEN,
@@ -369,6 +391,7 @@ public:
                         uint16_t wCol = sprite.alphaBlend(currentAlpha, TACTICAL_ERROR, TACTICAL_BG);
                         sprite.drawCircle(cx, cy, 8, wCol);
                     }
+                }
                 float danger = zoneManager.getTargetDangerLevel(i);
                 if (danger > 0.01f) {
                     uint16_t dangerColor = sprite.alphaBlend((uint8_t)(danger * 255.0f), TFT_RED, TFT_YELLOW);
@@ -514,6 +537,15 @@ public:
         return act;
     }
 
+    void logStateToSerial() {
+        Serial.printf("State: %d, Page: %d | Danger: %.2f\n", state, activePage, zoneManager.getDangerLevel());
+        for (int i = 0; i < 3; i++) {
+            if (targetActive[i]) {
+                Serial.printf("  T%d: [%d, %d] Spd:%d\n", i+1, rawTargetX[i], rawTargetY[i], rawTargetSpeed[i]);
+            }
+        }
+    }
+
 private:
     TFT_eSPI& tft;
     TFT_eSprite sprite;
@@ -650,6 +682,7 @@ private:
             // Faint concentric circles
             for (int r = 40; r <= 100; r += 30) {
                 sprite.drawCircle(120, 120, r, sprite.alphaBlend(50, TACTICAL_CYAN, TACTICAL_BG));
+            }
             if (theme == THEME_ALIEN) {
                 for (int r=60; r<=180; r+=60) {
                     for (int a=0; a<=180; a+=5) {
