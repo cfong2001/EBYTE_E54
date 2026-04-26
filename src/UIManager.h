@@ -360,14 +360,16 @@ public:
                     }
                 }
 
-                if (zoneManager.isWarning(i)) {
-                    if ((millis() / 200) % 2 == 0) {
-                        uint16_t wCol = sprite.alphaBlend(currentAlpha, TFT_YELLOW, TFT_BLACK);
-                        sprite.drawCircle(cx, cy, 8, wCol);
-                    } else {
-                        uint16_t wCol = sprite.alphaBlend(currentAlpha, TFT_RED, TFT_BLACK);
-                        sprite.drawCircle(cx, cy, 8, wCol);
-                    }
+                float danger = zoneManager.getTargetDangerLevel(i);
+                if (danger > 0.01f) {
+                    uint16_t dangerColor = sprite.alphaBlend((uint8_t)(danger * 255.0f), TFT_RED, TFT_YELLOW);
+                    uint16_t wCol = sprite.alphaBlend(currentAlpha, dangerColor, TFT_BLACK);
+
+                    float pulseSpeed = 300.0f - (danger * 200.0f);
+                    float pulse = (sin(millis() / pulseSpeed) + 1.0f) * 0.5f; // 0.0 to 1.0
+                    int r = 6 + (int)(pulse * 4.0f * danger); // 6 to 10 depending on danger
+
+                    sprite.drawCircle(cx, cy, r, wCol);
                 }
 
                 // Reticles
