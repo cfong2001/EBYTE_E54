@@ -158,7 +158,7 @@ public:
         zoneManager.loadSettings();
         loadSettings();
 
-        tft.init();
+        tft.begin();
         tft.setRotation(1);
         tft.initDMA();
         sprite.createSprite(240, 240);
@@ -401,7 +401,6 @@ public:
 
                     sprite.drawCircle(cx, cy, r, wCol);
                 }
-                }
 
                 // Reticles
                 if (targetIcon == ICON_CIRCLE) {
@@ -524,6 +523,7 @@ public:
 
         tft.startWrite();
         tft.pushImageDMA(0, 0, 240, 240, (uint16_t*)sprite.getPointer());
+        tft.dmaWait();
         tft.endWrite();
     }
 
@@ -633,7 +633,7 @@ private:
         else if (elapsed < 600) sprite.setCursor(90, 120), sprite.print("CALIBRATING");
         else if (elapsed < 1000) sprite.setCursor(95, 120), sprite.print("SCANNING...");
 
-        tft.startWrite(); tft.pushImageDMA(0, 0, 240, 240, (uint16_t*)sprite.getPointer()); tft.endWrite();
+        tft.startWrite(); tft.pushImageDMA(0, 0, 240, 240, (uint16_t*)sprite.getPointer()); tft.dmaWait(); tft.endWrite();
 
         if (elapsed > 1200) {
             state = STATE_RADAR_VIEW;
