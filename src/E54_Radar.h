@@ -17,6 +17,7 @@ public:
 
     void begin(uint8_t rxPin, uint8_t txPin) {
         // Default baud rate 256000 bps
+        radarSerial.setRxBufferSize(1024); // Increase RX buffer to prevent packet loss at 256k bps
         radarSerial.begin(256000, SERIAL_8N1, rxPin, txPin);
     }
 
@@ -114,6 +115,8 @@ private:
         // Note: The example in the manual says:
         // Target 1x coordinate: 0x0E + 0x03 * 256 = 782 -> 0 - 782 = -782mm
         // Target 1 y coordinate: 0xB1 + 0x86 * 256 = 34481 -> 34481 - 2^15 = 1713 mm
+
+        if (raw == 0) return 0;
 
         bool isPositive = (raw & 0x8000) != 0;
         int16_t value = raw & 0x7FFF;

@@ -46,15 +46,15 @@ def draw_display():
     
     # Count active targets
     active = 0
-    closest = 999.0
+    closest_sq = 999999999.0
     
     for x_mm, y_mm, age, idx in targets:
         if age > 10:
             continue
         
-        dist = math.sqrt(x_mm * x_mm + y_mm * y_mm) / 1000.0
-        if dist < closest:
-            closest = dist
+        dist_sq = x_mm * x_mm + y_mm * y_mm
+        if dist_sq < closest_sq:
+            closest_sq = dist_sq
         active += 1
         
         # Draw sweep line to target (if recent)
@@ -81,6 +81,7 @@ def draw_display():
     
     # Status (no title text)
     if active > 0:
+        closest = math.sqrt(closest_sq) / 1000.0
         oled.text("%.1fm [%d]" % (closest, active), 70, 56, 1)
         pixel[0] = (50, 0, 0)  # Red
     else:
