@@ -1,0 +1,43 @@
+{
+  "build": {
+    "arduino": {
+      "ldscript": "esp32c6_out.ld",
+      "partitions": "default_8MB.csv"
+    },
+    "core": "esp32",
+    "extra_flags": [
+      "-DARDUINO_E101_C6MN4_PS"
+    ],
+    "f_cpu": "160000000L",
+    "f_flash": "80000000L",
+    "flash_mode": "qio",
+    "mcu": "esp32c6",
+    "variant": "esp32c6"
+  },
+  "connectivity": [
+    "wifi"
+  ],
+  "debug": {
+    "default_tool": "builtin",
+    "onboard_tools": [
+      "builtin"
+    ],
+    "openocd_target": "esp32c6.cfg"
+  },
+  "frameworks": [
+    "arduino",
+    "espidf"
+  ],
+  "name": "E101-C6MN4-PS",
+  "upload": {
+    "flash_size": "8MB",
+    "maximum_ram_size": 327680,
+    "maximum_size": 8388608,
+    "use_1200bps_touch": true,
+    "wait_for_upload_port": true,
+    "require_upload_port": true,
+    "speed": 460800
+  },
+  "url": "https://espressif.com",
+  "vendor": "Espressif"
+}

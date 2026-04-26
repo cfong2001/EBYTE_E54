@@ -18,9 +18,24 @@ UIManager ui(tft);
 SemaphoreHandle_t dataMutex;
 
 // Pins (Adjust as needed for the specific ESP32 board wiring)
+#ifndef PIN_ENCODER_A
 #define PIN_ENCODER_A 25
+#endif
+
+#ifndef PIN_ENCODER_B
 #define PIN_ENCODER_B 26
+#endif
+
+#ifndef PIN_BUTTON
 #define PIN_BUTTON    27
+#endif
+
+#ifndef RADAR_RX_PIN
+#define RADAR_RX_PIN 16
+#endif
+#ifndef RADAR_TX_PIN
+#define RADAR_TX_PIN 17
+#endif
 
 RotaryEncoder encoder(PIN_ENCODER_A, PIN_ENCODER_B, RotaryEncoder::LatchMode::TWO03);
 OneButton button(PIN_BUTTON, true, true);
@@ -70,7 +85,7 @@ void setup() {
     Serial.println("System starting...");
 
     // Initialize radar
-    radar.begin(32, 33);
+    radar.begin(RADAR_RX_PIN, RADAR_TX_PIN);
     motionComp.init();
 
     // Initialize UI
