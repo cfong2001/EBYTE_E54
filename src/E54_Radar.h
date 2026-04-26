@@ -15,10 +15,8 @@ class E54_Radar {
 public:
     E54_Radar(HardwareSerial& serial) : radarSerial(serial) {}
 
-    void begin(uint8_t rxPin, uint8_t txPin) {
-        // Default baud rate 256000 bps
-        radarSerial.setRxBufferSize(1024); // Increase RX buffer to prevent packet loss at 256k bps
-        radarSerial.begin(256000, SERIAL_8N1, rxPin, txPin);
+    void begin(uint8_t rxPin, uint8_t txPin, long baudRate = 256000) {
+        radarSerial.begin(baudRate, SERIAL_8N1, rxPin, txPin);
     }
 
     bool update() {
@@ -66,7 +64,9 @@ private:
                 else state = SYNC_1;
                 break;
             case PAYLOAD:
-                buffer[bufIndex++] = b;
+                if (bufIndex < sizeof(buffer)) {
+                    buffer[bufIndex++] = b;
+                }
                 // Target 1: 8 bytes, Target 2: 8 bytes, Target 3: 8 bytes = 24 bytes
                 if (bufIndex == 24) {
                     state = TAIL_1;
