@@ -21,3 +21,9 @@
 ## 2026-04-26 - [C++ Memory & Optimization]
 **Learning:** Initializing objects with reference variables inside a C++ header class body can cause compiler scope and 'unqualified-id' errors (especially on PlatformIO/ESP32 using `TFT_eSprite`). Dynamic String creation in a loop directly causes excessive memory fragmentation and performance regressions on constrained memory targets like the ESP32.
 **Action:** Replace `TFT_eSprite sprite` inline initializations with pointers instantiated in the constructor. Use `snprintf` with static `char` arrays instead of `String` class concatenations to minimize overhead.
+## 2026-04-26 - [C++ Preprocessor Directives]
+**Learning:** Preprocessor  directives directly alter code inclusion. If  completely disables logging, it should be made optional (e.g. commented out) so developers can still opt to enable diagnostic output, rather than wholesale removal.
+**Action:** Retain debug toggles as commented-out configurations inside  instead of strictly overriding them to 0.
+## 2026-04-26 - [C++ Preprocessor Directives]
+**Learning:** Preprocessor `#define` directives directly alter code inclusion. If `-DCORE_DEBUG_LEVEL=0` completely disables logging, it should be made optional (e.g. commented out) so developers can still opt to enable diagnostic output, rather than wholesale removal.
+**Action:** Retain debug toggles as commented-out configurations inside `platformio.ini` instead of strictly overriding them to 0.
