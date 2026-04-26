@@ -380,6 +380,7 @@ public:
 
                     sprite.drawCircle(cx, cy, r, wCol);
                 }
+                }
 
                 // Reticles
                 if (targetIcon == ICON_CIRCLE) {
@@ -650,6 +651,7 @@ private:
             // Faint concentric circles
             for (int r = 40; r <= 100; r += 30) {
                 sprite.drawCircle(120, 120, r, sprite.alphaBlend(50, TACTICAL_CYAN, TACTICAL_BG));
+            }
             if (theme == THEME_ALIEN) {
                 for (int r=60; r<=180; r+=60) {
                     for (int a=0; a<=180; a+=5) {
