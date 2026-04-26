@@ -46,6 +46,8 @@ enum TargetIcon {
 
 class UIManager {
 public:
+    bool serialDebugEnabled;
+public:
     ZoneManager zoneManager;
     Preferences preferences;
 
@@ -66,6 +68,7 @@ public:
         sensitivity = 5;
         locationAveraging = 5;
         interpolationAmount = 0.5f;
+        serialDebugEnabled = false;
         actionRequested = 0;
 
         sweepAngle = 0;
@@ -109,6 +112,7 @@ public:
         sensitivity = preferences.getInt("sens", 5);
         locationAveraging = preferences.getInt("locAvg", 5);
         interpolationAmount = (float)preferences.getInt("interp", 5) / 10.0f;
+        serialDebugEnabled = preferences.getBool("serDebug", false);
         preferences.end();
     }
 
@@ -127,6 +131,7 @@ public:
         preferences.putInt("locAvg", locationAveraging);
         int interDisp = (int)(interpolationAmount * 10.0f + 0.5f);
         preferences.putInt("interp", interDisp);
+        preferences.putBool("serDebug", serialDebugEnabled);
         preferences.end();
     }
 
@@ -715,6 +720,7 @@ private:
             items[numItems++] = "Sensitivity: " + String(sensitivity);
             items[numItems++] = "Loc Avg: " + String(locationAveraging);
             items[numItems++] = "Smoothing: " + String(interDisp);
+            items[numItems++] = "Ser Debug: " + String(serialDebugEnabled ? "ON" : "OFF");
             items[numItems++] = "[ Reset Tracking ]";
         }
 
@@ -848,6 +854,7 @@ private:
                 if (interpolationAmount > 1.05f) interpolationAmount = 1.0f;
                 return;
             }
+            if (idx++ == menuSelection) { serialDebugEnabled = !serialDebugEnabled; return; }
         }
     }
 };

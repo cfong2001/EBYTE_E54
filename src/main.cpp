@@ -98,6 +98,21 @@ void loop() {
             ui.setTargetMotion(i, motionComp.getTargetVelX(i), motionComp.getTargetVelY(i),
                                   motionComp.getTargetAccX(i), motionComp.getTargetAccY(i));
         }
+
+        if (ui.serialDebugEnabled) {
+            Serial.print("RADAR_DEBUG|");
+            Serial.print("AnchorValid:"); Serial.print(motionComp.isAnchorValid()); Serial.print(",");
+            Serial.print("AnchorX:"); Serial.print(motionComp.getAnchorX()); Serial.print(",");
+            Serial.print("AnchorY:"); Serial.print(motionComp.getAnchorY()); Serial.print("|");
+            for (int i = 0; i < 3; i++) {
+                Serial.print("T"); Serial.print(i); Serial.print(":");
+                Serial.print(compensatedTargets[i].active); Serial.print(",");
+                Serial.print(compensatedTargets[i].x); Serial.print(",");
+                Serial.print(compensatedTargets[i].y); Serial.print(",");
+                Serial.print(compensatedTargets[i].speed); Serial.print(i == 2 ? "" : "|");
+            }
+            Serial.println();
+        }
     }
 
     // Render loop (decoupled, max frame rate ~30-60Hz)
