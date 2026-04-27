@@ -401,7 +401,6 @@ public:
 
                     sprite.drawCircle(cx, cy, r, wCol);
                 }
-                }
 
                 // Reticles
                 if (targetIcon == ICON_CIRCLE) {
@@ -459,7 +458,9 @@ public:
                 if (theme != THEME_ALIEN && telemetryMode != TELEMETRY_OFF) {
                     sprite.setTextColor(color, TFT_BLACK);
 
-                    float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) / 1000.0f;
+                    // We already squared rawTarget in previous loops, but here we only call sqrtf once per target
+                    // AND only if telemetry text display is currently enabled (otherwise deferred)
+                    float dist_m = sqrtf((float)((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i])) / 1000.0f;
                     int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 180.0f / PI);
                     float speed_ms = (float)rawTargetSpeed[i] / 10.0f; // Assuming 10s of cm/s or similar, pseudo-calc
 
