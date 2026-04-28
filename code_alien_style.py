@@ -20,6 +20,7 @@ pixel = neopixel.NeoPixel(board.NEOPIXEL, 1, brightness=0.3)
 # Display configuration - Alien Tracker style
 CX, CY = 64, 35  # Center positioned for text area at bottom
 MAX_RANGE = 6000  # 6 meters max display range
+MAX_RANGE_SQ = MAX_RANGE * MAX_RANGE
 R_MAX = 28  # Maximum radius on screen
 R_RINGS = [9, 18, 28]  # Ring radii for 2m, 4m, 6m
 
@@ -117,21 +118,21 @@ def draw_radar_screen():
     
     # Draw all targets
     active_targets = 0
-    closest_dist = 999.0
+    closest_dist_sq = 999999999.0
     
     for target_data in targets:
         x_mm, y_mm, age, t_idx = target_data
         
-        # Calculate polar coordinates
-        dist_mm = int(math.sqrt(x_mm * x_mm + y_mm * y_mm))
-        dist_m = dist_mm / 1000.0
+        # Track minimum distance using squared values
+        dist_sq = x_mm * x_mm + y_mm * y_mm
         
-        if dist_m < closest_dist and age < 5:
-            closest_dist = dist_m
+        if dist_sq < closest_dist_sq and age < 5:
+            closest_dist_sq = dist_sq
         
-        # Only draw if in range
-        if dist_mm <= MAX_RANGE:
+        # Only draw and compute expensive math.sqrt if in range
+        if dist_sq <= MAX_RANGE_SQ:
             active_targets += 1
+            dist_mm = int(math.sqrt(dist_sq))
             
             # Calculate angle (0° = up, clockwise)
             angle_rad = math.atan2(-y_mm, -x_mm)
@@ -157,6 +158,7 @@ def draw_radar_screen():
         oled.text("NO CONTACT", 25, 56, 1)
     else:
         # Show closest target distance
+        closest_dist = math.sqrt(closest_dist_sq) / 1000.0 if closest_dist_sq != 999999999.0 else 999.0
         oled.text("%.1fm [%d]" % (closest_dist, active_targets), 40, 56, 1)
     
     # Frame counter (top left)
