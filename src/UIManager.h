@@ -361,7 +361,9 @@ public:
                 } else if (theme == THEME_ALIEN) {
                     baseColor = TACTICAL_CYAN;
                 } else {
-                    baseColor = TACTICAL_CYAN;
+                    if (i == 0) baseColor = TFT_ORANGE;
+                    else if (i == 1) baseColor = TFT_CYAN;
+                    else baseColor = TFT_MAGENTA;
                 }
 
                 // Blend with black based on sweep simulation alpha
@@ -400,7 +402,6 @@ public:
                     int r = 6 + (int)(pulse * 4.0f * danger); // 6 to 10 depending on danger
 
                     sprite.drawCircle(cx, cy, r, wCol);
-                }
                 }
 
                 // Reticles
@@ -810,8 +811,8 @@ private:
 
             if (idx == menuSelection) {
                 if (state == STATE_MENU_EDIT) {
-                    sprite.fillRect(5, yPos - 4, 230, 24, TACTICAL_CYAN);
-                    sprite.setTextColor(TACTICAL_BG, TACTICAL_CYAN);
+                    sprite.fillRect(5, yPos - 4, 230, 24, TFT_ORANGE);
+                    sprite.setTextColor(TACTICAL_BG, TFT_ORANGE);
                 } else {
                     sprite.fillRect(5, yPos - 4, 230, 24, TACTICAL_CYAN);
                     sprite.setTextColor(TACTICAL_BG, TACTICAL_CYAN);
