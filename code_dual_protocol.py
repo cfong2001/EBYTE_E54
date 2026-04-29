@@ -108,20 +108,22 @@ def draw_radar_screen():
     
     # Draw all targets
     active_targets = 0
-    closest_dist = 999.0
+    closest_dist_sq = 998001000000.0  # (999 * 1000)^2
+    max_range_sq = MAX_RANGE * MAX_RANGE
     
     for target_data in targets:
         x_mm, y_mm, age, t_idx = target_data
         
-        dist_mm = int(math.sqrt(x_mm * x_mm + y_mm * y_mm))
-        dist_m = dist_mm / 1000.0
+        dist_sq = x_mm * x_mm + y_mm * y_mm
         
-        if dist_m < closest_dist and age < 5:
-            closest_dist = dist_m
+        if dist_sq < closest_dist_sq and age < 5:
+            closest_dist_sq = dist_sq
         
-        if dist_mm <= MAX_RANGE:
+        if dist_sq <= max_range_sq:
             active_targets += 1
             
+            dist_mm = int(math.sqrt(dist_sq))
+
             angle_rad = math.atan2(-y_mm, -x_mm)
             angle_deg = math.degrees(angle_rad) + 90
             
@@ -140,6 +142,7 @@ def draw_radar_screen():
     if active_targets == 0:
         oled.text("NO CONTACT", 25, 56, 1)
     else:
+        closest_dist = math.sqrt(closest_dist_sq) / 1000.0
         oled.text("%.1fm [%d]" % (closest_dist, active_targets), 40, 56, 1)
     
     # Show protocol mode (top left)
