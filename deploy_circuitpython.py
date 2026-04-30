@@ -138,14 +138,10 @@ def deploy_code(port, code_file_path, monitor_duration=10):
         print("  - The COM port is correct")
         print("  - No other program is using the port")
         return False
-    except OSError as e:
-        print(f"Error: System or I/O error occurred - {e}")
-        return False
-    except KeyboardInterrupt:
-        print("\nDeployment interrupted by user.")
-        return False
     except Exception as e:
-        print("Error: An unexpected error occurred during deployment.")
+        print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def main():

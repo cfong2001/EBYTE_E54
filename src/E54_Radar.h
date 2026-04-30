@@ -15,8 +15,9 @@ class E54_Radar {
 public:
     E54_Radar(HardwareSerial& serial) : radarSerial(serial) {}
 
-    void begin(uint8_t rxPin, uint8_t txPin, long baudRate = 256000) {
-        radarSerial.begin(baudRate, SERIAL_8N1, rxPin, txPin);
+    void begin(uint8_t rxPin, uint8_t txPin) {
+        // Default baud rate 256000 bps
+        radarSerial.begin(256000, SERIAL_8N1, rxPin, txPin);
     }
 
     bool update() {
@@ -64,9 +65,7 @@ private:
                 else state = SYNC_1;
                 break;
             case PAYLOAD:
-                if (bufIndex < sizeof(buffer)) {
-                    buffer[bufIndex++] = b;
-                }
+                buffer[bufIndex++] = b;
                 // Target 1: 8 bytes, Target 2: 8 bytes, Target 3: 8 bytes = 24 bytes
                 if (bufIndex == 24) {
                     state = TAIL_1;
@@ -115,8 +114,6 @@ private:
         // Note: The example in the manual says:
         // Target 1x coordinate: 0x0E + 0x03 * 256 = 782 -> 0 - 782 = -782mm
         // Target 1 y coordinate: 0xB1 + 0x86 * 256 = 34481 -> 34481 - 2^15 = 1713 mm
-
-        if (raw == 0) return 0;
 
         bool isPositive = (raw & 0x8000) != 0;
         int16_t value = raw & 0x7FFF;

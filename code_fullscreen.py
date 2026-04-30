@@ -86,15 +86,15 @@ def draw_display():
     
     # Draw targets
     active_count = 0
-    closest_dist_sq = 999999999.0
+    closest_dist = 999.0
     
     for target_data in targets:
         x_mm, y_mm, age, idx = target_data
         
         if age < 5:
-            dist_sq = x_mm * x_mm + y_mm * y_mm
-            if dist_sq < closest_dist_sq:
-                closest_dist_sq = dist_sq
+            dist = math.sqrt(x_mm * x_mm + y_mm * y_mm) / 1000.0
+            if dist < closest_dist:
+                closest_dist = dist
             active_count += 1
     
     draw_targets(targets)
@@ -105,7 +105,6 @@ def draw_display():
     # Status at bottom
     if active_count > 0:
         # Show distance and count
-        closest_dist = math.sqrt(closest_dist_sq) / 1000.0
         status = "%.1fm [%d]" % (closest_dist, active_count)
         oled.text(status, 70, 56, 1)
         pixel[0] = (50, 0, 0)  # Red when targets
