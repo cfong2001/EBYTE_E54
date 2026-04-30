@@ -63,8 +63,7 @@ while True:
                     
                     if x != 0 or y != 0:
                         import math
-                        dist = math.sqrt(x*x + y*y)
-                        print(f"✓ Target {i+1}: {dist/1000:.2f}m  X:{x:5d} Y:{y:5d}")
+                        print(f"✓ Target {i+1}: {math.sqrt(x*x + y*y)/1000:.2f}m  X:{x:5d} Y:{y:5d}")
             else:
                 print(f"✗ Invalid frame: {frame[0:4].hex()} ... {frame[28:30].hex()}")
     else:

@@ -118,18 +118,17 @@ def draw_display():
     
     # Draw all targets
     active_targets = 0
-    closest_dist = 999.0
+    closest_dist_sq = 998001000000.0
     
     for target_data in targets:
         x_mm, y_mm, age, t_idx = target_data
         
-        dist_mm = int(math.sqrt(x_mm * x_mm + y_mm * y_mm))
-        dist_m = dist_mm / 1000.0
+        dist_sq = x_mm * x_mm + y_mm * y_mm
         
-        if dist_m < closest_dist and age < 5:
-            closest_dist = dist_m
+        if dist_sq < closest_dist_sq and age < 5:
+            closest_dist_sq = dist_sq
         
-        if dist_mm <= MAX_RANGE:
+        if dist_sq <= MAX_RANGE * MAX_RANGE:
             active_targets += 1
             
             # Calculate angle
@@ -137,6 +136,7 @@ def draw_display():
             angle_deg = math.degrees(angle_rad) + 90
             
             if 0 <= angle_deg <= 180:
+                dist_mm = math.sqrt(dist_sq)
                 r = int((dist_mm / MAX_RANGE) * R_MAX)
                 
                 screen_rad = math.radians(angle_deg - 90)
@@ -151,6 +151,7 @@ def draw_display():
     if active_targets == 0:
         oled.text("NO CONTACT", 25, 56, 1)
     else:
+        closest_dist = math.sqrt(closest_dist_sq) / 1000.0
         oled.text("%.1fm [%d]" % (closest_dist, active_targets), 40, 56, 1)
     
     # Title

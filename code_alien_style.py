@@ -117,20 +117,19 @@ def draw_radar_screen():
     
     # Draw all targets
     active_targets = 0
-    closest_dist = 999.0
+    closest_dist_sq = 998001000000.0
     
     for target_data in targets:
         x_mm, y_mm, age, t_idx = target_data
         
-        # Calculate polar coordinates
-        dist_mm = int(math.sqrt(x_mm * x_mm + y_mm * y_mm))
-        dist_m = dist_mm / 1000.0
+        # Calculate polar coordinates using squared distance
+        dist_sq = x_mm * x_mm + y_mm * y_mm
         
-        if dist_m < closest_dist and age < 5:
-            closest_dist = dist_m
+        if dist_sq < closest_dist_sq and age < 5:
+            closest_dist_sq = dist_sq
         
         # Only draw if in range
-        if dist_mm <= MAX_RANGE:
+        if dist_sq <= MAX_RANGE * MAX_RANGE:
             active_targets += 1
             
             # Calculate angle (0° = up, clockwise)
@@ -140,6 +139,7 @@ def draw_radar_screen():
             # Only draw if in front hemisphere
             if 0 <= angle_deg <= 180:
                 # Map distance to screen radius
+                dist_mm = math.sqrt(dist_sq)
                 r = int((dist_mm / MAX_RANGE) * R_MAX)
                 
                 # Calculate screen position
@@ -157,6 +157,7 @@ def draw_radar_screen():
         oled.text("NO CONTACT", 25, 56, 1)
     else:
         # Show closest target distance
+        closest_dist = math.sqrt(closest_dist_sq) / 1000.0
         oled.text("%.1fm [%d]" % (closest_dist, active_targets), 40, 56, 1)
     
     # Frame counter (top left)
@@ -191,8 +192,7 @@ def process_radar_frame(frame):
         dist_sq = x * x + y * y
         if (x != 0 or y != 0) and (250000 < dist_sq < 100000000):
             raw_targets.append({'id': i, 'active': True, 'x': x, 'y': y, 'speed': speed})
-            dist = math.sqrt(dist_sq)
-            print("T%d: %.2fm X:%d Y:%d Spd:%d" % (i + 1, dist / 1000.0, x, y, speed))
+            print("T%d: %.2fm X:%d Y:%d Spd:%d" % (i + 1, math.sqrt(dist_sq) / 1000.0, x, y, speed))
         else:
             raw_targets.append({'id': i, 'active': False, 'x': 0, 'y': 0, 'speed': 0})
             
