@@ -158,7 +158,7 @@ public:
         zoneManager.loadSettings();
         loadSettings();
 
-        tft.init();
+        tft.begin();
         tft.setRotation(1);
         tft.initDMA();
         sprite.createSprite(240, 240);
@@ -361,7 +361,9 @@ public:
                 } else if (theme == THEME_ALIEN) {
                     baseColor = TACTICAL_CYAN;
                 } else {
-                    baseColor = TACTICAL_CYAN;
+                    if (i == 0) baseColor = TFT_ORANGE;
+                    else if (i == 1) baseColor = TFT_CYAN;
+                    else baseColor = TFT_MAGENTA;
                 }
 
                 // Blend with black based on sweep simulation alpha
@@ -400,7 +402,6 @@ public:
                     int r = 6 + (int)(pulse * 4.0f * danger); // 6 to 10 depending on danger
 
                     sprite.drawCircle(cx, cy, r, wCol);
-                }
                 }
 
                 // Reticles
@@ -524,6 +525,7 @@ public:
 
         tft.startWrite();
         tft.pushImageDMA(0, 0, 240, 240, (uint16_t*)sprite.getPointer());
+        tft.dmaWait();
         tft.endWrite();
     }
 
@@ -633,7 +635,7 @@ private:
         else if (elapsed < 600) sprite.setCursor(90, 120), sprite.print("CALIBRATING");
         else if (elapsed < 1000) sprite.setCursor(95, 120), sprite.print("SCANNING...");
 
-        tft.startWrite(); tft.pushImageDMA(0, 0, 240, 240, (uint16_t*)sprite.getPointer()); tft.endWrite();
+        tft.startWrite(); tft.pushImageDMA(0, 0, 240, 240, (uint16_t*)sprite.getPointer()); tft.dmaWait(); tft.endWrite();
 
         if (elapsed > 1200) {
             state = STATE_RADAR_VIEW;
@@ -810,8 +812,8 @@ private:
 
             if (idx == menuSelection) {
                 if (state == STATE_MENU_EDIT) {
-                    sprite.fillRect(5, yPos - 4, 230, 24, TACTICAL_CYAN);
-                    sprite.setTextColor(TACTICAL_BG, TACTICAL_CYAN);
+                    sprite.fillRect(5, yPos - 4, 230, 24, TFT_ORANGE);
+                    sprite.setTextColor(TACTICAL_BG, TFT_ORANGE);
                 } else {
                     sprite.fillRect(5, yPos - 4, 230, 24, TACTICAL_CYAN);
                     sprite.setTextColor(TACTICAL_BG, TACTICAL_CYAN);

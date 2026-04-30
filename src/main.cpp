@@ -41,6 +41,10 @@ void IRAM_ATTR checkPosition() {
     encoder.tick();
 }
 
+void IRAM_ATTR checkButtonTicks() {
+    button.tick();
+}
+
 void handleButtonPress() {
     ui.handleButton();
 }
@@ -126,6 +130,7 @@ void setup() {
 
     attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_A), checkPosition, CHANGE);
     attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_B), checkPosition, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(PIN_BUTTON), checkButtonTicks, CHANGE);
     button.attachClick(handleButtonPress);
 
     xTaskCreatePinnedToCore(radarTask, "RadarTask", 4096, NULL, 1, NULL, 0);
