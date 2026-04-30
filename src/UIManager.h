@@ -9,6 +9,10 @@
 #include "E54_Radar.h"
 #include "ZoneManager.h"
 
+#define TACTICAL_BG 0x10A2
+#define TACTICAL_CYAN 0x079F
+#define TACTICAL_ERROR 0x9001
+
 enum AppState {
     STATE_BOOT,
     STATE_RADAR_VIEW,
@@ -45,6 +49,26 @@ enum TargetIcon {
 };
 
 class UIManager {
+public:
+    const char* getPageName() {
+        switch(activePage) {
+            case PAGE_MAIN: return "MAIN";
+            case PAGE_VISUALS: return "VISUALS";
+            case PAGE_ZONES: return "ZONES";
+            case PAGE_DATA: return "DATA";
+            default: return "UNKNOWN";
+        }
+    }
+
+    const char* getStateName() {
+        switch(state) {
+            case STATE_BOOT: return "BOOT";
+            case STATE_RADAR_VIEW: return "RADAR";
+            case STATE_MENU: return "MENU";
+            case STATE_MENU_EDIT: return "EDIT";
+            default: return "UNKNOWN";
+        }
+    }
 public:
     ZoneManager zoneManager;
     Preferences preferences;
@@ -136,6 +160,7 @@ public:
 
         tft.init();
         tft.setRotation(1);
+        tft.initDMA();
         sprite.createSprite(240, 240);
         sprite.setSwapBytes(true);
 
@@ -250,7 +275,7 @@ public:
                 float diffX = (float)targetGoalX[i] - targetCurrentX[i];
                 float diffY = (float)targetGoalY[i] - targetCurrentY[i];
 
-                if (abs(diffX) < 0.5f && abs(diffY) < 0.5f) {
+                if (fabsf(diffX) < 0.5f && fabsf(diffY) < 0.5f) {
                     targetCurrentX[i] = (float)targetGoalX[i];
                     targetCurrentY[i] = (float)targetGoalY[i];
                 } else {
@@ -268,7 +293,7 @@ public:
 
                 // Simulated Sweep Capture Logic
                 if (simulatedSweep) {
-                    float targetRad = atan2(rawTargetX[i], rawTargetY[i]);
+                    float targetRad = atan2f(rawTargetX[i], rawTargetY[i]);
                     int targetDeg = (int)(targetRad * 180.0f / PI);
 
                     // The visual sweepAngle goes from 0 to 180. We map it to -90 to 90.
@@ -299,7 +324,7 @@ public:
             lastTargetActive[i] = targetActive[i];
         }
 
-        sprite.fillSprite(TFT_BLACK);
+        sprite.fillSprite(TACTICAL_BG);
 
         if (theme == THEME_MINIMAL) {
             if (gridEnabled) {
@@ -314,13 +339,13 @@ public:
 
         if (sweepLineEnabled && theme != THEME_MINIMAL) {
             sweepAngle = (sweepAngle + 4) % 180;
-            uint16_t sweepColor = (theme == THEME_ALIEN) ? TFT_GREEN : TFT_DARKGREY;
+            uint16_t sweepColor = (theme == THEME_ALIEN) ? TACTICAL_CYAN : TFT_DARKGREY;
             for (int a = 0; a < 30; a += 2) {
                 float tr = (sweepAngle - a - 180) * 0.0174533f;
-                int tx = 120 + 180 * cos(tr);
-                int ty = 240 + 180 * sin(tr);
+                int tx = 120 + 180 * cosf(tr);
+                int ty = 240 + 180 * sinf(tr);
                 uint8_t alpha = 255 - ((a * 255) / 30);
-                uint16_t trailCol = sprite.alphaBlend(alpha, sweepColor, TFT_BLACK);
+                uint16_t trailCol = sprite.alphaBlend(alpha, sweepColor, TACTICAL_BG);
                 sprite.drawLine(120, 240, tx, ty, trailCol);
             }
         }
@@ -334,18 +359,14 @@ public:
                 if (theme == THEME_MINIMAL) {
                     baseColor = TFT_WHITE;
                 } else if (theme == THEME_ALIEN) {
-                    if (i == 0) baseColor = sprite.color565(0, 255, 0); // Green
-                    else if (i == 1) baseColor = sprite.color565(0, 255, 255); // Cyan
-                    else baseColor = sprite.color565(255, 0, 255); // Magenta
+                    baseColor = TACTICAL_CYAN;
                 } else {
-                    if (i == 0) baseColor = sprite.color565(255, 100, 0); // Orange
-                    else if (i == 1) baseColor = sprite.color565(0, 150, 255); // Blue
-                    else baseColor = sprite.color565(200, 0, 255); // Purple
+                    baseColor = TACTICAL_CYAN;
                 }
 
                 // Blend with black based on sweep simulation alpha
                 uint8_t currentAlpha = (uint8_t)(simAlpha[i] * 255.0f);
-                uint16_t color = sprite.alphaBlend(currentAlpha, baseColor, TFT_BLACK);
+                uint16_t color = sprite.alphaBlend(currentAlpha, baseColor, TACTICAL_BG);
 
                 if (trailLength > 0) {
                     for (int h = 0; h < trailLength; h++) {
@@ -353,7 +374,7 @@ public:
                         int hy = (int)targetHistoryY[i][h];
                         if (hx > 0 && hy > 0) {
                             uint8_t t_alpha = (currentAlpha * (trailLength - h)) / trailLength;
-                            uint16_t tColor = sprite.alphaBlend(t_alpha, baseColor, TFT_BLACK);
+                            uint16_t tColor = sprite.alphaBlend(t_alpha, baseColor, TACTICAL_BG);
                             int tr = max(1, 4 - (h / 2));
                             sprite.fillCircle(hx, hy, tr, tColor);
                         }
@@ -362,12 +383,24 @@ public:
 
                 if (zoneManager.isWarning(i)) {
                     if ((millis() / 200) % 2 == 0) {
-                        uint16_t wCol = sprite.alphaBlend(currentAlpha, TFT_YELLOW, TFT_BLACK);
+                        uint16_t wCol = sprite.alphaBlend(currentAlpha, TFT_YELLOW, TACTICAL_BG);
                         sprite.drawCircle(cx, cy, 8, wCol);
                     } else {
-                        uint16_t wCol = sprite.alphaBlend(currentAlpha, TFT_RED, TFT_BLACK);
+                        uint16_t wCol = sprite.alphaBlend(currentAlpha, TACTICAL_ERROR, TACTICAL_BG);
                         sprite.drawCircle(cx, cy, 8, wCol);
                     }
+                }
+                float danger = zoneManager.getTargetDangerLevel(i);
+                if (danger > 0.01f) {
+                    uint16_t dangerColor = sprite.alphaBlend((uint8_t)(danger * 255.0f), TFT_RED, TFT_YELLOW);
+                    uint16_t wCol = sprite.alphaBlend(currentAlpha, dangerColor, TFT_BLACK);
+
+                    float pulseSpeed = 300.0f - (danger * 200.0f);
+                    float pulse = (sin(millis() / pulseSpeed) + 1.0f) * 0.5f; // 0.0 to 1.0
+                    int r = 6 + (int)(pulse * 4.0f * danger); // 6 to 10 depending on danger
+
+                    sprite.drawCircle(cx, cy, r, wCol);
+                }
                 }
 
                 // Reticles
@@ -387,8 +420,8 @@ public:
                     float rawDx = targetCurrentX[i] - targetHistoryX[i][2];
                     float rawDy = targetCurrentY[i] - targetHistoryY[i][2];
 
-                    if (absSpd > 10 && (abs(rawDx) > 0.5f || abs(rawDy) > 0.5f)) {
-                        float len = sqrt(rawDx*rawDx + rawDy*rawDy);
+                    if (absSpd > 10 && (fabsf(rawDx) > 0.5f || fabsf(rawDy) > 0.5f)) {
+                        float len = sqrtf(rawDx*rawDx + rawDy*rawDy);
                         float nx = rawDx / len;
                         float ny = rawDy / len;
                         smoothVecX[i] = (smoothVecX[i] * 0.7f) + (nx * 0.3f);
@@ -401,7 +434,7 @@ public:
                     if (smoothSpeed[i] > 5.0f) {
                         float stickLen = 5.0f + (smoothSpeed[i] / 10.0f);
                         if (stickLen > 25.0f) stickLen = 25.0f;
-                        float sLen = sqrt(smoothVecX[i]*smoothVecX[i] + smoothVecY[i]*smoothVecY[i]);
+                        float sLen = sqrtf(smoothVecX[i]*smoothVecX[i] + smoothVecY[i]*smoothVecY[i]);
                         if (sLen > 0.01f) {
                             float nSvx = smoothVecX[i] / sLen;
                             float nSvy = smoothVecY[i] / sLen;
@@ -409,11 +442,11 @@ public:
                             int ey = cy + (int)(nSvy * stickLen);
                             sprite.drawLine(cx, cy, ex, ey, color);
 
-                            float arrowAngle = atan2(nSvy, nSvx);
-                            int ax1 = ex - (int)(4 * cos(arrowAngle - 0.5f));
-                            int ay1 = ey - (int)(4 * sin(arrowAngle - 0.5f));
-                            int ax2 = ex - (int)(4 * cos(arrowAngle + 0.5f));
-                            int ay2 = ey - (int)(4 * sin(arrowAngle + 0.5f));
+                            float arrowAngle = atan2f(nSvy, nSvx);
+                            int ax1 = ex - (int)(4 * cosf(arrowAngle - 0.5f));
+                            int ay1 = ey - (int)(4 * sinf(arrowAngle - 0.5f));
+                            int ax2 = ex - (int)(4 * cosf(arrowAngle + 0.5f));
+                            int ay2 = ey - (int)(4 * sinf(arrowAngle + 0.5f));
                             sprite.drawLine(ex, ey, ax1, ay1, color);
                             sprite.drawLine(ex, ey, ax2, ay2, color);
                         }
@@ -426,8 +459,8 @@ public:
                 if (theme != THEME_ALIEN && telemetryMode != TELEMETRY_OFF) {
                     sprite.setTextColor(color, TFT_BLACK);
 
-                    float dist_m = sqrt((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) / 1000.0f;
-                    int angle = (int)(atan2((float)rawTargetX[i], (float)rawTargetY[i]) * 180.0f / PI);
+                    float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) / 1000.0f;
+                    int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 180.0f / PI);
                     float speed_ms = (float)rawTargetSpeed[i] / 10.0f; // Assuming 10s of cm/s or similar, pseudo-calc
 
                     sprite.setCursor(cx + 8, cy - 12);
@@ -451,9 +484,31 @@ public:
             }
         }
 
+        // Draw Top/Bottom Bars
+        sprite.fillRect(0, 0, 240, 16, TACTICAL_BG); // Clear top bar area
+        sprite.fillRect(0, 224, 240, 16, TACTICAL_BG); // Clear bottom bar area
+
+        sprite.drawLine(0, 16, 240, 16, sprite.alphaBlend(100, TACTICAL_CYAN, TACTICAL_BG));
+        sprite.drawLine(0, 224, 240, 224, sprite.alphaBlend(100, TACTICAL_CYAN, TACTICAL_BG));
+
+        sprite.setTextColor(TACTICAL_CYAN, TACTICAL_BG);
+        sprite.setTextSize(1);
+        sprite.setCursor(5, 4);
+        sprite.print("((o)) RADAR_V1.0");
+
+        sprite.setCursor(215, 4);
+        sprite.print("BAT");
+
+        sprite.setCursor(5, 228);
+        if (state == STATE_RADAR_VIEW) {
+            sprite.print("[VIEW]  MENU");
+        } else {
+            sprite.print(" VIEW  [MENU]");
+        }
+
         if (theme != THEME_MINIMAL) {
             if (anchorValid) {
-                sprite.setTextColor(TFT_GREEN, TFT_BLACK);
+                sprite.setTextColor(TACTICAL_CYAN, TACTICAL_BG);
                 sprite.setCursor(5, 5);
                 sprite.printf("Anchor: (%d, %d)", anchorX, anchorY);
             } else {
@@ -467,7 +522,9 @@ public:
             drawMenuOverlay();
         }
 
-        sprite.pushSprite(0, 0);
+        tft.startWrite();
+        tft.pushImageDMA(0, 0, 240, 240, (uint16_t*)sprite.getPointer());
+        tft.endWrite();
     }
 
     int getSensitivity() { return sensitivity; }
@@ -477,6 +534,15 @@ public:
         int act = actionRequested;
         actionRequested = 0;
         return act;
+    }
+
+    void logStateToSerial() {
+        Serial.printf("State: %d, Page: %d | Danger: %.2f\n", state, activePage, zoneManager.getDangerLevel());
+        for (int i = 0; i < 3; i++) {
+            if (targetActive[i]) {
+                Serial.printf("  T%d: [%d, %d] Spd:%d\n", i+1, rawTargetX[i], rawTargetY[i], rawTargetSpeed[i]);
+            }
+        }
     }
 
 private:
@@ -536,7 +602,7 @@ private:
     int lastDrawnY[3];
 
     void drawBootScreen() {
-        sprite.fillSprite(TFT_BLACK);
+        sprite.fillSprite(TACTICAL_BG);
         unsigned long elapsed = millis() - bootStartTime;
 
         int maxR = (elapsed * 180) / 1000;
@@ -550,7 +616,7 @@ private:
                 if (sweepDeg > 360) sweepDeg = 360;
                 for (int a = -180; a < -180 + sweepDeg; a += 5) {
                     float rad = a * 0.0174533f;
-                    sprite.drawPixel(120 + r * cos(rad), 240 + r * sin(rad), gridColor);
+                    sprite.drawPixel(120 + r * cosf(rad), 240 + r * sinf(rad), gridColor);
                 }
             }
         }
@@ -567,7 +633,7 @@ private:
         else if (elapsed < 600) sprite.setCursor(90, 120), sprite.print("CALIBRATING");
         else if (elapsed < 1000) sprite.setCursor(95, 120), sprite.print("SCANNING...");
 
-        sprite.pushSprite(0, 0);
+        tft.startWrite(); tft.pushImageDMA(0, 0, 240, 240, (uint16_t*)sprite.getPointer()); tft.endWrite();
 
         if (elapsed > 1200) {
             state = STATE_RADAR_VIEW;
@@ -581,8 +647,8 @@ private:
         if (minR > 180) minR = 180;
         for (int a = minAngle; a <= maxAngle; a++) {
             float rad = (a - 90) * 0.0174533f;
-            float cosA = cos(rad);
-            float sinA = sin(rad);
+            float cosA = cosf(rad);
+            float sinA = sinf(rad);
             sprite.drawLine(120 + minR*cosA, 240 + minR*sinA, 120 + maxR*cosA, 240 + maxR*sinA, color);
         }
     }
@@ -590,27 +656,37 @@ private:
     void drawZones() {
         if (zoneManager.getDeadPreset() != ZONE_OFF) {
             RadialZone z = zoneManager.getActiveDeadZone();
-            drawRadialWedge(z.minDist, z.maxDist, z.minAngle, z.maxAngle, sprite.color565(30, 0, 0));
+            drawRadialWedge(z.minDist, z.maxDist, z.minAngle, z.maxAngle, TACTICAL_ERROR);
         }
         if (zoneManager.getWarnPreset() != ZONE_OFF) {
             RadialZone z = zoneManager.getActiveWarnZone();
             float danger = zoneManager.getDangerLevel();
-            uint16_t baseColor = sprite.color565(50, 50, 0);
-            uint16_t activeColor = sprite.color565(255, 100, 0);
+            uint16_t baseColor = TACTICAL_BG;
+            uint16_t activeColor = TACTICAL_CYAN;
             uint8_t alpha = (uint8_t)(danger * 255.0f);
             uint16_t wedgeColor = sprite.alphaBlend(alpha, activeColor, baseColor);
             drawRadialWedge(z.minDist, z.maxDist, z.minAngle, z.maxAngle, wedgeColor);
         }
     }
 
+
     void drawRadarBackground() {
-        uint16_t gridColor = (theme == THEME_ALIEN) ? sprite.color565(0, 50, 0) : TFT_DARKGREY;
+        uint16_t gridColor = (theme == THEME_ALIEN) ? TACTICAL_CYAN : TFT_DARKGREY;
+        gridColor = sprite.alphaBlend(80, gridColor, TACTICAL_BG); // Dimmer lines
         if (gridEnabled) {
+            // Tactical crosshair
+            sprite.drawLine(0, 120, 240, 120, gridColor);
+            sprite.drawLine(120, 16, 120, 224, gridColor); // Avoid drawing over top/bottom bars
+
+            // Faint concentric circles
+            for (int r = 40; r <= 100; r += 30) {
+                sprite.drawCircle(120, 120, r, sprite.alphaBlend(50, TACTICAL_CYAN, TACTICAL_BG));
+            }
             if (theme == THEME_ALIEN) {
                 for (int r=60; r<=180; r+=60) {
                     for (int a=0; a<=180; a+=5) {
                         float rad = (a - 180) * 0.0174533f;
-                        sprite.drawPixel(120 + r * cos(rad), 240 + r * sin(rad), gridColor);
+                        sprite.drawPixel(120 + r * cosf(rad), 240 + r * sinf(rad), gridColor);
                     }
                 }
             } else {
@@ -618,38 +694,41 @@ private:
                 sprite.drawCircle(120, 240, 120, gridColor);
                 sprite.drawCircle(120, 240, 180, gridColor);
             }
-            sprite.drawLine(120, 240, 120, 60, gridColor);
-            sprite.drawLine(120, 240, 60, 240, gridColor);
-            sprite.drawLine(120, 240, 180, 240, gridColor);
-            if (theme == THEME_ALIEN) {
-                sprite.drawLine(120, 240, 120 - 120*0.707, 240 - 120*0.707, gridColor);
-                sprite.drawLine(120, 240, 120 + 120*0.707, 240 - 120*0.707, gridColor);
+
+            // Ticks along axes
+            for (int r = 30; r <= 90; r += 30) {
+                sprite.drawLine(120 - 3, 120 - r, 120 + 3, 120 - r, gridColor); // Vertical axis ticks
+                sprite.drawLine(120 - r, 120 - 3, 120 - r, 120 + 3, gridColor); // Horizontal axis ticks
+                sprite.drawLine(120 + r, 120 - 3, 120 + r, 120 + 3, gridColor);
             }
         }
     }
 
     void drawMenuOverlay() {
-        if (menuOverlayY < 120) menuOverlayY += 10;
+        if (menuOverlayY < 200) menuOverlayY += 15;
 
-        sprite.fillRect(0, 0, 240, menuOverlayY, sprite.alphaBlend(200, TFT_BLACK, TFT_WHITE));
-        sprite.drawLine(0, menuOverlayY, 240, menuOverlayY, TFT_DARKGREY);
-        if (menuOverlayY < 120) return;
+        sprite.fillRect(0, 0, 240, menuOverlayY, sprite.alphaBlend(220, TACTICAL_BG, TFT_WHITE));
+        sprite.drawLine(0, menuOverlayY, 240, menuOverlayY, TACTICAL_CYAN);
+        if (menuOverlayY < 200) return;
 
         sprite.setTextSize(1);
-        String items[24];
+        static String items[24];
         int numItems = 0;
 
         if (activePage == PAGE_MAIN) {
-            sprite.setTextColor(TFT_GREEN, TFT_BLACK);
-            sprite.setCursor(15, 5); sprite.print("=== MAIN MENU ===");
+            sprite.setTextColor(TACTICAL_CYAN, TACTICAL_BG);
+            sprite.setCursor(15, 5); sprite.print("CONFIG MENU");
 
-            items[numItems++] = "> VISUAL SETTINGS";
-            items[numItems++] = "> ZONE CONFIG";
-            items[numItems++] = "> TARGET DATA & SENS";
+            items[numItems++] = "VISUAL SETTINGS";
+            items[numItems++] = "  [DISPLAY/HUD]";
+            items[numItems++] = "ZONE CONFIG";
+            items[numItems++] = "  [BOUNDARIES]";
+            items[numItems++] = "TARGET DATA";
+            items[numItems++] = "  [GAIN/FILTER]";
             items[numItems++] = "[ Exit Menu ]";
         }
         else if (activePage == PAGE_VISUALS) {
-            sprite.setTextColor(TFT_GREEN, TFT_BLACK);
+            sprite.setTextColor(TACTICAL_CYAN, TACTICAL_BG);
             sprite.setCursor(15, 5); sprite.print("--- VISUAL SETTINGS ---");
 
             String themeStr = (theme == THEME_STANDARD) ? "Standard" : (theme == THEME_ALIEN ? "Alien" : "Minimal");
@@ -666,7 +745,7 @@ private:
             items[numItems++] = "Boot Anim: " + String(startupAnimEnabled ? "ON" : "OFF");
         }
         else if (activePage == PAGE_ZONES) {
-            sprite.setTextColor(TFT_GREEN, TFT_BLACK);
+            sprite.setTextColor(TACTICAL_CYAN, TACTICAL_BG);
             sprite.setCursor(15, 5); sprite.print("--- ZONE CONFIG ---");
 
             String warnStr = (zoneManager.getWarnPreset() == ZONE_OFF) ? "OFF" :
@@ -701,7 +780,7 @@ private:
             }
         }
         else if (activePage == PAGE_DATA) {
-            sprite.setTextColor(TFT_GREEN, TFT_BLACK);
+            sprite.setTextColor(TACTICAL_CYAN, TACTICAL_BG);
             sprite.setCursor(15, 5); sprite.print("--- TARGET DATA ---");
 
             String tDataStr = (telemetryMode == TELEMETRY_OFF) ? "OFF" :
@@ -727,18 +806,18 @@ private:
             int idx = startIdx + i;
             if (idx >= numItems) break;
 
-            int yPos = 25 + i * 20;
+            int yPos = 35 + i * 25;
 
             if (idx == menuSelection) {
                 if (state == STATE_MENU_EDIT) {
-                    sprite.fillRect(5, yPos - 2, 230, 18, TFT_DARKGREY);
-                    sprite.setTextColor(TFT_GREEN, TFT_DARKGREY);
+                    sprite.fillRect(5, yPos - 4, 230, 24, TACTICAL_CYAN);
+                    sprite.setTextColor(TACTICAL_BG, TACTICAL_CYAN);
                 } else {
-                    sprite.fillRect(5, yPos - 2, 230, 18, TFT_WHITE);
-                    sprite.setTextColor(TFT_BLACK, TFT_WHITE);
+                    sprite.fillRect(5, yPos - 4, 230, 24, TACTICAL_CYAN);
+                    sprite.setTextColor(TACTICAL_BG, TACTICAL_CYAN);
                 }
             } else {
-                sprite.setTextColor(TFT_WHITE, TFT_BLACK);
+                sprite.setTextColor(TFT_WHITE, TACTICAL_BG);
             }
 
             sprite.setCursor(15, yPos);
@@ -748,10 +827,10 @@ private:
 
     void handleMenuClick() {
         if (activePage == PAGE_MAIN) {
-            if (menuSelection == 0) { activePage = PAGE_VISUALS; menuSelection = 0; }
-            else if (menuSelection == 1) { activePage = PAGE_ZONES; menuSelection = 0; }
-            else if (menuSelection == 2) { activePage = PAGE_DATA; menuSelection = 0; }
-            else if (menuSelection == 3) { state = STATE_RADAR_VIEW; }
+            if (menuSelection == 0 || menuSelection == 1) { activePage = PAGE_VISUALS; menuSelection = 0; }
+            else if (menuSelection == 2 || menuSelection == 3) { activePage = PAGE_ZONES; menuSelection = 0; }
+            else if (menuSelection == 4 || menuSelection == 5) { activePage = PAGE_DATA; menuSelection = 0; }
+            else if (menuSelection == 6) { state = STATE_RADAR_VIEW; }
         }
         else if (activePage == PAGE_VISUALS) {
             if (menuSelection == 0) { activePage = PAGE_MAIN; menuSelection = 0; }

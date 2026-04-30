@@ -110,7 +110,7 @@ public:
                     float distPSq = dPx*dPx + dPy*dPy;
 
                     // Ratio of change. If lengths change by > ~10%, it's not rigid.
-                    float diff = abs(distQSq - distPSq) / (distPSq + 1.0f);
+                    float diff = fabsf(distQSq - distPSq) / (distPSq + 1.0f);
                     err[i] += diff;
                     err[j] += diff;
                 }
@@ -135,7 +135,7 @@ public:
             float dPx = P_x[a] - P_x[b];
             float dPy = P_y[a] - P_y[b];
 
-            float diff = abs((dQx*dQx + dQy*dQy) - (dPx*dPx + dPy*dPy)) / ((dPx*dPx + dPy*dPy) + 1.0f);
+            float diff = fabsf((dQx*dQx + dQy*dQy) - (dPx*dPx + dPy*dPy)) / ((dPx*dPx + dPy*dPy) + 1.0f);
             if (diff < 0.2f) {
                 anchorIndices[0] = a;
                 anchorIndices[1] = b;
@@ -183,7 +183,7 @@ public:
                     S += (vPx * vQy - vPy * vQx); // Cross-product sum
                     C += (vPx * vQx + vPy * vQy); // Dot-product sum
                 }
-                float M = sqrt(C * C + S * S);
+                float M = sqrtf(C * C + S * S);
                 if (M > 1.0f) {
                     cosT = C / M;
                     sinT = S / M;
