@@ -23,3 +23,6 @@
 ## 2024-04-26 - Optimizing OneButton for tight loops
 **Learning:** `OneButton`'s `.tick()` polling can easily miss clicks if placed in an event loop experiencing latency from calculations or delays.
 **Action:** Implement `OneButton` using hardware interrupts exactly like standard rotary encoders using an `IRAM_ATTR` wrapper and `attachInterrupt(..., CHANGE)` pointing to `button.tick()`.
+## 2026-04-26 - Defer math.sqrt calls in alien UI draw loops
+**Learning:** The memory pattern from 2024-05-19 regarding `math.sqrt()` in rendering loops applies broadly across the CircuitPython UI implementations, specifically in tracking the closest distance for the telemetry text overlay.
+**Action:** Replaced direct `math.sqrt()` distance calculations and `MAX_RANGE` checks with `dist_sq` calculations inside the loops for `code_alien_advanced.py`, `code_alien_style.py`, and `code_dual_protocol.py`, deferring the final `math.sqrt()` call until after the loop for the closest distance.
