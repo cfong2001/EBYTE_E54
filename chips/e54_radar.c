@@ -12,7 +12,7 @@ typedef struct {
 static void on_timer_done(void *user_data) {
   chip_state_t *chip = (chip_state_t *)user_data;
   uint8_t frame[30];
-  
+
   // Header
   frame[0] = 0xAA;
   frame[1] = 0xFF;
@@ -20,15 +20,15 @@ static void on_timer_done(void *user_data) {
   frame[3] = 0x00;
 
   float t = chip->frame_count * 0.1f; // 10Hz frames
-  
+
   // Target 1: Circling (Anchor 1)
   int16_t x1 = 1000 + (int16_t)(500 * cos(t));
   int16_t y1 = 2000 + (int16_t)(500 * sin(t));
-  
+
   // Target 2: Static (Anchor 2)
   int16_t x2 = -1500;
   int16_t y2 = 3000;
-  
+
   // Target 3: Inactive
   int16_t x3 = 0;
   int16_t y3 = 0;
