@@ -104,6 +104,9 @@ public:
         long minDistSq = (long)z.minDist * z.minDist;
         long maxDistSq = (long)z.maxDist * z.maxDist;
         if (distSq < minDistSq || distSq > maxDistSq) return false;
+
+        if (z.minAngle <= -90 && z.maxAngle >= 90) return true;
+
         float angleRad = atan2f((float)x, (float)y);
         int angleDeg = (int)(angleRad * 180.0f / PI);
         if (angleDeg < z.minAngle || angleDeg > z.maxAngle) return false;
@@ -145,23 +148,34 @@ public:
         return (percent >= fuzzingThreshold);
     }
 
+    float getTargetDangerLevel(int targetId) {
+        if (warnPreset == ZONE_OFF) return 0.0f;
+        if (historyCount[targetId] == 0) return 0.0f;
+
+        int hits = 0;
+        int checkFrames = historyWindow;
+        if (historyCount[targetId] < historyWindow) checkFrames = historyCount[targetId];
+
+        for (int h=0; h<checkFrames; h++) {
+            if (warnHistory[targetId][h]) hits++;
+        }
+
+        float percent = (float)hits / (float)checkFrames;
+        float danger = 1.0f;
+
+        if (fuzzingThreshold > 0) {
+            danger = percent / ((float)fuzzingThreshold / 100.0f);
+        }
+
+        if (danger > 1.0f) danger = 1.0f;
+        return danger;
+    }
+
     float getDangerLevel() {
         if (warnPreset == ZONE_OFF) return 0.0f;
         float maxDanger = 0.0f;
         for (int i=0; i<3; i++) {
-            if (historyCount[i] == 0) continue;
-            int hits = 0;
-            int checkFrames = historyWindow;
-            if (historyCount[i] < historyWindow) checkFrames = historyCount[i];
-            for (int h=0; h<checkFrames; h++) {
-                if (warnHistory[i][h]) hits++;
-            }
-            float percent = (float)hits / (float)checkFrames;
-            float danger = 1.0f;
-            if (fuzzingThreshold > 0) {
-                danger = percent / ((float)fuzzingThreshold / 100.0f);
-            }
-            if (danger > 1.0f) danger = 1.0f;
+            float danger = getTargetDangerLevel(i);
             if (danger > maxDanger) maxDanger = danger;
         }
         return maxDanger;
