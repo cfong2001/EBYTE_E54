@@ -15,3 +15,6 @@
 ## 2024-05-18 - [Optimization] ESP32 Performance Enhancements
 **Learning:** For optimal ESP32 rendering with TFT_eSPI, especially on screens sized 240x240 and above, initializing DMA (`tft.initDMA()`) combined with full-frame sprites enables PSRAM usage (if available) and allows the display transfer to occur concurrently with CPU logic (`tft.pushImageDMA()`). Pinning radar read processing to Core 0 with `xTaskCreatePinnedToCore` provides uninterrupted UI and inputs on Core 1 while securing serial data perfectly.
 **Action:** Always enable DMA for heavy UI processing on ESP32 and distribute time-critical serial polling and UI rendering across separate cores using FreeRTOS tasks and mutexes for safety.
+## 2026-04-26 - Defer math.sqrt calls in alien UI draw loops
+**Learning:** The memory pattern from 2024-05-19 regarding `math.sqrt()` in rendering loops applies broadly across the CircuitPython UI implementations, specifically in tracking the closest distance for the telemetry text overlay.
+**Action:** Replaced direct `math.sqrt()` distance calculations and `MAX_RANGE` checks with `dist_sq` calculations inside the loops for `code_alien_advanced.py`, `code_alien_style.py`, and `code_dual_protocol.py`, deferring the final `math.sqrt()` call until after the loop for the closest distance.
