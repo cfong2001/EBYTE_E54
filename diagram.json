@@ -1,36 +1,18 @@
 {
   "version": 1,
-  "author": "Antigravity AI",
+  "author": "Jules",
   "editor": "wokwi",
   "parts": [
-    { "type": "wokwi-esp32-wrover-kit", "id": "esp", "top": 0, "left": 0, "attrs": {} },
     {
-      "type": "wokwi-st7789-240x240",
-      "id": "tft",
-      "top": -280,
-      "left": 10,
-      "attrs": { "rotation": "0" }
-    },
-    { "type": "wokwi-rotary-encoder", "id": "encoder", "top": 180, "left": -80, "attrs": {} },
-    { "type": "wokwi-pushbutton", "id": "btn", "top": 180, "left": 80, "attrs": { "color": "red" } },
-    { "type": "ebyte-e54", "id": "radar", "top": -150, "left": 220, "attrs": {} }
+      "type": "board-esp32-s3-devkitc-1",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    }
   ],
   "connections": [
-    [ "esp:GND.1", "tft:GND", "black", [ "v0" ] ],
-    [ "esp:3V3", "tft:VCC", "red", [ "v0" ] ],
-    [ "esp:IO18", "tft:SCL", "orange", [ "v0" ] ],
-    [ "esp:IO23", "tft:SDA", "blue", [ "v0" ] ],
-    [ "esp:IO15", "tft:CS", "green", [ "v0" ] ],
-    [ "esp:IO2", "tft:DC", "purple", [ "v0" ] ],
-    [ "esp:IO4", "tft:RES", "white", [ "v0" ] ],
-    [ "esp:IO25", "encoder:A", "green", [ "v0" ] ],
-    [ "esp:IO26", "encoder:B", "blue", [ "v0" ] ],
-    [ "esp:GND.2", "encoder:GND", "black", [ "v0" ] ],
-    [ "esp:IO27", "btn:1.R", "red", [ "v0" ] ],
-    [ "esp:GND.3", "btn:2.R", "black", [ "v0" ] ],
-    [ "radar:TX", "esp:IO16", "yellow", [ "h0" ] ],
-    [ "radar:RX", "esp:IO17", "gray", [ "h0" ] ],
-    [ "radar:GND", "esp:GND.4", "black", [ "v0" ] ]
-  ],
-  "dependencies": {}
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ]
+  ]
 }

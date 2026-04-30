@@ -18,26 +18,3 @@
 ## 2024-04-26 - ESP32 Dual-Core FreeRTOS Performance Profiling
 **Learning:** Measuring ESP32 FreeRTOS core execution and idle times using `uxTaskGetSystemState` is extremely powerful for diagnosing execution bottlenecks but causes C++ compilation errors (`undefined reference`) on default ESP32 toolchains unless custom ESP-IDF SDK configuration (`CONFIG_FREERTOS_USE_TRACE_FACILITY`) is explicitly compiled into the underlying framework core.
 **Action:** When profiling standard Arduino-ESP32 setups, fallback to utilizing standard FreeRTOS APIs like `uxTaskGetNumberOfTasks()` and `ESP.getFreeHeap()` / `ESP.getMaxAllocHeap()` embedded in a low-priority modular background task (`xTaskCreatePinnedToCore`) rather than relying on advanced trace metrics unless the framework is explicitly built with trace support.
-## 2026-04-26 - [C++ Memory & Optimization]
-**Learning:** Initializing objects with reference variables inside a C++ header class body can cause compiler scope and 'unqualified-id' errors (especially on PlatformIO/ESP32 using ). Dynamic String creation () in a loop directly causes excessive memory fragmentation and performance regressions on constrained memory targets like the ESP32.
-**Action:** Replace  inline initializations with pointers instantiated in the constructor. Use  with static  arrays instead of  class concatenations to minimize overhead.
-## 2026-04-26 - [C++ Memory & Optimization]
-**Learning:** Initializing objects with reference variables inside a C++ header class body can cause compiler scope and 'unqualified-id' errors (especially on PlatformIO/ESP32 using `TFT_eSprite`). Dynamic String creation in a loop directly causes excessive memory fragmentation and performance regressions on constrained memory targets like the ESP32.
-**Action:** Replace `TFT_eSprite sprite` inline initializations with pointers instantiated in the constructor. Use `snprintf` with static `char` arrays instead of `String` class concatenations to minimize overhead.
-## 2026-04-26 - [C++ Preprocessor Directives]
-**Learning:** Preprocessor  directives directly alter code inclusion. If  completely disables logging, it should be made optional (e.g. commented out) so developers can still opt to enable diagnostic output, rather than wholesale removal.
-**Action:** Retain debug toggles as commented-out configurations inside  instead of strictly overriding them to 0.
-## 2026-04-26 - [C++ Preprocessor Directives]
-**Learning:** Preprocessor `#define` directives directly alter code inclusion. If `-DCORE_DEBUG_LEVEL=0` completely disables logging, it should be made optional (e.g. commented out) so developers can still opt to enable diagnostic output, rather than wholesale removal.
-**Action:** Retain debug toggles as commented-out configurations inside `platformio.ini` instead of strictly overriding them to 0.
-
-## 2024-04-26 - Prevent TFT_eSPI DMA screen corruption
-**Learning:** Calling `tft.pushImageDMA()` and immediately looping back to manipulate the source sprite array without waiting causes visual tearing or garbled output because the DMA controller reads memory asynchronously.
-**Action:** Always include a `tft.dmaWait()` statement immediately following the `pushImageDMA()` call (before `tft.endWrite()`) to stall the CPU explicitly until the transfer finishes.
-
-## 2024-04-26 - Optimizing OneButton for tight loops
-**Learning:** `OneButton`'s `.tick()` polling can easily miss clicks if placed in an event loop experiencing latency from calculations or delays.
-**Action:** Implement `OneButton` using hardware interrupts exactly like standard rotary encoders using an `IRAM_ATTR` wrapper and `attachInterrupt(..., CHANGE)` pointing to `button.tick()`.
-## 2026-04-26 - Defer math.sqrt calls in alien UI draw loops
-**Learning:** The memory pattern from 2024-05-19 regarding `math.sqrt()` in rendering loops applies broadly across the CircuitPython UI implementations, specifically in tracking the closest distance for the telemetry text overlay.
-**Action:** Replaced direct `math.sqrt()` distance calculations and `MAX_RANGE` checks with `dist_sq` calculations inside the loops for `code_alien_advanced.py`, `code_alien_style.py`, and `code_dual_protocol.py`, deferring the final `math.sqrt()` call until after the loop for the closest distance.
