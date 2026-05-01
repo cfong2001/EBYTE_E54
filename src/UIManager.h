@@ -389,13 +389,12 @@ public:
             }
 
             if (zoneManager.isWarning(i)) {
-                if ((millis() / 200) % 2 == 0) {
-                    uint16_t wCol = sprite.alphaBlend(currentAlpha, TFT_YELLOW, TACTICAL_BG);
-                    sprite.drawCircle(cx, cy, 8, wCol);
-                } else {
-                    uint16_t wCol = sprite.alphaBlend(currentAlpha, TACTICAL_ERROR, TACTICAL_BG);
-                    sprite.drawCircle(cx, cy, 8, wCol);
-                }
+                float pulse = (sinf(millis() / 150.0f) + 1.0f) * 0.5f;
+                uint8_t blendRatio = (uint8_t)(pulse * 255.0f);
+                uint16_t blendColor = sprite.alphaBlend(blendRatio, TACTICAL_ERROR, TFT_YELLOW);
+                uint16_t wCol = sprite.alphaBlend(currentAlpha, blendColor, TACTICAL_BG);
+                int pr = 8 + (int)(pulse * 2.0f);
+                sprite.drawCircle(cx, cy, pr, wCol);
             }
             float danger = zoneManager.getTargetDangerLevel(i);
             if (danger > 0.01f) {
