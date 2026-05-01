@@ -2,9 +2,9 @@
 # Alien Motion Tracker Style - MATCHED TO YOUR WORKING CODE
 # Uses YOUR EXACT initialization and Advanced protocol (0xAA 0x55)
 
-import time, math
+import time, gc, math
 import board, busio, neopixel
-from shared.ui_utils import draw_dotted_circle
+from shared.ui_utils import draw_dotted_circle, map_xy
 import adafruit_ssd1306
 from utils import s16_le
 
@@ -118,19 +118,20 @@ def draw_display():
     
     # Draw all targets
     active_targets = 0
-    closest_dist = 999.0
+    closest_dist_sq = 998001000000.0
+    max_range_sq = MAX_RANGE * MAX_RANGE
     
     for target_data in targets:
         x_mm, y_mm, age, t_idx = target_data
         
-        dist_mm = int(math.sqrt(x_mm * x_mm + y_mm * y_mm))
-        dist_m = dist_mm / 1000.0
+        dist_sq = x_mm * x_mm + y_mm * y_mm
         
-        if dist_m < closest_dist and age < 5:
-            closest_dist = dist_m
+        if dist_sq < closest_dist_sq and age < 5:
+            closest_dist_sq = dist_sq
         
-        if dist_mm <= MAX_RANGE:
+        if dist_sq <= max_range_sq:
             active_targets += 1
+            dist_mm = int(math.sqrt(dist_sq))
             
             # Calculate angle
             angle_rad = math.atan2(-y_mm, -x_mm)
@@ -151,6 +152,8 @@ def draw_display():
     if active_targets == 0:
         oled.text("NO CONTACT", 25, 56, 1)
     else:
+        # Bolt: compute closest_dist once from squared value
+        closest_dist = math.sqrt(closest_dist_sq) / 1000.0
         oled.text("%.1fm [%d]" % (closest_dist, active_targets), 40, 56, 1)
     
     # Title

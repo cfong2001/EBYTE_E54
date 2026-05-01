@@ -6,6 +6,7 @@ import os
 import stat
 import serial
 import serial.tools.list_ports
+import time
 import sys
 import re
 

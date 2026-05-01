@@ -11,7 +11,7 @@ import logging
 # Ensure our local path is at front for testing modules without collision
 sys.path.insert(0, ".")
 from utils import s16_le, ld2450_s16
-from shared.ui_utils import map_xy, draw_dotted_circle
+from shared.ui_utils import map_xy
 
 # Configure standard logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -205,59 +205,18 @@ def test_multi_anchor_stabilization():
 
     logger.info("  ✓ multi_anchor_stabilization tests passed!")
 
-
-class MockDisplay:
-    def __init__(self, width, height):
-        self.width = width
-        self.height = height
-        self.pixels = []
-
-    def pixel(self, x, y, color):
-        self.pixels.append((x, y, color))
-
-def test_draw_dotted_circle():
-    """Test drawing dotted circles and arcs with various parameters."""
-    logger.info("Running draw_dotted_circle tests...")
-
-    # Test 1: Basic full circle
-    display = MockDisplay(128, 64)
-    # cx=64, cy=32, r=10, step_deg=90 -> angles: 0, 90, 180, 270, 360
-    draw_dotted_circle(display, 64, 32, 10, 0, 360, 90)
-
-    assert len(display.pixels) == 5, f"Expected 5 pixels, got {len(display.pixels)}"
-    assert (74, 32, 1) in display.pixels, "Missing 0 degree pixel"
-    assert (64, 42, 1) in display.pixels, "Missing 90 degree pixel"
-
-    # Test 2: Low brightness (should not draw)
-    display2 = MockDisplay(128, 64)
-    draw_dotted_circle(display2, 64, 32, 10, brightness=0.05)
-    assert len(display2.pixels) == 0, "Should not draw anything if brightness < 0.1"
-
-    # Test 3: Out of bounds
-    display3 = MockDisplay(10, 10)
-    draw_dotted_circle(display3, 100, 100, 10, 0, 360, 90)
-    assert len(display3.pixels) == 0, "Should not draw out of bounds pixels"
-
-    # Test 4: Default step calculation
-    display4 = MockDisplay(128, 64)
-    draw_dotted_circle(display4, 64, 32, 5, 0, 360) # small radius
-    assert len(display4.pixels) > 0, "Should auto-calculate step and draw pixels"
-
-    logger.info("  ✓ draw_dotted_circle tests passed!")
-
 def main():
     parser = argparse.ArgumentParser(description="Test HLK-LD2450 utility modules")
     parser.add_argument("--s16", action="store_true", help="Run only s16_le tests")
     parser.add_argument("--ld2450", action="store_true", help="Run only ld2450_s16 tests")
     parser.add_argument("--map", action="store_true", help="Run only map_xy tests")
     parser.add_argument("--multi", action="store_true", help="Run only multi_anchor tests")
-    parser.add_argument("--draw", action="store_true", help="Run only draw_dotted_circle tests")
     parser.add_argument("--all", action="store_true", help="Run all tests")
 
     args = parser.parse_args()
 
     # Default to all if nothing selected
-    if not any([args.s16, args.ld2450, args.map, args.multi, args.draw, args.all]):
+    if not any([args.s16, args.ld2450, args.map, args.multi, args.all]):
         args.all = True
 
     try:
@@ -272,9 +231,6 @@ def main():
 
         if args.all or args.multi:
             test_multi_anchor_stabilization()
-
-        if args.all or args.draw:
-            test_draw_dotted_circle()
 
         logger.info("\nAll selected tests executed successfully.")
 

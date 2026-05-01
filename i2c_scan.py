@@ -1,5 +1,6 @@
 # I2C Scanner - Find OLED address
 import board
+import busio
 import time
 
 print("\n=== I2C Scanner ===")
