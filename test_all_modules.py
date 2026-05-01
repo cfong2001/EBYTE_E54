@@ -11,7 +11,7 @@ import logging
 # Ensure our local path is at front for testing modules without collision
 sys.path.insert(0, ".")
 from utils import s16_le, ld2450_s16
-from shared.ui_utils import map_xy, draw_dotted_circle
+from shared.ui_utils import map_xy
 
 # Configure standard logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
