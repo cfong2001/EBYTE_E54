@@ -212,7 +212,7 @@ def main():
 
             # Age existing targets and merge
             aged_targets = [(x, y, age + 1, idx) for x, y, age, idx in targets if age < 15]
-            
+
             # Merge: keep new targets, add aged ones not overlapping
             targets = new_targets[:]
             for old_target in aged_targets:

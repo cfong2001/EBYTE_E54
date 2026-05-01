@@ -281,23 +281,6 @@ public:
         tft.endWrite();
     }
 
-    int getSensitivity() { return sensitivity; }
-    int getLocationAveraging() { return locationAveraging; }
-
-    int consumeAction() {
-        int act = actionRequested;
-        actionRequested = 0;
-        return act;
-    }
-
-    void logStateToSerial() {
-        Serial.printf("State: %d, Page: %d | Danger: %.2f\n", state, activePage, zoneManager.getDangerLevel());
-        for (int i = 0; i < 3; i++) {
-            if (targetActive[i]) {
-                Serial.printf("  T%d: [%d, %d] Spd:%d\n", i+1, rawTargetX[i], rawTargetY[i], rawTargetSpeed[i]);
-            }
-        }
-    }
 
     void advanceTargets() {
         for (int i = 0; i < 3; i++) {
@@ -374,7 +357,7 @@ public:
         }
     }
 
-        for (int i = 0; i < 3; i++) {
+        void drawTarget(int i) {
             if (targetActive[i] && simAlpha[i] > 0.01f) {
                 int cx = (int)targetCurrentX[i];
                 int cy = (int)targetCurrentY[i];
