@@ -1,3 +1,4 @@
+#include <esp_random.h>
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 #include <RotaryEncoder.h>
@@ -60,9 +61,9 @@ void radarTask(void *pvParameters) {
             if (simTargets[i].active) {
                 // Circular motion that spirals in/out to test zones
                 float radius = 2500.0f + sinf(simAngle * 0.3f) * 1500.0f;
-                simTargets[i].x = sinf(simAngle) * radius + (random(-15, 16));
-                simTargets[i].y = radius + (random(-15, 16));
-                simTargets[i].speed = 50 + (random(-2, 3));
+                simTargets[i].x = sinf(simAngle) * radius + ((int32_t)(esp_random() % 31) - 15);
+                simTargets[i].y = radius + ((int32_t)(esp_random() % 31) - 15);
+                simTargets[i].speed = 50 + ((int32_t)(esp_random() % 5) - 2);
             }
         }
 
