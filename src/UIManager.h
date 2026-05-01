@@ -52,26 +52,6 @@ enum TargetIcon {
 
 class UIManager {
 public:
-    const char* getPageName() {
-        switch(activePage) {
-            case PAGE_MAIN: return "MAIN";
-            case PAGE_VISUALS: return "VISUALS";
-            case PAGE_ZONES: return "ZONES";
-            case PAGE_DATA: return "DATA";
-            default: return "UNKNOWN";
-        }
-    }
-
-    const char* getStateName() {
-        switch(state) {
-            case STATE_BOOT: return "BOOT";
-            case STATE_RADAR_VIEW: return "RADAR";
-            case STATE_MENU: return "MENU";
-            case STATE_MENU_EDIT: return "EDIT";
-            default: return "UNKNOWN";
-        }
-    }
-public:
     ZoneManager zoneManager;
     Preferences preferences;
 
@@ -160,7 +140,7 @@ public:
         zoneManager.loadSettings();
         loadSettings();
 
-        tft.begin();
+        tft.init();
         tft.setRotation(1);
         tft.initDMA();
         sprite.createSprite(240, 240);
@@ -393,7 +373,6 @@ public:
                         uint16_t wCol = sprite.alphaBlend(currentAlpha, TACTICAL_ERROR, TACTICAL_BG);
                         sprite.drawCircle(cx, cy, 8, wCol);
                     }
-                }
                 float danger = zoneManager.getTargetDangerLevel(i);
                 if (danger > 0.01f) {
                     uint16_t dangerColor = sprite.alphaBlend((uint8_t)(danger * 255.0f), TFT_RED, TFT_YELLOW);
@@ -528,8 +507,8 @@ public:
 
         tft.startWrite();
         tft.pushImageDMA(0, 0, 240, 240, (uint16_t*)sprite.getPointer());
-        tft.dmaWait();
         tft.endWrite();
+    }
     }
 
     int getSensitivity() { return sensitivity; }
@@ -539,15 +518,6 @@ public:
         int act = actionRequested;
         actionRequested = 0;
         return act;
-    }
-
-    void logStateToSerial() {
-        Serial.printf("State: %d, Page: %d | Danger: %.2f\n", state, activePage, zoneManager.getDangerLevel());
-        for (int i = 0; i < 3; i++) {
-            if (targetActive[i]) {
-                Serial.printf("  T%d: [%d, %d] Spd:%d\n", i+1, rawTargetX[i], rawTargetY[i], rawTargetSpeed[i]);
-            }
-        }
     }
 
 private:
@@ -638,7 +608,7 @@ private:
         else if (elapsed < 600) sprite.setCursor(90, 120), sprite.print("CALIBRATING");
         else if (elapsed < 1000) sprite.setCursor(95, 120), sprite.print("SCANNING...");
 
-        tft.startWrite(); tft.pushImageDMA(0, 0, 240, 240, (uint16_t*)sprite.getPointer()); tft.dmaWait(); tft.endWrite();
+        tft.startWrite(); tft.pushImageDMA(0, 0, 240, 240, (uint16_t*)sprite.getPointer()); tft.endWrite();
 
         if (elapsed > 1200) {
             state = STATE_RADAR_VIEW;

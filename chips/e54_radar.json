@@ -1,5 +1,0 @@
-{
-  "name": "ebyte-e54",
-  "author": "Antigravity",
-  "pins": [ "TX", "RX", "GND", "VCC" ]
-}
