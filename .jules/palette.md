@@ -26,3 +26,6 @@
 ## 2026-05-19 - [Applying Brutalist Tactical UI from Stitch]
 **Learning:** Translating a generated Stitch design (like "Precision Brutalism") to constrained C++ UI requires mapping hex colors to RGB565 correctly (e.g., `#121315` -> `0x1082`) and converting rounded shapes/circles into hard-edged geometric forms (`drawRect`, `fillTriangle`, sharp lines).
 **Action:** When working with LLM-driven UI guidelines, implement the "No-Line" rule and "Glass & Gradient" concepts using Alpha Blending and solid blocks rather than typical 1px outlines. Substitute rounded assets for hard geometry.
+## 2026-05-19 - [Progressive Visual Feedback with sinf()]
+**Learning:** Hard-coded binary blinking loops (e.g. alternating states based on `millis() % 2 == 0`) create visual fatigue. In embedded environments, utilizing single-precision math `sinf` combined with `millis()` creates highly polished, smooth interpolation of values like scale, alpha, and blending ratio.
+**Action:** Replace abrupt toggle UI elements with smooth sinewave oscillators. Example: `float pulse = (sinf(millis() / 150.0f) + 1.0f) * 0.5f;` to generate a smooth 0-1 scalar, and apply it to `sprite.alphaBlend` for color transitions and radius offsets for pulsing animations. Ensure you utilize `sinf` rather than double-precision `sin` to avoid computational overhead on the ESP32.
