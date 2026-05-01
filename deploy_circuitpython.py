@@ -3,6 +3,7 @@
 CircuitPython Code Deployment Utility
 Deploys CircuitPython code to ESP32 via serial REPL
 """
+import stat
 import serial
 import serial.tools.list_ports
 import time
@@ -13,15 +14,26 @@ import re
 
 def is_valid_port(port):
     """Validate if the port is a safe serial port pattern or an available port."""
+    if len(port) > 255:
+        return False
+
     available_ports = [p.device for p in serial.tools.list_ports.comports()]
     if port in available_ports:
         return True
 
-    windows_pattern = re.compile(r'^COM[1-9][0-9]*$')
+    windows_pattern = re.compile(r'^COM[1-9][0-9]{0,3}$')
     unix_pattern = re.compile(r'^/dev/(tty|cu)[a-zA-Z0-9_.-]+$')
 
-    if windows_pattern.match(port) or unix_pattern.match(port):
+    if windows_pattern.match(port):
         return True
+
+    if unix_pattern.match(port):
+        try:
+            mode = os.stat(port).st_mode
+            if stat.S_ISCHR(mode):
+                return True
+        except (OSError, FileNotFoundError):
+            pass
 
     return False
 
@@ -43,7 +55,7 @@ def find_serial_port():
         if is_valid_port(port):
             return port
 
-        print(f"Warning: '{port}' does not appear to be a valid or safe serial port path.")
+        print(f"Warning: {repr(port)} does not appear to be a valid or safe serial port path.")
         action = input("Enter 'r' to retry, or 'q' to quit: ").strip().lower()
         if action == 'q':
             sys.exit(0)
