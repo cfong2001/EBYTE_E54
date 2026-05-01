@@ -9,18 +9,33 @@ import time
 import os
 import sys
 import re
+import stat
 
 
 def is_valid_port(port):
     """Validate if the port is a safe serial port pattern or an available port."""
+    if not port or len(port) > 255:
+        return False
+
     available_ports = [p.device for p in serial.tools.list_ports.comports()]
     if port in available_ports:
         return True
 
-    windows_pattern = re.compile(r'^COM[1-9][0-9]*$')
+    # Check against safe regex patterns for Windows and Unix-like systems
+    windows_pattern = re.compile(r'^COM[1-9][0-9]{0,3}$')
     unix_pattern = re.compile(r'^/dev/(tty|cu)[a-zA-Z0-9_.-]+$')
 
-    if windows_pattern.match(port) or unix_pattern.match(port):
+    if windows_pattern.match(port):
+        return True
+
+    if unix_pattern.match(port):
+        # On Unix-like systems, further verify it's a character device if it exists
+        if os.path.exists(port):
+            try:
+                mode = os.stat(port).st_mode
+                return stat.S_ISCHR(mode)
+            except (OSError, PermissionError):
+                return False
         return True
 
     return False
@@ -43,7 +58,7 @@ def find_serial_port():
         if is_valid_port(port):
             return port
 
-        print(f"Warning: '{port}' does not appear to be a valid or safe serial port path.")
+        print(f"Warning: {repr(port)} does not appear to be a valid or safe serial port path.")
         action = input("Enter 'r' to retry, or 'q' to quit: ").strip().lower()
         if action == 'q':
             sys.exit(0)
@@ -188,11 +203,21 @@ def main():
     port = find_serial_port()
     
     # Get monitoring duration
-    try:
-        duration = input("\nMonitor duration in seconds (default: 10): ").strip()
-        duration = int(duration) if duration else 10
-    except ValueError:
-        duration = 10
+    while True:
+        try:
+            duration_input = input("\nMonitor duration in seconds (1-3600, default: 10): ").strip()
+            if not duration_input:
+                duration = 10
+                break
+            duration = int(duration_input)
+            if 1 <= duration <= 3600:
+                break
+            print("Please enter a duration between 1 and 3600 seconds.")
+        except ValueError:
+            print("Please enter a valid number for duration.")
+        except KeyboardInterrupt:
+            print("\n\nCancelled")
+            return 0
     
     # Deploy
     print()
