@@ -22,6 +22,8 @@ CX, CY = 64, 35  # Center positioned for text area at bottom
 MAX_RANGE = 6000  # 6 meters max display range
 R_MAX = 28  # Maximum radius on screen
 R_RINGS = [9, 18, 28]  # Ring radii for 2m, 4m, 6m
+PRIMARY_GLOW_OFFSETS = [(4, 0), (3, 1), (2, 3), (0, 4), (-1, 3), (-3, 1), (-4, 0), (-3, -2), (-2, -3), (0, -4), (2, -3), (3, -2)]
+SECONDARY_RING_OFFSETS = [(2, 0), (1, 1), (0, 2), (-1, 1), (-2, 0), (-1, -1), (0, -2), (1, -1)]
 
 # Target tracking
 targets = []
@@ -39,10 +41,12 @@ def draw_angle_markers(cx, cy):
     """Draw angle marker lines every 45 degrees"""
     for angle_deg in [0, 45, 90, 135, 180]:
         rad = math.radians(angle_deg - 90)
+        cos_rad = math.cos(rad)
+        sin_rad = math.sin(rad)
         # Draw line from inner to outer
         for r in range(R_MAX - 4, R_MAX + 1):
-            x = int(cx + r * math.cos(rad))
-            y = int(cy + r * math.sin(rad))
+            x = int(cx + r * cos_rad)
+            y = int(cy + r * sin_rad)
             if 0 <= x < 128 and 0 <= y < 64:
                 oled.pixel(x, y, 1)
 
@@ -60,10 +64,8 @@ def draw_target(x, y, target_idx, age):
     # Different marker styles for different targets
     if target_idx == 0:  # Primary - filled circle with glow
         # Glow ring
-        for angle in range(0, 360, 30):
-            rad = math.radians(angle)
-            gx = int(x + 4 * math.cos(rad))
-            gy = int(y + 4 * math.sin(rad))
+        for dx, dy in PRIMARY_GLOW_OFFSETS:
+            gx, gy = x + dx, y + dy
             if 0 <= gx < 128 and 0 <= gy < 64:
                 oled.pixel(gx, gy, 1)
         
@@ -76,10 +78,8 @@ def draw_target(x, y, target_idx, age):
                         oled.pixel(bx, by, 1)
     
     elif target_idx == 1:  # Secondary - hollow circle
-        for angle in range(0, 360, 45):
-            rad = math.radians(angle)
-            gx = int(x + 2 * math.cos(rad))
-            gy = int(y + 2 * math.sin(rad))
+        for dx, dy in SECONDARY_RING_OFFSETS:
+            gx, gy = x + dx, y + dy
             if 0 <= gx < 128 and 0 <= gy < 64:
                 oled.pixel(gx, gy, 1)
     
@@ -109,30 +109,31 @@ def draw_radar_screen():
     # Draw rotating sweep line (Alien style)
     sweep_angle = (sweep_angle + 8) % 180
     rad = math.radians(sweep_angle - 90)
+    cos_rad = math.cos(rad)
+    sin_rad = math.sin(rad)
     for r in range(0, R_MAX + 1, 2):
-        x = int(CX + r * math.cos(rad))
-        y = int(CY + r * math.sin(rad))
+        x = int(CX + r * cos_rad)
+        y = int(CY + r * sin_rad)
         if 0 <= x < 128 and 0 <= y < 64:
             oled.pixel(x, y, 1)
     
     # Draw all targets
     active_targets = 0
-    closest_dist_sq = 998001000000.0
-    max_range_sq = MAX_RANGE * MAX_RANGE
+    closest_dist = 999.0
     
     for target_data in targets:
         x_mm, y_mm, age, t_idx = target_data
         
         # Calculate polar coordinates
-        dist_sq = x_mm * x_mm + y_mm * y_mm
+        dist_mm = int(math.sqrt(x_mm * x_mm + y_mm * y_mm))
+        dist_m = dist_mm / 1000.0
         
-        if dist_sq < closest_dist_sq and age < 5:
-            closest_dist_sq = dist_sq
+        if dist_m < closest_dist and age < 5:
+            closest_dist = dist_m
         
         # Only draw if in range
-        if dist_sq <= max_range_sq:
+        if dist_mm <= MAX_RANGE:
             active_targets += 1
-            dist_mm = int(math.sqrt(dist_sq))
             
             # Calculate angle (0° = up, clockwise)
             angle_rad = math.atan2(-y_mm, -x_mm)
@@ -158,8 +159,6 @@ def draw_radar_screen():
         oled.text("NO CONTACT", 25, 56, 1)
     else:
         # Show closest target distance
-        # Bolt: compute closest_dist once from squared value
-        closest_dist = math.sqrt(closest_dist_sq) / 1000.0
         oled.text("%.1fm [%d]" % (closest_dist, active_targets), 40, 56, 1)
     
     # Frame counter (top left)

@@ -21,3 +21,5 @@ jobs:
       run: python3 -m pip install platformio
     - name: Build C++ Code
       run: pio run -e esp32-s3
+    - name: Run C++ Unit Tests
+      run: make -C test test
