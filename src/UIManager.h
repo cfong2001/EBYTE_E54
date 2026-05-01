@@ -403,7 +403,9 @@ public:
                 uint16_t wCol = sprite.alphaBlend(currentAlpha, dangerColor, TFT_BLACK);
 
                 float pulseSpeed = 300.0f - (danger * 200.0f);
-                float pulse = (sin(millis() / pulseSpeed) + 1.0f) * 0.5f;
+                // ⚡ Bolt: Use single-precision sinf() to avoid implicit double conversion
+                // inside 30Hz display rendering loop, saving CPU cycles on ESP32 FPU.
+                float pulse = (sinf(millis() / pulseSpeed) + 1.0f) * 0.5f;
                 int r = 6 + (int)(pulse * 4.0f * danger);
 
                 sprite.drawCircle(cx, cy, r, wCol);
