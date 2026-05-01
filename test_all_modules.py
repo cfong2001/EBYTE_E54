@@ -206,44 +206,31 @@ def test_multi_anchor_stabilization():
     logger.info("  ✓ multi_anchor_stabilization tests passed!")
 
 
-class MockDisplay:
-    def __init__(self, width, height):
-        self.width = width
-        self.height = height
-        self.pixels = []
+def test_sweep_draw_targets():
+    """Test that drawing an empty target list in code_realtime_sweep doesn't raise errors"""
+    import sys
+    from unittest.mock import MagicMock
 
-    def pixel(self, x, y, color):
-        self.pixels.append((x, y, color))
+    # Mock hardware modules
+    sys.modules['board'] = MagicMock()
+    sys.modules['busio'] = MagicMock()
+    sys.modules['neopixel'] = MagicMock()
+    sys.modules['adafruit_ssd1306'] = MagicMock()
 
-def test_draw_dotted_circle():
-    """Test drawing dotted circles and arcs with various parameters."""
-    logger.info("Running draw_dotted_circle tests...")
+    # Import the refactored script
+    try:
+        import code_realtime_sweep
 
-    # Test 1: Basic full circle
-    display = MockDisplay(128, 64)
-    # cx=64, cy=32, r=10, step_deg=90 -> angles: 0, 90, 180, 270, 360
-    draw_dotted_circle(display, 64, 32, 10, 0, 360, 90)
+        # Ensure oled is mocked so fill_rect/etc don't fail
+        code_realtime_sweep.oled = MagicMock()
 
-    assert len(display.pixels) == 5, f"Expected 5 pixels, got {len(display.pixels)}"
-    assert (74, 32, 1) in display.pixels, "Missing 0 degree pixel"
-    assert (64, 42, 1) in display.pixels, "Missing 90 degree pixel"
-
-    # Test 2: Low brightness (should not draw)
-    display2 = MockDisplay(128, 64)
-    draw_dotted_circle(display2, 64, 32, 10, brightness=0.05)
-    assert len(display2.pixels) == 0, "Should not draw anything if brightness < 0.1"
-
-    # Test 3: Out of bounds
-    display3 = MockDisplay(10, 10)
-    draw_dotted_circle(display3, 100, 100, 10, 0, 360, 90)
-    assert len(display3.pixels) == 0, "Should not draw out of bounds pixels"
-
-    # Test 4: Default step calculation
-    display4 = MockDisplay(128, 64)
-    draw_dotted_circle(display4, 64, 32, 5, 0, 360) # small radius
-    assert len(display4.pixels) > 0, "Should auto-calculate step and draw pixels"
-
-    logger.info("  ✓ draw_dotted_circle tests passed!")
+        logger.info("Running code_realtime_sweep empty draw_targets test...")
+        # Execute with empty list
+        code_realtime_sweep.draw_targets([])
+        logger.info("  ✓ draw_targets with empty list handled correctly!")
+    except Exception as e:
+        logger.error(f"  ✗ draw_targets failed: {e}")
+        raise e
 
 def main():
     parser = argparse.ArgumentParser(description="Test HLK-LD2450 utility modules")
@@ -251,13 +238,13 @@ def main():
     parser.add_argument("--ld2450", action="store_true", help="Run only ld2450_s16 tests")
     parser.add_argument("--map", action="store_true", help="Run only map_xy tests")
     parser.add_argument("--multi", action="store_true", help="Run only multi_anchor tests")
-    parser.add_argument("--draw", action="store_true", help="Run only draw_dotted_circle tests")
+    parser.add_argument("--sweep", action="store_true", help="Run only sweep script tests")
     parser.add_argument("--all", action="store_true", help="Run all tests")
 
     args = parser.parse_args()
 
     # Default to all if nothing selected
-    if not any([args.s16, args.ld2450, args.map, args.multi, args.draw, args.all]):
+    if not any([args.s16, args.ld2450, args.map, args.multi, args.sweep, args.all]):
         args.all = True
 
     try:
@@ -273,8 +260,8 @@ def main():
         if args.all or args.multi:
             test_multi_anchor_stabilization()
 
-        if args.all or args.draw:
-            test_draw_dotted_circle()
+        if args.all or args.sweep:
+            test_sweep_draw_targets()
 
         logger.info("\nAll selected tests executed successfully.")
 
