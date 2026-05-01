@@ -7,27 +7,32 @@
 #include "E54_Radar.h"
 #include "MotionCompensation.h"
 #include "UIManager.h"
+#include "PerformanceMonitor.h"
 
 // Hardware instances
 HardwareSerial radarUART(1);
 E54_Radar radar(radarUART);
 MotionCompensation motionComp;
+PerformanceMonitor perfMonitor;
 
 TFT_eSPI tft = TFT_eSPI();
 UIManager ui(tft);
 
 SemaphoreHandle_t dataMutex;
 
-// Pins
+// Pins (Adjust as needed for the specific ESP32 board wiring)
 #ifndef PIN_ENCODER_A
 #define PIN_ENCODER_A 25
 #endif
+
 #ifndef PIN_ENCODER_B
 #define PIN_ENCODER_B 26
 #endif
+
 #ifndef PIN_BUTTON
 #define PIN_BUTTON    27
 #endif
+
 #ifndef RADAR_RX_PIN
 #define RADAR_RX_PIN 16
 #endif
@@ -38,12 +43,9 @@ SemaphoreHandle_t dataMutex;
 RotaryEncoder encoder(PIN_ENCODER_A, PIN_ENCODER_B, RotaryEncoder::LatchMode::TWO03);
 OneButton button(PIN_BUTTON, true, true);
 
+// Interrupt routine for rotary encoder
 void IRAM_ATTR checkPosition() {
     encoder.tick();
-}
-
-void IRAM_ATTR checkButtonTicks() {
-    button.tick();
 }
 
 void handleButtonPress() {
@@ -115,8 +117,7 @@ void radarTask(void *pvParameters) {
                 xSemaphoreGive(dataMutex);
             }
         }
-        vTaskDelay(pdMS_TO_TICKS(1));
-#endif
+        vTaskDelay(pdMS_TO_TICKS(1)); // Yield to other tasks
     }
 }
 
@@ -125,57 +126,61 @@ void setup() {
     Serial.begin(115200);
     Serial.println("System starting...");
 
+    // Initialize radar
     radar.begin(RADAR_RX_PIN, RADAR_TX_PIN);
     motionComp.init();
+    perfMonitor.begin();
+
+    // Initialize UI
     ui.init();
 
+    // Initialize inputs
     attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_A), checkPosition, CHANGE);
     attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_B), checkPosition, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(PIN_BUTTON), checkButtonTicks, CHANGE);
-    button.attachClick(handleButtonPress);
+button.attachClick(handleButtonPress);
 
-    xTaskCreatePinnedToCore(radarTask, "RadarTask", 4096, NULL, 1, NULL, 0);
+    xTaskCreatePinnedToCore(
+        radarTask,   /* Task function. */
+        "RadarTask", /* String with name of task. */
+        4096,        /* Stack size in bytes. */
+        NULL,        /* Parameter passed as input of the task */
+        1,           /* Priority of the task. */
+        NULL,        /* Task handle. */
+        0);          /* Core where the task should run */
 }
 
+// Timer for render loop
 unsigned long lastRender = 0;
 
 void loop() {
+    // Process button
     button.tick();
+
+    // Process encoder
     encoder.tick();
     int newPos = encoder.getPosition();
     static int lastPos = 0;
     if (newPos != lastPos) {
-        ui.handleEncoder((int)(encoder.getDirection()));
+        int dir = (int)(encoder.getDirection());
+        ui.handleEncoder(dir);
         lastPos = newPos;
     }
 
+    // Process UI Actions
     int act = ui.consumeAction();
-    if (act == 1) {
+    if (act == 1) { // Reset Tracking
         motionComp.forceReset();
-        Serial.println(">> Tracking Reset.");
+        Serial.println("Motion Compensation Tracking Reset.");
     }
 
+// Apply Settings
     motionComp.setAveragingStrength(ui.getLocationAveraging());
 
-    if (Serial.available()) {
-        char cmd = Serial.read();
-        if (cmd == 'l' || cmd == 'L') { ui.handleEncoder(-1); Serial.println(">> Sim: L"); }
-        else if (cmd == 'r' || cmd == 'R') { ui.handleEncoder(1); Serial.println(">> Sim: R"); }
-        else if (cmd == 'p' || cmd == 'P') { handleButtonPress(); Serial.println(">> Sim: P"); }
-    }
-
+    // Render loop (decoupled, max frame rate ~30-60Hz)
     unsigned long now = millis();
-    if (now - lastRender >= 30) {
+    if (now - lastRender >= 30) { // ~33Hz display rendering
         if (xSemaphoreTake(dataMutex, portMAX_DELAY)) {
             ui.renderLoop();
-#ifdef SIMULATION_MODE
-            static unsigned long lastLog = 0;
-            if (now - lastLog >= 100) {
-                Serial.printf("[%lu] State:%s Page:%s Danger:%.2f\n", now, ui.getStateName(), ui.getPageName(), ui.zoneManager.getDangerLevel());
-                ui.logStateToSerial();
-                lastLog = now;
-            }
-#endif
             xSemaphoreGive(dataMutex);
         }
         lastRender = now;
