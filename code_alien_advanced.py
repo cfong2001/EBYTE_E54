@@ -2,9 +2,9 @@
 # Alien Motion Tracker Style - MATCHED TO YOUR WORKING CODE
 # Uses YOUR EXACT initialization and Advanced protocol (0xAA 0x55)
 
-import time, gc, math
+import time, math
 import board, busio, neopixel
-from shared.ui_utils import draw_dotted_circle, map_xy
+from shared.ui_utils import draw_dotted_circle
 import adafruit_ssd1306
 from utils import s16_le
 
