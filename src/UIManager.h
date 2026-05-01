@@ -706,99 +706,105 @@ private:
         }
     }
 
-    void drawMenuOverlay() {
-        if (menuOverlayY < 200) menuOverlayY += 15;
 
-        sprite.fillRect(0, 0, 240, menuOverlayY, sprite.alphaBlend(220, TACTICAL_BG, TFT_WHITE));
-        sprite.drawLine(0, menuOverlayY, 240, menuOverlayY, TACTICAL_CYAN);
-        if (menuOverlayY < 200) return;
+    void populateMainMenu(String* items, int& numItems) {
+        sprite.setTextColor(TACTICAL_CYAN, TACTICAL_BG);
+        sprite.setCursor(15, 5); sprite.print("CONFIG MENU");
 
-        sprite.setTextSize(1);
-        static String items[24];
-        int numItems = 0;
+        items[numItems++] = "VISUAL SETTINGS";
+        items[numItems++] = "  [DISPLAY/HUD]";
+        items[numItems++] = "ZONE CONFIG";
+        items[numItems++] = "  [BOUNDARIES]";
+        items[numItems++] = "TARGET DATA";
+        items[numItems++] = "  [GAIN/FILTER]";
+        items[numItems++] = "[ Exit Menu ]";
+    }
 
+    void populateVisualsMenu(String* items, int& numItems) {
+        sprite.setTextColor(TACTICAL_CYAN, TACTICAL_BG);
+        sprite.setCursor(15, 5); sprite.print("--- VISUAL SETTINGS ---");
+
+        String themeStr = (theme == THEME_STANDARD) ? "Standard" : (theme == THEME_ALIEN ? "Alien" : "Minimal");
+        String iconStr = (targetIcon == ICON_CIRCLE) ? "CIRCLE" :
+                         (targetIcon == ICON_SQUARE) ? "SQUARE" :
+                         (targetIcon == ICON_TRIANGLE) ? "TRIANGLE" : "SMART";
+        items[numItems++] = "< Back";
+        items[numItems++] = "Theme: " + themeStr;
+        items[numItems++] = "Icon: " + iconStr;
+        items[numItems++] = "Sweep Line: " + String(sweepLineEnabled ? "ON" : "OFF");
+        items[numItems++] = "Sweep Mode: " + String(simulatedSweep ? "SIMULATED" : "VISUAL");
+        items[numItems++] = "Trails: " + String(trailLength);
+        items[numItems++] = "Grid: " + String(gridEnabled ? "ON" : "OFF");
+        items[numItems++] = "Boot Anim: " + String(startupAnimEnabled ? "ON" : "OFF");
+    }
+
+    void populateZonesMenu(String* items, int& numItems) {
+        sprite.setTextColor(TACTICAL_CYAN, TACTICAL_BG);
+        sprite.setCursor(15, 5); sprite.print("--- ZONE CONFIG ---");
+
+        String warnStr = (zoneManager.getWarnPreset() == ZONE_OFF) ? "OFF" :
+                         (zoneManager.getWarnPreset() == ZONE_CLOSE) ? "CLOSE" :
+                         (zoneManager.getWarnPreset() == ZONE_MEDIUM) ? "MED" :
+                         (zoneManager.getWarnPreset() == ZONE_FAR) ? "FAR" : "CUSTOM";
+
+        String deadStr = (zoneManager.getDeadPreset() == ZONE_OFF) ? "OFF" :
+                         (zoneManager.getDeadPreset() == ZONE_CLOSE) ? "CLOSE" :
+                         (zoneManager.getDeadPreset() == ZONE_MEDIUM) ? "MED" :
+                         (zoneManager.getDeadPreset() == ZONE_FAR) ? "FAR" : "CUSTOM";
+
+        items[numItems++] = "< Back";
+        items[numItems++] = "Warn Zone: " + warnStr;
+        if (zoneManager.getWarnPreset() == ZONE_CUSTOM) {
+            items[numItems++] = " W-MinD: " + String(zoneManager.getWarnCustom().minDist);
+            items[numItems++] = " W-MaxD: " + String(zoneManager.getWarnCustom().maxDist);
+            items[numItems++] = " W-MinA: " + String(zoneManager.getWarnCustom().minAngle);
+            items[numItems++] = " W-MaxA: " + String(zoneManager.getWarnCustom().maxAngle);
+        }
+        if (zoneManager.getWarnPreset() != ZONE_OFF) {
+            items[numItems++] = "Warn Fuzz: " + String(zoneManager.getFuzzingThreshold()) + "%";
+            items[numItems++] = "Warn Time: " + String(zoneManager.getHistoryWindow() * 100) + "ms";
+        }
+
+        items[numItems++] = "Dead Zone: " + deadStr;
+        if (zoneManager.getDeadPreset() == ZONE_CUSTOM) {
+            items[numItems++] = " D-MinD: " + String(zoneManager.getDeadCustom().minDist);
+            items[numItems++] = " D-MaxD: " + String(zoneManager.getDeadCustom().maxDist);
+            items[numItems++] = " D-MinA: " + String(zoneManager.getDeadCustom().minAngle);
+            items[numItems++] = " D-MaxA: " + String(zoneManager.getDeadCustom().maxAngle);
+        }
+    }
+
+    void populateDataMenu(String* items, int& numItems) {
+        sprite.setTextColor(TACTICAL_CYAN, TACTICAL_BG);
+        sprite.setCursor(15, 5); sprite.print("--- TARGET DATA ---");
+
+        String tDataStr = (telemetryMode == TELEMETRY_OFF) ? "OFF" :
+                          (telemetryMode == TELEMETRY_DIST_ANG) ? "DIST/ANG" :
+                          (telemetryMode == TELEMETRY_VELOCITY) ? "SPEED" :
+                          (telemetryMode == TELEMETRY_RAW) ? "RAW X/Y" : "ALL";
+        int interDisp = (int)(interpolationAmount * 10.0f + 0.5f);
+
+        items[numItems++] = "< Back";
+        items[numItems++] = "Telemetry: " + tDataStr;
+        items[numItems++] = "Sensitivity: " + String(sensitivity);
+        items[numItems++] = "Loc Avg: " + String(locationAveraging);
+        items[numItems++] = "Smoothing: " + String(interDisp);
+        items[numItems++] = "[ Reset Tracking ]";
+    }
+
+    void populateMenuPage(String* items, int& numItems) {
         if (activePage == PAGE_MAIN) {
-            sprite.setTextColor(TACTICAL_CYAN, TACTICAL_BG);
-            sprite.setCursor(15, 5); sprite.print("CONFIG MENU");
-
-            items[numItems++] = "VISUAL SETTINGS";
-            items[numItems++] = "  [DISPLAY/HUD]";
-            items[numItems++] = "ZONE CONFIG";
-            items[numItems++] = "  [BOUNDARIES]";
-            items[numItems++] = "TARGET DATA";
-            items[numItems++] = "  [GAIN/FILTER]";
-            items[numItems++] = "[ Exit Menu ]";
+            populateMainMenu(items, numItems);
+        } else if (activePage == PAGE_VISUALS) {
+            populateVisualsMenu(items, numItems);
+        } else if (activePage == PAGE_ZONES) {
+            populateZonesMenu(items, numItems);
+        } else if (activePage == PAGE_DATA) {
+            populateDataMenu(items, numItems);
         }
-        else if (activePage == PAGE_VISUALS) {
-            sprite.setTextColor(TACTICAL_CYAN, TACTICAL_BG);
-            sprite.setCursor(15, 5); sprite.print("--- VISUAL SETTINGS ---");
+    }
 
-            String themeStr = (theme == THEME_STANDARD) ? "Standard" : (theme == THEME_ALIEN ? "Alien" : "Minimal");
-            String iconStr = (targetIcon == ICON_CIRCLE) ? "CIRCLE" :
-                             (targetIcon == ICON_SQUARE) ? "SQUARE" :
-                             (targetIcon == ICON_TRIANGLE) ? "TRIANGLE" : "SMART";
-            items[numItems++] = "< Back";
-            items[numItems++] = "Theme: " + themeStr;
-            items[numItems++] = "Icon: " + iconStr;
-            items[numItems++] = "Sweep Line: " + String(sweepLineEnabled ? "ON" : "OFF");
-            items[numItems++] = "Sweep Mode: " + String(simulatedSweep ? "SIMULATED" : "VISUAL");
-            items[numItems++] = "Trails: " + String(trailLength);
-            items[numItems++] = "Grid: " + String(gridEnabled ? "ON" : "OFF");
-            items[numItems++] = "Boot Anim: " + String(startupAnimEnabled ? "ON" : "OFF");
-        }
-        else if (activePage == PAGE_ZONES) {
-            sprite.setTextColor(TACTICAL_CYAN, TACTICAL_BG);
-            sprite.setCursor(15, 5); sprite.print("--- ZONE CONFIG ---");
-
-            String warnStr = (zoneManager.getWarnPreset() == ZONE_OFF) ? "OFF" :
-                             (zoneManager.getWarnPreset() == ZONE_CLOSE) ? "CLOSE" :
-                             (zoneManager.getWarnPreset() == ZONE_MEDIUM) ? "MED" :
-                             (zoneManager.getWarnPreset() == ZONE_FAR) ? "FAR" : "CUSTOM";
-
-            String deadStr = (zoneManager.getDeadPreset() == ZONE_OFF) ? "OFF" :
-                             (zoneManager.getDeadPreset() == ZONE_CLOSE) ? "CLOSE" :
-                             (zoneManager.getDeadPreset() == ZONE_MEDIUM) ? "MED" :
-                             (zoneManager.getDeadPreset() == ZONE_FAR) ? "FAR" : "CUSTOM";
-
-            items[numItems++] = "< Back";
-            items[numItems++] = "Warn Zone: " + warnStr;
-            if (zoneManager.getWarnPreset() == ZONE_CUSTOM) {
-                items[numItems++] = " W-MinD: " + String(zoneManager.getWarnCustom().minDist);
-                items[numItems++] = " W-MaxD: " + String(zoneManager.getWarnCustom().maxDist);
-                items[numItems++] = " W-MinA: " + String(zoneManager.getWarnCustom().minAngle);
-                items[numItems++] = " W-MaxA: " + String(zoneManager.getWarnCustom().maxAngle);
-            }
-            if (zoneManager.getWarnPreset() != ZONE_OFF) {
-                items[numItems++] = "Warn Fuzz: " + String(zoneManager.getFuzzingThreshold()) + "%";
-                items[numItems++] = "Warn Time: " + String(zoneManager.getHistoryWindow() * 100) + "ms";
-            }
-
-            items[numItems++] = "Dead Zone: " + deadStr;
-            if (zoneManager.getDeadPreset() == ZONE_CUSTOM) {
-                items[numItems++] = " D-MinD: " + String(zoneManager.getDeadCustom().minDist);
-                items[numItems++] = " D-MaxD: " + String(zoneManager.getDeadCustom().maxDist);
-                items[numItems++] = " D-MinA: " + String(zoneManager.getDeadCustom().minAngle);
-                items[numItems++] = " D-MaxA: " + String(zoneManager.getDeadCustom().maxAngle);
-            }
-        }
-        else if (activePage == PAGE_DATA) {
-            sprite.setTextColor(TACTICAL_CYAN, TACTICAL_BG);
-            sprite.setCursor(15, 5); sprite.print("--- TARGET DATA ---");
-
-            String tDataStr = (telemetryMode == TELEMETRY_OFF) ? "OFF" :
-                              (telemetryMode == TELEMETRY_DIST_ANG) ? "DIST/ANG" :
-                              (telemetryMode == TELEMETRY_VELOCITY) ? "SPEED" :
-                              (telemetryMode == TELEMETRY_RAW) ? "RAW X/Y" : "ALL";
-            int interDisp = (int)(interpolationAmount * 10.0f + 0.5f);
-
-            items[numItems++] = "< Back";
-            items[numItems++] = "Telemetry: " + tDataStr;
-            items[numItems++] = "Sensitivity: " + String(sensitivity);
-            items[numItems++] = "Loc Avg: " + String(locationAveraging);
-            items[numItems++] = "Smoothing: " + String(interDisp);
-            items[numItems++] = "[ Reset Tracking ]";
-        }
-
+    void drawMenuItems(String* items, int numItems) {
         maxMenuSelection = numItems - 1;
 
         int startIdx = max(0, menuSelection - 2);
@@ -825,6 +831,21 @@ private:
             sprite.setCursor(15, yPos);
             sprite.print(items[idx]);
         }
+    }
+
+    void drawMenuOverlay() {
+        if (menuOverlayY < 200) menuOverlayY += 15;
+
+        sprite.fillRect(0, 0, 240, menuOverlayY, sprite.alphaBlend(220, TACTICAL_BG, TFT_WHITE));
+        sprite.drawLine(0, menuOverlayY, 240, menuOverlayY, TACTICAL_CYAN);
+        if (menuOverlayY < 200) return;
+
+        sprite.setTextSize(1);
+        static String items[24];
+        int numItems = 0;
+
+        populateMenuPage(items, numItems);
+        drawMenuItems(items, numItems);
     }
 
     void handleMenuClick() {
