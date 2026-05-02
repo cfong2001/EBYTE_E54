@@ -29,3 +29,7 @@
 ## 2026-05-19 - [Progressive Visual Feedback with sinf()]
 **Learning:** Hard-coded binary blinking loops (e.g. alternating states based on `millis() % 2 == 0`) create visual fatigue. In embedded environments, utilizing single-precision math `sinf` combined with `millis()` creates highly polished, smooth interpolation of values like scale, alpha, and blending ratio.
 **Action:** Replace abrupt toggle UI elements with smooth sinewave oscillators. Example: `float pulse = (sinf(millis() / 150.0f) + 1.0f) * 0.5f;` to generate a smooth 0-1 scalar, and apply it to `sprite.alphaBlend` for color transitions and radius offsets for pulsing animations. Ensure you utilize `sinf` rather than double-precision `sin` to avoid computational overhead on the ESP32.
+
+## 2026-05-19 - [Pulsing Empty States & Dynamic Hardware Hints]
+**Learning:** Static empty screens (like a blank radar) or generic button hints ("VIEW [MENU]") can leave users uncertain about system status or available actions in complex menu flows.
+**Action:** When no entities are present, provide a smoothly animated "NO CONTACTS" empty state utilizing `sinf(millis())` to reassure the user that the system is active but empty. Similarly, ensure hardware button hints dynamically update to reflect the current interaction context (e.g., displaying `EDIT [SAVE]` when inside an edit menu) to improve discoverability and reduce mode errors.

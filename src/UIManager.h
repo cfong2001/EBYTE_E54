@@ -225,6 +225,15 @@ public:
         }
     }
 
+    void drawEmptyState() {
+        float pulse = (sinf(millis() / 300.0f) + 1.0f) * 0.5f; // 0.0 to 1.0 smooth pulse
+        uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 150 + 50), TACTICAL_CYAN, TACTICAL_BG);
+        sprite.setTextColor(pulseColor, TACTICAL_BG);
+        sprite.setTextSize(1);
+        sprite.setCursor(85, 110);
+        sprite.print("NO CONTACTS");
+    }
+
     void renderLoop() {
         if (state == STATE_BOOT) {
             drawBootScreen();
@@ -247,8 +256,14 @@ public:
         drawZones();
         drawSweepLine();
 
+        bool anyActive = false;
         for (int i = 0; i < 3; i++) {
+            if (targetActive[i]) anyActive = true;
             drawTarget(i);
+        }
+
+        if (!anyActive) {
+            drawEmptyState();
         }
 
         drawHUD();
@@ -507,6 +522,8 @@ public:
         sprite.setCursor(5, 228);
         if (state == STATE_RADAR_VIEW) {
             sprite.print("[VIEW]  MENU");
+        } else if (state == STATE_MENU_EDIT) {
+            sprite.print(" EDIT  [SAVE]");
         } else {
             sprite.print(" VIEW  [MENU]");
         }
