@@ -19,14 +19,16 @@ enum AppState {
     STATE_BOOT,
     STATE_RADAR_VIEW,
     STATE_MENU,
-    STATE_MENU_EDIT
+    STATE_MENU_EDIT,
+    STATE_GUIDE
 };
 
 enum MenuPage {
     PAGE_MAIN,
     PAGE_VISUALS,
     PAGE_ZONES,
-    PAGE_DATA
+    PAGE_DATA,
+    PAGE_DEV
 };
 
 enum ThemeStyle {
@@ -54,6 +56,8 @@ class UIManager {
 public:
     ZoneManager zoneManager;
     Preferences preferences;
+    bool devRiskAccepted = false;
+    bool motionCompEnabled = true;
 
     UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
         state = STATE_BOOT;
@@ -155,6 +159,12 @@ public:
     }
 
     void handleEncoder(int dir) {
+        if (state == STATE_GUIDE) {
+            guidePage += dir;
+            if (guidePage < 0) guidePage = 0;
+            if (guidePage > 2) guidePage = 2;
+            return;
+        }
         if (state == STATE_MENU) {
             menuSelection += dir;
             if (menuSelection > maxMenuSelection) menuSelection = 0;
@@ -164,7 +174,15 @@ public:
         }
     }
 
+
+    void handleButtonLongPress() {
+        if (state == STATE_MENU) {
+            showTooltip = true;
+        }
+    }
+
     void handleButton() {
+
         if (state == STATE_RADAR_VIEW) {
             state = STATE_MENU;
             activePage = PAGE_MAIN;
@@ -225,9 +243,78 @@ public:
         }
     }
 
+    void drawGuideScreen() {
+        sprite.fillSprite(TACTICAL_BG);
+        sprite.setTextColor(TACTICAL_CYAN, TACTICAL_BG);
+        sprite.setTextSize(1);
+        sprite.setCursor(10, 10);
+
+        if (guidePage == 0) {
+            sprite.print("GUIDE 1/3: TARGETS");
+            sprite.setCursor(10, 40);
+            sprite.setTextColor(TFT_WHITE, TACTICAL_BG);
+            sprite.print("The radar tracks up");
+            sprite.setCursor(10, 55);
+            sprite.print("to 3 targets at once.");
+
+            // Draw dummy targets
+            sprite.drawCircle(30, 90, 8, TACTICAL_CYAN);
+            sprite.setCursor(50, 85); sprite.print("Moving target");
+
+            sprite.drawRect(22, 112, 16, 16, TACTICAL_AMBER);
+            sprite.setCursor(50, 115); sprite.print("Stationary target");
+
+            sprite.fillTriangle(30, 140, 22, 156, 38, 156, TACTICAL_GREEN);
+            sprite.setCursor(50, 145); sprite.print("Selected target");
+
+            sprite.setCursor(10, 200);
+            sprite.setTextColor(TACTICAL_AMBER, TACTICAL_BG);
+            sprite.print("[Turn] Next  [Press] Exit");
+
+        } else if (guidePage == 1) {
+            sprite.print("GUIDE 2/3: CONTROLS");
+            sprite.setCursor(10, 40);
+            sprite.setTextColor(TFT_WHITE, TACTICAL_BG);
+            sprite.print("Navigate via the dial:");
+
+            sprite.setCursor(20, 80); sprite.print("- TURN: Scroll/Adjust");
+            sprite.setCursor(20, 110); sprite.print("- PRESS: Select/Enter");
+            sprite.setCursor(20, 140); sprite.print("- HOLD: Info Tooltips");
+
+            sprite.setCursor(10, 200);
+            sprite.setTextColor(TACTICAL_AMBER, TACTICAL_BG);
+            sprite.print("[Turn] Next  [Press] Exit");
+
+        } else if (guidePage == 2) {
+            sprite.print("GUIDE 3/3: ZONES");
+            sprite.setCursor(10, 40);
+            sprite.setTextColor(TFT_WHITE, TACTICAL_BG);
+            sprite.print("Zones highlight targets.");
+
+            // Draw a mini radar zone
+            sprite.drawCircle(120, 160, 40, TACTICAL_AMBER);
+            sprite.setCursor(10, 80); sprite.setTextColor(TACTICAL_AMBER, TACTICAL_BG);
+            sprite.print("Warning Zone (Amber)");
+
+            sprite.drawCircle(120, 160, 20, TACTICAL_ERROR);
+            sprite.setCursor(10, 100); sprite.setTextColor(TACTICAL_ERROR, TACTICAL_BG);
+            sprite.print("Dead Zone (Hidden)");
+
+            sprite.setCursor(10, 200);
+            sprite.setTextColor(TACTICAL_AMBER, TACTICAL_BG);
+            sprite.print("[Turn] Next  [Press] Exit");
+        }
+
+        sprite.pushSprite(0, 0);
+    }
+
     void renderLoop() {
         if (state == STATE_BOOT) {
             drawBootScreen();
+            return;
+        }
+        if (state == STATE_GUIDE) {
+            drawGuideScreen();
             return;
         }
 
@@ -532,6 +619,8 @@ private:
     int menuSelection;
     int menuOverlayY;
     int maxMenuSelection;
+    int guidePage = 0;
+    bool showTooltip = false;
     unsigned long bootStartTime;
 
     ThemeStyle theme;
@@ -694,6 +783,8 @@ private:
         items[numItems++] = "  [BOUNDARIES]";
         items[numItems++] = "TARGET DATA";
         items[numItems++] = "  [GAIN/FILTER]";
+        items[numItems++] = "DEV OPTIONS";
+        items[numItems++] = "USER GUIDE";
         items[numItems++] = "[ Exit Menu ]";
     }
 
@@ -769,6 +860,18 @@ private:
         items[numItems++] = "[ Reset Tracking ]";
     }
 
+    void populateDevMenu(String* items, int& numItems) {
+        sprite.setTextColor(TACTICAL_ERROR, TACTICAL_BG);
+        sprite.setCursor(15, 5); sprite.print("--- DEV OPTIONS ---");
+
+        items[numItems++] = "< Back";
+        items[numItems++] = "Accept Risk? " + String(devRiskAccepted ? "YES" : "NO");
+        if (devRiskAccepted) {
+            items[numItems++] = "Motion Comp: " + String(motionCompEnabled ? "ON" : "OFF");
+            items[numItems++] = "[ FACTORY RESET ]";
+        }
+    }
+
     void populateMenuPage(String* items, int& numItems) {
         if (activePage == PAGE_MAIN) {
             populateMainMenu(items, numItems);
@@ -778,6 +881,8 @@ private:
             populateZonesMenu(items, numItems);
         } else if (activePage == PAGE_DATA) {
             populateDataMenu(items, numItems);
+        } else if (activePage == PAGE_DEV) {
+            populateDevMenu(items, numItems);
         }
     }
 
@@ -808,6 +913,32 @@ private:
             sprite.setCursor(15, yPos);
             sprite.print(items[idx]);
         }
+
+        if (showTooltip) {
+            sprite.fillRect(10, 140, 220, 60, TACTICAL_BG);
+            sprite.drawRect(10, 140, 220, 60, TACTICAL_AMBER);
+            sprite.setTextColor(TFT_WHITE, TACTICAL_BG);
+            sprite.setTextSize(1);
+            sprite.setCursor(15, 145);
+            sprite.print("INFO: ");
+            sprite.setCursor(15, 160);
+
+            // Simple logic to display something based on item
+            if (activePage == PAGE_MAIN) {
+                if (menuSelection == 0) sprite.print("Adjust visual themes,");
+                else if (menuSelection == 1) sprite.print("icons, and display settings.");
+                else if (menuSelection == 2) sprite.print("Configure warning and");
+                else if (menuSelection == 3) sprite.print("dead zones.");
+                else if (menuSelection == 4) sprite.print("Adjust raw telemetry");
+                else if (menuSelection == 5) sprite.print("filtering options.");
+                else if (menuSelection == 6) sprite.print("Return to radar view.");
+                else sprite.print("Select an option.");
+            } else {
+                sprite.print("Adjust this setting to");
+                sprite.setCursor(15, 175);
+                sprite.print("change device behavior.");
+            }
+        }
     }
 
     void drawMenuOverlay() {
@@ -830,13 +961,19 @@ private:
             if (menuSelection == 0 || menuSelection == 1) { activePage = PAGE_VISUALS; menuSelection = 0; }
             else if (menuSelection == 2 || menuSelection == 3) { activePage = PAGE_ZONES; menuSelection = 0; }
             else if (menuSelection == 4 || menuSelection == 5) { activePage = PAGE_DATA; menuSelection = 0; }
-            else if (menuSelection == 6) { state = STATE_RADAR_VIEW; }
+            else if (menuSelection == 6) { activePage = PAGE_DEV; menuSelection = 0; }
+            else if (menuSelection == 7) { state = STATE_GUIDE; guidePage = 0; }
+            else if (menuSelection == 8) { state = STATE_RADAR_VIEW; }
         }
         else if (activePage == PAGE_VISUALS) {
             if (menuSelection == 0) { activePage = PAGE_MAIN; menuSelection = 0; }
             else { state = STATE_MENU_EDIT; }
         }
         else if (activePage == PAGE_ZONES) {
+            if (menuSelection == 0) { activePage = PAGE_MAIN; menuSelection = 0; }
+            else { state = STATE_MENU_EDIT; }
+        }
+        else if (activePage == PAGE_DEV) {
             if (menuSelection == 0) { activePage = PAGE_MAIN; menuSelection = 0; }
             else { state = STATE_MENU_EDIT; }
         }
@@ -910,6 +1047,23 @@ private:
                 if (idx++ == menuSelection) { z.maxDist += dir * 100; if(z.maxDist < z.minDist) z.maxDist=z.minDist; zoneManager.setDeadCustom(z); return; }
                 if (idx++ == menuSelection) { z.minAngle += dir * 5; if(z.minAngle < -90) z.minAngle=-90; zoneManager.setDeadCustom(z); return; }
                 if (idx++ == menuSelection) { z.maxAngle += dir * 5; if(z.maxAngle > 90) z.maxAngle=90; zoneManager.setDeadCustom(z); return; }
+            }
+        }
+        else if (activePage == PAGE_DEV) {
+            if (idx++ == menuSelection) { devRiskAccepted = !devRiskAccepted; return; }
+            if (devRiskAccepted) {
+                if (idx++ == menuSelection) { motionCompEnabled = !motionCompEnabled; return; }
+                if (idx++ == menuSelection) {
+                    sprite.fillSprite(TACTICAL_ERROR);
+                    sprite.setTextColor(TFT_WHITE);
+                    sprite.setCursor(10, 100);
+                    sprite.print("WIPING PREFERENCES...");
+                    sprite.pushSprite(0, 0);
+                    preferences.clear();
+                    delay(1000);
+                    ESP.restart();
+                    return;
+                }
             }
         }
         else if (activePage == PAGE_DATA) {
