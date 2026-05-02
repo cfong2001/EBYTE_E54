@@ -247,8 +247,19 @@ public:
         drawZones();
         drawSweepLine();
 
+        bool hasContacts = false;
         for (int i = 0; i < 3; i++) {
+            if (targetActive[i]) hasContacts = true;
             drawTarget(i);
+        }
+
+        if (!hasContacts && state == STATE_RADAR_VIEW) {
+            float pulse = (sinf(millis() / 500.0f) + 1.0f) * 0.5f;
+            uint16_t dimCyan = sprite.alphaBlend((uint8_t)(pulse * 150.0f + 50.0f), TACTICAL_CYAN, TACTICAL_BG);
+            sprite.setTextColor(dimCyan, TACTICAL_BG);
+            sprite.setTextSize(1);
+            sprite.setCursor(85, 120);
+            sprite.print("NO CONTACTS");
         }
 
         drawHUD();
@@ -507,6 +518,8 @@ public:
         sprite.setCursor(5, 228);
         if (state == STATE_RADAR_VIEW) {
             sprite.print("[VIEW]  MENU");
+        } else if (state == STATE_MENU_EDIT) {
+            sprite.print(" EDIT  [SAVE]");
         } else {
             sprite.print(" VIEW  [MENU]");
         }
