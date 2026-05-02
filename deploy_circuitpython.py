@@ -3,6 +3,7 @@
 CircuitPython Code Deployment Utility
 Deploys CircuitPython code to ESP32 via serial REPL
 """
+import stat
 import serial
 import serial.tools.list_ports
 import time
@@ -37,6 +38,14 @@ def is_valid_port(port):
             except (OSError, PermissionError):
                 return False
         return True
+
+    if unix_pattern.match(port):
+        try:
+            mode = os.stat(port).st_mode
+            if stat.S_ISCHR(mode):
+                return True
+        except (OSError, FileNotFoundError):
+            pass
 
     return False
 

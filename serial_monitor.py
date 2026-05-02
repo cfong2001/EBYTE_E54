@@ -2,9 +2,10 @@
 Serial Monitor for ESP32 Radar Tracker
 Reads and displays radar data from the serial port
 """
+import os
+import stat
 import serial
 import serial.tools.list_ports
-import time
 import sys
 import re
 import os
@@ -40,6 +41,14 @@ def is_valid_port(port):
             except (OSError, PermissionError):
                 return False
         return True
+
+    if unix_pattern.match(port):
+        try:
+            mode = os.stat(port).st_mode
+            if stat.S_ISCHR(mode):
+                return True
+        except (OSError, FileNotFoundError):
+            pass
 
     return False
 
