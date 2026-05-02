@@ -34,3 +34,6 @@
 **Why:** Prevented text and icon colors from clashing or becoming invisible when the background color changes through theming.
 **Before/After:** Before: 'Target 1' was always orange. After: 'Target 1' checks the active theme (e.g. `themeTarget1`), adapting dynamically.
 **Accessibility:** Improved color contrast flexibility and user-facing choices. Added rotary-stepper palette selection to avoid tedious hex code inputs via an encoder.
+## 2024-05-24 - [Empty States and Action Hints]
+**Learning:** Providing clear empty states ("NO CONTACTS") with smooth pulsing animations (`sinf(millis() / 500.0f)`) replaces uncertainty with confident system feedback without causing visual fatigue. Furthermore, dynamically updating action hints (e.g. changing `VIEW [MENU]` to `EDIT [SAVE]`) based on the current UI state drastically improves accessibility by clearly communicating the expected outcome of a hardware button press.
+**Action:** Always implement empty state feedback for data views (like radar or lists) using gentle animations rather than static text or nothing at all. Additionally, ensure hardware button hints dynamically update to reflect the action that will be performed in the current context.
