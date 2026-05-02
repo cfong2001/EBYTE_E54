@@ -786,18 +786,40 @@ private:
     }
 
     void drawZones() {
-        if (zoneManager.getDeadPreset() != ZONE_OFF) {
+        bool editingZones = (state == STATE_MENU_EDIT || state == STATE_MENU) && (activePage == PAGE_ZONES);
+
+        // Find the index of "Dead Zone" to split Warn from Dead
+        int deadZoneIdx = 2; // Default if Warn is OFF
+        if (zoneManager.getWarnPreset() == ZONE_CUSTOM) deadZoneIdx += 4;
+        if (zoneManager.getWarnPreset() != ZONE_OFF) deadZoneIdx += 2;
+
+        bool editingWarn = editingZones && menuSelection >= 1 && menuSelection < deadZoneIdx;
+        bool editingDead = editingZones && menuSelection >= deadZoneIdx;
+
+        if (zoneManager.getDeadPreset() != ZONE_OFF || editingDead) {
             RadialZone z = zoneManager.getActiveDeadZone();
-            drawRadialWedge(z.minDist, z.maxDist, z.minAngle, z.maxAngle, themeDanger);
+            uint16_t color = themeDanger;
+            if (editingDead) {
+                color = sprite.alphaBlend(100, themeDanger, themeBg);
+            }
+            drawRadialWedge(z.minDist, z.maxDist, z.minAngle, z.maxAngle, color);
         }
-        if (zoneManager.getWarnPreset() != ZONE_OFF) {
+
+        if (zoneManager.getWarnPreset() != ZONE_OFF || editingWarn) {
             RadialZone z = zoneManager.getActiveWarnZone();
             float danger = zoneManager.getDangerLevel();
             uint16_t baseColor = themeBg;
             uint16_t activeColor = themePrimary;
-            uint8_t alpha = (uint8_t)(danger * 255.0f);
-            uint16_t dangerColor = sprite.alphaBlend(alpha, themeDanger, themeWarning);
-            uint16_t wedgeColor = sprite.alphaBlend(alpha, dangerColor, baseColor);
+            uint16_t wedgeColor;
+
+            if (editingWarn) {
+                wedgeColor = sprite.alphaBlend(150, themeWarning, themeBg);
+            } else {
+                uint8_t alpha = (uint8_t)(danger * 255.0f);
+                uint16_t dangerColor = sprite.alphaBlend(alpha, themeDanger, themeWarning);
+                wedgeColor = sprite.alphaBlend(alpha, dangerColor, baseColor);
+            }
+
             drawRadialWedge(z.minDist, z.maxDist, z.minAngle, z.maxAngle, wedgeColor);
         }
     }

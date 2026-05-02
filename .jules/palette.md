@@ -34,3 +34,7 @@
 **Why:** Prevented text and icon colors from clashing or becoming invisible when the background color changes through theming.
 **Before/After:** Before: 'Target 1' was always orange. After: 'Target 1' checks the active theme (e.g. `themeTarget1`), adapting dynamically.
 **Accessibility:** Improved color contrast flexibility and user-facing choices. Added rotary-stepper palette selection to avoid tedious hex code inputs via an encoder.
+
+## 2026-05-02 - Visualizing UI Edits
+**What:** Added visual previews of radar zones during creation in the settings menu.
+**Why:** To reduce user uncertainty, any visual parameters edited via a rotary UI should be previewed live on the screen behind the menu overlay. Alpha-blending the previews clarifies that they are placeholders and not live active targets.
