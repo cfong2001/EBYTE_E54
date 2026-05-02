@@ -29,6 +29,8 @@
 ## 2026-05-19 - [Progressive Visual Feedback with sinf()]
 **Learning:** Hard-coded binary blinking loops (e.g. alternating states based on `millis() % 2 == 0`) create visual fatigue. In embedded environments, utilizing single-precision math `sinf` combined with `millis()` creates highly polished, smooth interpolation of values like scale, alpha, and blending ratio.
 **Action:** Replace abrupt toggle UI elements with smooth sinewave oscillators. Example: `float pulse = (sinf(millis() / 150.0f) + 1.0f) * 0.5f;` to generate a smooth 0-1 scalar, and apply it to `sprite.alphaBlend` for color transitions and radius offsets for pulsing animations. Ensure you utilize `sinf` rather than double-precision `sin` to avoid computational overhead on the ESP32.
-## 2024-05-24 - [Empty States and Action Hints]
-**Learning:** Providing clear empty states ("NO CONTACTS") with smooth pulsing animations (`sinf(millis() / 500.0f)`) replaces uncertainty with confident system feedback without causing visual fatigue. Furthermore, dynamically updating action hints (e.g. changing `VIEW [MENU]` to `EDIT [SAVE]`) based on the current UI state drastically improves accessibility by clearly communicating the expected outcome of a hardware button press.
-**Action:** Always implement empty state feedback for data views (like radar or lists) using gentle animations rather than static text or nothing at all. Additionally, ensure hardware button hints dynamically update to reflect the action that will be performed in the current context.
+## YYYY-MM-DD - Dynamic Custom Theme Colors
+**What:** Implemented dynamic target coloring tied directly to the current theme/palette rather than relying on hardcoded overrides.
+**Why:** Prevented text and icon colors from clashing or becoming invisible when the background color changes through theming.
+**Before/After:** Before: 'Target 1' was always orange. After: 'Target 1' checks the active theme (e.g. `themeTarget1`), adapting dynamically.
+**Accessibility:** Improved color contrast flexibility and user-facing choices. Added rotary-stepper palette selection to avoid tedious hex code inputs via an encoder.
