@@ -9,15 +9,22 @@ import adafruit_ssd1306
 from utils import s16_le
 
 # ----------------- Hardware config -----------------
-i2c = board.STEMMA_I2C()
-oled = adafruit_ssd1306.SSD1306_I2C(128, 64, i2c, addr=0x3D)
+i2c = None
+oled = None
+uart = None
+pixel = None
 
-uart = busio.UART(board.IO43, board.IO44, baudrate=256000,
-                 receiver_buffer_size=8192, timeout=0)
+def init_hardware():
+    global i2c, oled, uart, pixel
+    i2c = board.STEMMA_I2C()
+    oled = adafruit_ssd1306.SSD1306_I2C(128, 64, i2c, addr=0x3D)
 
-pixel = neopixel.NeoPixel(board.NEOPIXEL, 1, brightness=0.2, auto_write=True)
+    uart = busio.UART(board.IO43, board.IO44, baudrate=256000,
+                     receiver_buffer_size=8192, timeout=0)
 
-print("Full Screen Radar - Data-Driven Sweep")
+    pixel = neopixel.NeoPixel(board.NEOPIXEL, 1, brightness=0.2, auto_write=True)
+
+    print("Full Screen Radar - Data-Driven Sweep")
 
 # ----------------- Protocol -----------------
 SYNC = b"\xAA\x55"
@@ -133,103 +140,109 @@ def draw_display():
     oled.show()
 
 # Main loop
-last_stat = time.monotonic()
-frames_ok = 0
+def main():
+    global targets, buffer, last_draw, frame_count, bytes_in, color_wheel, filter_states
+    last_stat = time.monotonic()
+    frames_ok = 0
 
-while True:
-    # Read UART
-    if uart.in_waiting:
-        data = uart.read(uart.in_waiting)
-        bytes_in += len(data)
-        buffer.extend(data)
+    while True:
+        # Read UART
+        if uart.in_waiting:
+            data = uart.read(uart.in_waiting)
+            bytes_in += len(data)
+            buffer.extend(data)
 
-    # Process frames - Advanced protocol (0xAA 0x55)
-    while len(buffer) >= 10:
-        idx = buffer.find(SYNC)
-        if idx < 0:
-            if len(buffer) > 100:
-                buffer = buffer[-50:]
-            break
+        # Process frames - Advanced protocol (0xAA 0x55)
+        while len(buffer) >= 10:
+            idx = buffer.find(SYNC)
+            if idx < 0:
+                if len(buffer) > 100:
+                    buffer = buffer[-50:]
+                break
 
-        if idx > 0:
-            buffer = buffer[idx:]
+            if idx > 0:
+                buffer = buffer[idx:]
 
-        if len(buffer) < 6:
-            break
+            if len(buffer) < 6:
+                break
 
-        # Get frame length
-        length = buffer[2] | (buffer[3] << 8)
+            # Get frame length
+            length = buffer[2] | (buffer[3] << 8)
 
-        if length < 10 or length > 512:
-            buffer = buffer[2:]
-            continue
+            if length < 10 or length > 512:
+                buffer = buffer[2:]
+                continue
 
-        if len(buffer) < length:
-            break
+            if len(buffer) < length:
+                break
 
-        frame = buffer[0:length]
-        buffer = buffer[length:]
+            frame = buffer[0:length]
+            buffer = buffer[length:]
 
-        # Parse frame for targets
-        frames_ok += 1
-        raw_targets = []
+            # Parse frame for targets
+            frames_ok += 1
+            raw_targets = []
 
-        # Extract targets from payload (starts at byte 6)
-        if len(frame) > 7:
-            count = min(3, frame[6])
-            offset = 7
+            # Extract targets from payload (starts at byte 6)
+            if len(frame) > 7:
+                count = min(3, frame[6])
+                offset = 7
+
+                for target_idx in range(count):
+                    if offset + 6 <= len(frame) - 2:
+                        x = s16_le(frame[offset], frame[offset + 1])
+                        y = s16_le(frame[offset + 2], frame[offset + 3])
+                        s = s16_le(frame[offset + 4], frame[offset + 5])
+
+                        dist_sq = x * x + y * y
+                        if (x != 0 or y != 0) and (10000 < dist_sq < 64000000):
+                            raw_targets.append({'id': target_idx, 'active': True, 'x': x, 'y': y, 'speed': s})
+                        else:
+                            raw_targets.append({'id': target_idx, 'active': False, 'x': 0, 'y': 0, 'speed': 0})
+                        offset += 6
+
+            # Apply Multi-Anchor Stabilization
+            from utils import calculate_multi_anchor_stabilization
+            stabilized = calculate_multi_anchor_stabilization(raw_targets, filter_states, dt=0.1)
+
+            new_targets = []
+            for t in stabilized:
+                if t['active']:
+                    new_targets.append((t['x'], t['y'], 0, t['id']))
+
+            # Age existing targets and merge
+            aged_targets = [(x, y, age + 1, idx) for x, y, age, idx in targets if age < 15]
             
-            for target_idx in range(count):
-                if offset + 6 <= len(frame) - 2:
-                    x = s16_le(frame[offset], frame[offset + 1])
-                    y = s16_le(frame[offset + 2], frame[offset + 3])
-                    s = s16_le(frame[offset + 4], frame[offset + 5])
-                    
-                    dist_sq = x * x + y * y
-                    if (x != 0 or y != 0) and (10000 < dist_sq < 64000000):
-                        raw_targets.append({'id': target_idx, 'active': True, 'x': x, 'y': y, 'speed': s})
-                    else:
-                        raw_targets.append({'id': target_idx, 'active': False, 'x': 0, 'y': 0, 'speed': 0})
-                    offset += 6
+            # Merge: keep new targets, add aged ones not overlapping
+            targets = new_targets[:]
+            for old_target in aged_targets:
+                ox, oy, oage, oidx = old_target
+                is_duplicate = False
+                for nx, ny, _, _ in new_targets:
+                    dist_sq = (ox - nx)**2 + (oy - ny)**2
+                    if dist_sq < 90000:
+                        is_duplicate = True
+                        break
+                if not is_duplicate:
+                    targets.append(old_target)
 
-        # Apply Multi-Anchor Stabilization
-        from utils import calculate_multi_anchor_stabilization
-        stabilized = calculate_multi_anchor_stabilization(raw_targets, filter_states, dt=0.1)
+            targets = targets[:10]
 
-        new_targets = []
-        for t in stabilized:
-            if t['active']:
-                new_targets.append((t['x'], t['y'], 0, t['id']))
+        # Update display at 20 FPS
+        now = time.monotonic()
+        if now - last_draw > 0.05:
+            draw_display()
+            last_draw = now
 
-        # Age existing targets and merge
-        aged_targets = [(x, y, age + 1, idx) for x, y, age, idx in targets if age < 15]
-        
-        # Merge: keep new targets, add aged ones not overlapping
-        targets = new_targets[:]
-        for old_target in aged_targets:
-            ox, oy, oage, oidx = old_target
-            is_duplicate = False
-            for nx, ny, _, _ in new_targets:
-                dist_sq = (ox - nx)**2 + (oy - ny)**2
-                if dist_sq < 90000:
-                    is_duplicate = True
-                    break
-            if not is_duplicate:
-                targets.append(old_target)
-        
-        targets = targets[:10]
+        # Status report every second
+        if now - last_stat > 1.0:
+            print("RX {:5d} B/s  frames {:3d}/s".format(bytes_in, frames_ok))
+            bytes_in = 0
+            frames_ok = 0
+            last_stat = now
 
-    # Update display at 20 FPS
-    now = time.monotonic()
-    if now - last_draw > 0.05:
-        draw_display()
-        last_draw = now
+        time.sleep(0.001)
 
-    # Status report every second
-    if now - last_stat > 1.0:
-        print("RX {:5d} B/s  frames {:3d}/s".format(bytes_in, frames_ok))
-        bytes_in = 0
-        frames_ok = 0
-        last_stat = now
-
-    time.sleep(0.001)
+if __name__ == '__main__':
+    init_hardware()
+    main()

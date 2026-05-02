@@ -54,221 +54,22 @@ public:
     void process(RadarTarget targets[3], RadarTarget compensated[3]) {
         float dt = 0.1f; // Assuming ~10Hz update rate
 
-        // 1. Predict next state for all active tracked targets (Alpha-Beta-Gamma curve prediction)
         float P_x[3], P_y[3];
-        float dt_sq_half = (dt * dt) * 0.5f;
-        for (int i = 0; i < 3; i++) {
-            if (state[i].active) {
-                P_x[i] = state[i].x + state[i].velX * dt + state[i].accX * dt_sq_half;
-                P_y[i] = state[i].y + state[i].velY * dt + state[i].accY * dt_sq_half;
-            } else {
-                P_x[i] = targets[i].x;
-                P_y[i] = targets[i].y;
-            }
-        }
+        predictStates(dt, targets, P_x, P_y);
 
-        // 2. Identify Anchors (stationary reference points)
-        int numAnchors = 0;
         int tempAnchorIndices[3];
-        for (int i = 0; i < 3; i++) {
-            if (targets[i].active && state[i].active) {
-                // Must have been active in previous frame to have a valid prediction (P_x, P_y)
-                int16_t absSpeed = abs(targets[i].speed);
-                if (absSpeed < STATIC_SPEED_INITIAL_THRESHOLD * 2) {
-                    tempAnchorIndices[numAnchors++] = i;
-                    state[i].isAnchor = true;
-                } else {
-                    state[i].isAnchor = false;
-                }
-            } else {
-                state[i].isAnchor = false;
-            }
-        }
+        int numAnchors = identifyAnchors(targets, tempAnchorIndices);
 
-        // Dynamic Anchor Validation (Cross-Target Rigidity Rejection)
-        // If an object is moving at the exact same speed as the sensor, it might have zero relative speed,
-        // falsely flagging it as an anchor. We reject anchors whose relative distances to other anchors
-        // vary wildly compared to the predicted world state.
         int anchorIndices[3];
-        int validatedAnchors = 0;
+        numAnchors = validateAnchors(targets, P_x, P_y, tempAnchorIndices, numAnchors, anchorIndices);
 
-        if (numAnchors == 3) {
-            // Check rigidity of the triangle. If one point is moving relative to the others, drop it.
-            float err[3] = {0, 0, 0}; // Error score for each anchor
-            for (int i = 0; i < 3; i++) {
-                int a = tempAnchorIndices[i];
-                for (int j = i + 1; j < 3; j++) {
-                    int b = tempAnchorIndices[j];
-                    // Raw relative distance squared
-                    float dQx = targets[a].x - targets[b].x;
-                    float dQy = targets[a].y - targets[b].y;
-                    float distQSq = dQx*dQx + dQy*dQy;
-
-                    // Predicted world relative distance squared
-                    float dPx = P_x[a] - P_x[b];
-                    float dPy = P_y[a] - P_y[b];
-                    float distPSq = dPx*dPx + dPy*dPy;
-
-                    // Ratio of change. If lengths change by > ~10%, it's not rigid.
-                    float diff = fabsf(distQSq - distPSq) / (distPSq + 1.0f);
-                    err[i] += diff;
-                    err[j] += diff;
-                }
-            }
-
-            // Find if there's an anomalous anchor (e.g. one error is much higher)
-            float minErr = min(err[0], min(err[1], err[2]));
-            for (int i = 0; i < 3; i++) {
-                // If error is relatively low, or close to the minimum (for the 2 stationary ones), keep it
-                if (err[i] < 0.3f || err[i] <= (minErr * 2.0f + 0.1f)) {
-                    anchorIndices[validatedAnchors++] = tempAnchorIndices[i];
-                } else {
-                    state[tempAnchorIndices[i]].isAnchor = false;
-                }
-            }
-        } else if (numAnchors == 2) {
-            // Check the line segment. If length changes drastically, drop both (can't tell which is wrong without 3rd reference)
-            int a = tempAnchorIndices[0];
-            int b = tempAnchorIndices[1];
-            float dQx = targets[a].x - targets[b].x;
-            float dQy = targets[a].y - targets[b].y;
-            float dPx = P_x[a] - P_x[b];
-            float dPy = P_y[a] - P_y[b];
-
-            float diff = fabsf((dQx*dQx + dQy*dQy) - (dPx*dPx + dPy*dPy)) / ((dPx*dPx + dPy*dPy) + 1.0f);
-            if (diff < 0.2f) {
-                anchorIndices[0] = a;
-                anchorIndices[1] = b;
-                validatedAnchors = 2;
-            } else {
-                state[a].isAnchor = false;
-                state[b].isAnchor = false;
-            }
-        } else if (numAnchors == 1) {
-            anchorIndices[0] = tempAnchorIndices[0];
-            validatedAnchors = 1;
-        }
-
-        numAnchors = validatedAnchors;
-
-        // 3. Calculate Global Rigid Transformation (Kabsch algorithm in 2D)
-        // Maps the current raw points (Q) to the predicted world points (P)
         float Cp_x = 0, Cp_y = 0;
         float Cq_x = 0, Cq_y = 0;
         float cosT = 1.0f, sinT = 0.0f;
+        calculateTransform(targets, P_x, P_y, anchorIndices, numAnchors, Cp_x, Cp_y, Cq_x, Cq_y, cosT, sinT);
 
-        if (numAnchors > 0) {
-            // Find Centroids
-            for (int k = 0; k < numAnchors; k++) {
-                int i = anchorIndices[k];
-                Cp_x += P_x[i];
-                Cp_y += P_y[i];
-                Cq_x += targets[i].x;
-                Cq_y += targets[i].y;
-            }
-            Cp_x /= numAnchors;
-            Cp_y /= numAnchors;
-            Cq_x /= numAnchors;
-            Cq_y /= numAnchors;
+        stabilizeAndUpdate(dt, targets, P_x, P_y, numAnchors, Cp_x, Cp_y, Cq_x, Cq_y, cosT, sinT, compensated);
 
-            // Find Rotation if 2 or more anchors are available
-            if (numAnchors >= 2) {
-                float S = 0, C = 0;
-                for (int k = 0; k < numAnchors; k++) {
-                    int i = anchorIndices[k];
-                    float vPx = P_x[i] - Cp_x;
-                    float vPy = P_y[i] - Cp_y;
-                    float vQx = targets[i].x - Cq_x;
-                    float vQy = targets[i].y - Cq_y;
-                    S += (vPx * vQy - vPy * vQx); // Cross-product sum
-                    C += (vPx * vQx + vPy * vQy); // Dot-product sum
-                }
-                float M = sqrtf(C * C + S * S);
-                if (M > 1.0f) {
-                    cosT = C / M;
-                    sinT = S / M;
-                }
-            }
-        }
-
-        // 4. Stabilize targets and update internal state
-        for (int i = 0; i < 3; i++) {
-            compensated[i] = targets[i]; // Copy attributes (active, speed, resolution)
-
-            if (targets[i].active) {
-                float qx = targets[i].x;
-                float qy = targets[i].y;
-
-                float stab_x = qx;
-                float stab_y = qy;
-
-                if (numAnchors > 0) {
-                    // Apply inverse transform to stabilize target
-                    float vQx = qx - Cq_x;
-                    float vQy = qy - Cq_y;
-                    float vQx_rot = vQx * cosT + vQy * sinT;
-                    float vQy_rot = -vQx * sinT + vQy * cosT;
-                    stab_x = Cp_x + vQx_rot;
-                    stab_y = Cp_y + vQy_rot;
-                }
-
-                compensated[i].x = (int16_t)stab_x;
-                compensated[i].y = (int16_t)stab_y;
-
-                // 5. Update Alpha-Beta-Gamma filter state
-                if (!state[i].active) {
-                    // Newly tracked target
-                    state[i].x = stab_x;
-                    state[i].y = stab_y;
-                    state[i].velX = 0;
-                    state[i].velY = 0;
-                    state[i].accX = 0;
-                    state[i].accY = 0;
-                    state[i].active = true;
-                } else {
-                    float alpha = baseSmoothingAlpha;
-                    float beta = baseSmoothingBeta;
-                    float gamma = baseSmoothingGamma;
-
-                    float residualX = stab_x - P_x[i];
-                    float residualY = stab_y - P_y[i];
-                    float distSq = residualX * residualX + residualY * residualY;
-
-                    if (state[i].isAnchor) {
-                        if (distSq > 10000.0f) {
-                            alpha *= 0.2f; beta *= 0.1f; gamma *= 0.1f; // High jitter, distrust measurement
-                        } else if (distSq < 400.0f) {
-                            alpha = min(1.0f, alpha * 1.5f); // Smooth, trust more
-                            beta *= 1.5f;
-                            gamma *= 1.5f;
-                        }
-                    } else {
-                        // Dynamic targets need faster tracking response
-                        alpha = min(1.0f, alpha * 2.0f);
-                        beta = alpha * 0.2f;
-                        gamma = alpha * 0.05f;
-                    }
-
-                    state[i].x = P_x[i] + alpha * residualX;
-                    state[i].y = P_y[i] + alpha * residualY;
-                    state[i].velX = state[i].velX + (beta * residualX / dt);
-                    state[i].velY = state[i].velY + (beta * residualY / dt);
-                    float dt_sq_half = (dt * dt) * 0.5f;
-                    state[i].accX = state[i].accX + (gamma * residualX / dt_sq_half);
-                    state[i].accY = state[i].accY + (gamma * residualY / dt_sq_half);
-
-                    // Constrain acceleration to prevent runaway curves
-                    float maxAcc = 5000.0f; // mm/s^2 (5 m/s^2)
-                    if (state[i].accX > maxAcc) state[i].accX = maxAcc;
-                    if (state[i].accX < -maxAcc) state[i].accX = -maxAcc;
-                    if (state[i].accY > maxAcc) state[i].accY = maxAcc;
-                    if (state[i].accY < -maxAcc) state[i].accY = -maxAcc;
-                }
-            } else {
-                state[i].active = false;
-                state[i].isAnchor = false;
-            }
-        }
         frameCount++;
     }
 
@@ -306,6 +107,208 @@ public:
     void forceReset() { init(); }
 
 private:
+
+    void predictStates(float dt, const RadarTarget targets[3], float P_x[3], float P_y[3]) {
+        float dt_sq_half = (dt * dt) * 0.5f;
+        for (int i = 0; i < 3; i++) {
+            if (state[i].active) {
+                P_x[i] = state[i].x + state[i].velX * dt + state[i].accX * dt_sq_half;
+                P_y[i] = state[i].y + state[i].velY * dt + state[i].accY * dt_sq_half;
+            } else {
+                P_x[i] = targets[i].x;
+                P_y[i] = targets[i].y;
+            }
+        }
+    }
+
+    int identifyAnchors(const RadarTarget targets[3], int tempAnchorIndices[3]) {
+        int numAnchors = 0;
+        for (int i = 0; i < 3; i++) {
+            if (targets[i].active && state[i].active) {
+                int16_t absSpeed = abs(targets[i].speed);
+                if (absSpeed < STATIC_SPEED_INITIAL_THRESHOLD * 2) {
+                    tempAnchorIndices[numAnchors++] = i;
+                    state[i].isAnchor = true;
+                } else {
+                    state[i].isAnchor = false;
+                }
+            } else {
+                state[i].isAnchor = false;
+            }
+        }
+        return numAnchors;
+    }
+
+    int validateAnchors(const RadarTarget targets[3], const float P_x[3], const float P_y[3], const int tempAnchorIndices[3], int numAnchors, int anchorIndices[3]) {
+        int validatedAnchors = 0;
+
+        if (numAnchors == 3) {
+            float err[3] = {0, 0, 0};
+            for (int i = 0; i < 3; i++) {
+                int a = tempAnchorIndices[i];
+                for (int j = i + 1; j < 3; j++) {
+                    int b = tempAnchorIndices[j];
+                    float dQx = targets[a].x - targets[b].x;
+                    float dQy = targets[a].y - targets[b].y;
+                    float distQSq = dQx*dQx + dQy*dQy;
+
+                    float dPx = P_x[a] - P_x[b];
+                    float dPy = P_y[a] - P_y[b];
+                    float distPSq = dPx*dPx + dPy*dPy;
+
+                    float diff = fabsf(distQSq - distPSq) / (distPSq + 1.0f);
+                    err[i] += diff;
+                    err[j] += diff;
+                }
+            }
+
+            float minErr = min(err[0], min(err[1], err[2]));
+            for (int i = 0; i < 3; i++) {
+                if (err[i] < 0.3f || err[i] <= (minErr * 2.0f + 0.1f)) {
+                    anchorIndices[validatedAnchors++] = tempAnchorIndices[i];
+                } else {
+                    state[tempAnchorIndices[i]].isAnchor = false;
+                }
+            }
+        } else if (numAnchors == 2) {
+            int a = tempAnchorIndices[0];
+            int b = tempAnchorIndices[1];
+            float dQx = targets[a].x - targets[b].x;
+            float dQy = targets[a].y - targets[b].y;
+            float dPx = P_x[a] - P_x[b];
+            float dPy = P_y[a] - P_y[b];
+
+            float diff = fabsf((dQx*dQx + dQy*dQy) - (dPx*dPx + dPy*dPy)) / ((dPx*dPx + dPy*dPy) + 1.0f);
+            if (diff < 0.2f) {
+                anchorIndices[0] = a;
+                anchorIndices[1] = b;
+                validatedAnchors = 2;
+            } else {
+                state[a].isAnchor = false;
+                state[b].isAnchor = false;
+            }
+        } else if (numAnchors == 1) {
+            anchorIndices[0] = tempAnchorIndices[0];
+            validatedAnchors = 1;
+        }
+
+        return validatedAnchors;
+    }
+
+    void calculateTransform(const RadarTarget targets[3], const float P_x[3], const float P_y[3], const int anchorIndices[3], int numAnchors, float& Cp_x, float& Cp_y, float& Cq_x, float& Cq_y, float& cosT, float& sinT) {
+        if (numAnchors > 0) {
+            for (int k = 0; k < numAnchors; k++) {
+                int i = anchorIndices[k];
+                Cp_x += P_x[i];
+                Cp_y += P_y[i];
+                Cq_x += targets[i].x;
+                Cq_y += targets[i].y;
+            }
+            Cp_x /= numAnchors;
+            Cp_y /= numAnchors;
+            Cq_x /= numAnchors;
+            Cq_y /= numAnchors;
+
+            if (numAnchors >= 2) {
+                float S = 0, C = 0;
+                for (int k = 0; k < numAnchors; k++) {
+                    int i = anchorIndices[k];
+                    float vPx = P_x[i] - Cp_x;
+                    float vPy = P_y[i] - Cp_y;
+                    float vQx = targets[i].x - Cq_x;
+                    float vQy = targets[i].y - Cq_y;
+                    S += (vPx * vQy - vPy * vQx);
+                    C += (vPx * vQx + vPy * vQy);
+                }
+                float M = sqrtf(C * C + S * S);
+                if (M > 1.0f) {
+                    cosT = C / M;
+                    sinT = S / M;
+                }
+            }
+        }
+    }
+
+    void stabilizeAndUpdate(float dt, const RadarTarget targets[3], const float P_x[3], const float P_y[3], int numAnchors, float Cp_x, float Cp_y, float Cq_x, float Cq_y, float cosT, float sinT, RadarTarget compensated[3]) {
+        for (int i = 0; i < 3; i++) {
+            compensated[i] = targets[i];
+
+            if (targets[i].active) {
+                float qx = targets[i].x;
+                float qy = targets[i].y;
+
+                float stab_x = qx;
+                float stab_y = qy;
+
+                if (numAnchors > 0) {
+                    float vQx = qx - Cq_x;
+                    float vQy = qy - Cq_y;
+                    float vQx_rot = vQx * cosT + vQy * sinT;
+                    float vQy_rot = -vQx * sinT + vQy * cosT;
+                    stab_x = Cp_x + vQx_rot;
+                    stab_y = Cp_y + vQy_rot;
+                }
+
+                compensated[i].x = (int16_t)stab_x;
+                compensated[i].y = (int16_t)stab_y;
+
+                updateFilterState(i, dt, stab_x, stab_y, P_x[i], P_y[i]);
+            } else {
+                state[i].active = false;
+                state[i].isAnchor = false;
+            }
+        }
+    }
+
+    void updateFilterState(int i, float dt, float stab_x, float stab_y, float px, float py) {
+        if (!state[i].active) {
+            state[i].x = stab_x;
+            state[i].y = stab_y;
+            state[i].velX = 0;
+            state[i].velY = 0;
+            state[i].accX = 0;
+            state[i].accY = 0;
+            state[i].active = true;
+        } else {
+            float alpha = baseSmoothingAlpha;
+            float beta = baseSmoothingBeta;
+            float gamma = baseSmoothingGamma;
+
+            float residualX = stab_x - px;
+            float residualY = stab_y - py;
+            float distSq = residualX * residualX + residualY * residualY;
+
+            if (state[i].isAnchor) {
+                if (distSq > 10000.0f) {
+                    alpha *= 0.2f; beta *= 0.1f; gamma *= 0.1f;
+                } else if (distSq < 400.0f) {
+                    alpha = min(1.0f, alpha * 1.5f);
+                    beta *= 1.5f;
+                    gamma *= 1.5f;
+                }
+            } else {
+                alpha = min(1.0f, alpha * 2.0f);
+                beta = alpha * 0.2f;
+                gamma = alpha * 0.05f;
+            }
+
+            state[i].x = px + alpha * residualX;
+            state[i].y = py + alpha * residualY;
+            state[i].velX = state[i].velX + (beta * residualX / dt);
+            state[i].velY = state[i].velY + (beta * residualY / dt);
+            float dt_sq_half = (dt * dt) * 0.5f;
+            state[i].accX = state[i].accX + (gamma * residualX / dt_sq_half);
+            state[i].accY = state[i].accY + (gamma * residualY / dt_sq_half);
+
+            float maxAcc = 5000.0f;
+            if (state[i].accX > maxAcc) state[i].accX = maxAcc;
+            if (state[i].accX < -maxAcc) state[i].accX = -maxAcc;
+            if (state[i].accY > maxAcc) state[i].accY = maxAcc;
+            if (state[i].accY < -maxAcc) state[i].accY = -maxAcc;
+        }
+    }
+
+
     TargetState state[3];
     uint32_t frameCount;
     float baseSmoothingAlpha;

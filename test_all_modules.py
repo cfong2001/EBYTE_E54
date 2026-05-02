@@ -11,7 +11,7 @@ import logging
 # Ensure our local path is at front for testing modules without collision
 sys.path.insert(0, ".")
 from utils import s16_le, ld2450_s16
-from shared.ui_utils import map_xy
+from shared.ui_utils import map_xy, draw_dotted_circle
 
 # Configure standard logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -205,18 +205,46 @@ def test_multi_anchor_stabilization():
 
     logger.info("  ✓ multi_anchor_stabilization tests passed!")
 
+
+def test_sweep_draw_targets():
+    """Test that drawing an empty target list in code_realtime_sweep doesn't raise errors"""
+    import sys
+    from unittest.mock import MagicMock
+
+    # Mock hardware modules
+    sys.modules['board'] = MagicMock()
+    sys.modules['busio'] = MagicMock()
+    sys.modules['neopixel'] = MagicMock()
+    sys.modules['adafruit_ssd1306'] = MagicMock()
+
+    # Import the refactored script
+    try:
+        import code_realtime_sweep
+
+        # Ensure oled is mocked so fill_rect/etc don't fail
+        code_realtime_sweep.oled = MagicMock()
+
+        logger.info("Running code_realtime_sweep empty draw_targets test...")
+        # Execute with empty list
+        code_realtime_sweep.draw_targets([])
+        logger.info("  ✓ draw_targets with empty list handled correctly!")
+    except Exception as e:
+        logger.error(f"  ✗ draw_targets failed: {e}")
+        raise e
+
 def main():
     parser = argparse.ArgumentParser(description="Test HLK-LD2450 utility modules")
     parser.add_argument("--s16", action="store_true", help="Run only s16_le tests")
     parser.add_argument("--ld2450", action="store_true", help="Run only ld2450_s16 tests")
     parser.add_argument("--map", action="store_true", help="Run only map_xy tests")
     parser.add_argument("--multi", action="store_true", help="Run only multi_anchor tests")
+    parser.add_argument("--sweep", action="store_true", help="Run only sweep script tests")
     parser.add_argument("--all", action="store_true", help="Run all tests")
 
     args = parser.parse_args()
 
     # Default to all if nothing selected
-    if not any([args.s16, args.ld2450, args.map, args.multi, args.all]):
+    if not any([args.s16, args.ld2450, args.map, args.multi, args.sweep, args.all]):
         args.all = True
 
     try:
@@ -231,6 +259,9 @@ def main():
 
         if args.all or args.multi:
             test_multi_anchor_stabilization()
+
+        if args.all or args.sweep:
+            test_sweep_draw_targets()
 
         logger.info("\nAll selected tests executed successfully.")
 
