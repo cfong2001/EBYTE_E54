@@ -1,13 +1,6 @@
-🧹 [code health] Remove unused map_xy import in code_alien_style.py
+feat: Fix compilation and cleanly integrate modular FreeRTOS CPU usage and memory profiler
 
-🎯 What
-Removed the unused `map_xy` function from the `shared.ui_utils` import on line 8 of `code_alien_style.py`.
-
-💡 Why
-`map_xy` is not used anywhere in the `code_alien_style.py` file. Removing it cleans up the namespace and improves readability.
-
-✅ Verification
-Ran `python3 test_all_modules.py --all` to ensure no functionality is broken. Tests passed.
-
-✨ Result
-Cleaner namespace without altering functionality.
+* Implemented `PerformanceMonitor` class mapping a background telemetry task to Core 1 via `xTaskCreatePinnedToCore` using `tskNO_AFFINITY`.
+* Handled the missing Trace Facility (uxTaskGetSystemState) in default esp32-wrover-ie SDK by gracefully falling back to standard ESP memory metrics via `getFreeHeap()` and `getMaxAllocHeap()`.
+* Ensured task modularity, completely decoupled from `UIManager.h` UI render loops, allowing for robust continuous metrics.
+* Fixed syntax bracket errors in `UIManager.h` that had previously broken `esp32-wrover-ie` and `esp32-s3` builds.

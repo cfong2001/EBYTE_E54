@@ -1,15 +1,22 @@
 CXX = g++
-CXXFLAGS = -I../src -Iinclude -Wall -Wextra
-TARGET = test_motion_compensation
-SRC = test_motion_compensation.cpp
+CXXFLAGS = -std=c++11 -Iinclude -I../src -Wall -Wextra -Wno-unused-parameter -g
 
-all: $(TARGET)
-	./$(TARGET)
+TEST_SRCS = $(wildcard *.cpp)
+TEST_OBJS = $(TEST_SRCS:.cpp=.o)
+TEST_EXEC = run_tests
 
-$(TARGET): $(SRC)
-	$(CXX) $(CXXFLAGS) $(SRC) -o $(TARGET)
+.PHONY: all clean test
+
+all: $(TEST_EXEC)
+
+$(TEST_EXEC): $(TEST_OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+test: $(TEST_EXEC)
+	./$(TEST_EXEC)
 
 clean:
-	rm -f $(TARGET)
-
-.PHONY: all clean
+	rm -f $(TEST_OBJS) $(TEST_EXEC)

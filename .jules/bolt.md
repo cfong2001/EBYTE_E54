@@ -18,7 +18,3 @@
 ## 2024-04-26 - ESP32 Dual-Core FreeRTOS Performance Profiling
 **Learning:** Measuring ESP32 FreeRTOS core execution and idle times using `uxTaskGetSystemState` is extremely powerful for diagnosing execution bottlenecks but causes C++ compilation errors (`undefined reference`) on default ESP32 toolchains unless custom ESP-IDF SDK configuration (`CONFIG_FREERTOS_USE_TRACE_FACILITY`) is explicitly compiled into the underlying framework core.
 **Action:** When profiling standard Arduino-ESP32 setups, fallback to utilizing standard FreeRTOS APIs like `uxTaskGetNumberOfTasks()` and `ESP.getFreeHeap()` / `ESP.getMaxAllocHeap()` embedded in a low-priority modular background task (`xTaskCreatePinnedToCore`) rather than relying on advanced trace metrics unless the framework is explicitly built with trace support.
-
-## 2026-05-02 - [Precalculate Trigonometric Functions in Python UI Loops]
-**Learning:** Repetitive calculation of `math.cos` and `math.sin` combined with `math.radians` inside UI rendering loops (e.g. iterating over angles to draw circles or arcs) causes significant CPU overhead in Python, especially on constrained environments like CircuitPython on ESP32.
-**Action:** Precalculate fixed coordinate offsets or trigonometric values into static module-level tuples (e.g., `COS_TABLE` and `SIN_TABLE` mapping degrees 0-359 to their float values). Use integer modulo arithmetic `angle % 360` to perform rapid table lookups instead of calculating trig functions on the fly during rendering.
