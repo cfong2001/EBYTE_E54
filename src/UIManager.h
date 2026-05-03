@@ -9,12 +9,18 @@
 #include "E54_Radar.h"
 #include "ZoneManager.h"
 
+#define themeBg 0x1082 // #121315
+#define themePrimary 0x06DD // #00dbe9
+#define themeDanger 0xFDB5 // #ffb4ab
+#define themeSuccess 0x2F20 // #2ae500
+#define themeWarning 0xFDCA // #ffb950
 
 enum AppState {
     STATE_BOOT,
     STATE_RADAR_VIEW,
     STATE_MENU,
-    STATE_MENU_EDIT
+    STATE_MENU_EDIT,
+    STATE_GUIDE
 };
 
 enum MenuPage {
@@ -22,20 +28,13 @@ enum MenuPage {
     PAGE_VISUALS,
     PAGE_ZONES,
     PAGE_DATA,
-    PAGE_CUSTOM_THEME
+    PAGE_DEV
 };
 
 enum ThemeStyle {
     THEME_STANDARD,
     THEME_ALIEN,
-    THEME_MINIMAL,
-    THEME_TACTICAL,
-    THEME_B_W,
-    THEME_W_B,
-    THEME_RED_HOT,
-    THEME_IRON,
-    THEME_NEON,
-    THEME_CUSTOM
+    THEME_MINIMAL
 };
 
 enum TelemetryMode {
@@ -57,148 +56,15 @@ class UIManager {
 public:
     ZoneManager zoneManager;
     Preferences preferences;
-
-    uint16_t themeBg;
-    uint16_t themePrimary;
-    uint16_t themeDanger;
-    uint16_t themeSuccess;
-    uint16_t themeWarning;
-    uint16_t themeTarget1;
-    uint16_t themeTarget2;
-    uint16_t themeTarget3;
-
-    uint16_t customBg = 0x1082;
-    uint16_t customPrimary = 0x06DD;
-    uint16_t customDanger = 0xFDB5;
-    uint16_t customSuccess = 0x2F20;
-    uint16_t customWarning = 0xFDCA;
-    uint16_t customTarget1 = TFT_ORANGE;
-    uint16_t customTarget2 = TFT_CYAN;
-    uint16_t customTarget3 = TFT_MAGENTA;
-
-    void applyTheme() {
-        switch (theme) {
-            case THEME_STANDARD:
-                themeBg = 0x1082;
-                themePrimary = TFT_ORANGE;
-                themeDanger = 0xFDB5;
-                themeSuccess = 0x2F20;
-                themeWarning = TFT_YELLOW;
-                themeTarget1 = TFT_ORANGE;
-                themeTarget2 = TFT_CYAN;
-                themeTarget3 = TFT_MAGENTA;
-                break;
-            case THEME_ALIEN:
-                themeBg = 0x1082;
-                themePrimary = 0x06DD;
-                themeDanger = 0xFDB5;
-                themeSuccess = 0x2F20;
-                themeWarning = 0xFDCA;
-                themeTarget1 = 0x06DD;
-                themeTarget2 = 0x06DD;
-                themeTarget3 = 0x06DD;
-                break;
-            case THEME_MINIMAL:
-                themeBg = 0x1082;
-                themePrimary = TFT_WHITE;
-                themeDanger = TFT_RED;
-                themeSuccess = TFT_GREEN;
-                themeWarning = TFT_YELLOW;
-                themeTarget1 = TFT_WHITE;
-                themeTarget2 = TFT_WHITE;
-                themeTarget3 = TFT_WHITE;
-                break;
-            case THEME_TACTICAL:
-                themeBg = 0x1082;
-                themePrimary = 0x06DD;
-                themeDanger = 0xFDB5;
-                themeSuccess = 0x2F20;
-                themeWarning = 0xFDCA;
-                themeTarget1 = 0x06DD;
-                themeTarget2 = 0x06DD;
-                themeTarget3 = 0x06DD;
-                break;
-            case THEME_B_W:
-                themeBg = TFT_BLACK;
-                themePrimary = TFT_WHITE;
-                themeDanger = TFT_WHITE;
-                themeSuccess = TFT_WHITE;
-                themeWarning = TFT_LIGHTGREY;
-                themeTarget1 = TFT_WHITE;
-                themeTarget2 = TFT_WHITE;
-                themeTarget3 = TFT_WHITE;
-                break;
-            case THEME_W_B:
-                themeBg = TFT_WHITE;
-                themePrimary = TFT_BLACK;
-                themeDanger = TFT_BLACK;
-                themeSuccess = TFT_BLACK;
-                themeWarning = TFT_DARKGREY;
-                themeTarget1 = TFT_BLACK;
-                themeTarget2 = TFT_BLACK;
-                themeTarget3 = TFT_BLACK;
-                break;
-            case THEME_RED_HOT:
-                themeBg = TFT_BLACK;
-                themePrimary = TFT_RED;
-                themeDanger = TFT_MAROON;
-                themeSuccess = TFT_ORANGE;
-                themeWarning = TFT_YELLOW;
-                themeTarget1 = TFT_ORANGE;
-                themeTarget2 = TFT_RED;
-                themeTarget3 = TFT_YELLOW;
-                break;
-            case THEME_IRON:
-                themeBg = 0x2104;
-                themePrimary = TFT_ORANGE;
-                themeDanger = TFT_RED;
-                themeSuccess = TFT_GOLD;
-                themeWarning = TFT_YELLOW;
-                themeTarget1 = TFT_ORANGE;
-                themeTarget2 = TFT_RED;
-                themeTarget3 = TFT_GOLD;
-                break;
-            case THEME_NEON:
-                themeBg = 0x1004;
-                themePrimary = TFT_MAGENTA;
-                themeDanger = TFT_RED;
-                themeSuccess = TFT_CYAN;
-                themeWarning = TFT_YELLOW;
-                themeTarget1 = TFT_MAGENTA;
-                themeTarget2 = TFT_CYAN;
-                themeTarget3 = TFT_YELLOW;
-                break;
-            case THEME_CUSTOM:
-                themeBg = customBg;
-                themePrimary = customPrimary;
-                themeDanger = customDanger;
-                themeSuccess = customSuccess;
-                themeWarning = customWarning;
-                themeTarget1 = customTarget1;
-                themeTarget2 = customTarget2;
-                themeTarget3 = customTarget3;
-                break;
-            default:
-                themeBg = 0x1082;
-                themePrimary = 0x06DD;
-                themeDanger = 0xFDB5;
-                themeSuccess = 0x2F20;
-                themeWarning = 0xFDCA;
-                themeTarget1 = 0x06DD;
-                themeTarget2 = 0x06DD;
-                themeTarget3 = 0x06DD;
-                break;
-        }
-    }
-
+    bool devRiskAccepted = false;
+    bool motionCompEnabled = true;
 
     UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
         state = STATE_BOOT;
         activePage = PAGE_MAIN;
         menuSelection = 0;
 
-        theme = THEME_TACTICAL;
-        applyTheme();
+        theme = THEME_ALIEN;
         targetIcon = ICON_SMART;
         sweepLineEnabled = true;
         trailLength = 5;
@@ -241,7 +107,7 @@ public:
 
     void loadSettings() {
         preferences.begin("radar_ui", false);
-        theme = (ThemeStyle)preferences.getInt("theme", THEME_TACTICAL);
+        theme = (ThemeStyle)preferences.getInt("theme", THEME_ALIEN);
         targetIcon = (TargetIcon)preferences.getInt("icon", ICON_SMART);
         sweepLineEnabled = preferences.getBool("sweep", true);
         trailLength = preferences.getInt("trails", 5);
@@ -253,17 +119,6 @@ public:
         sensitivity = preferences.getInt("sens", 5);
         locationAveraging = preferences.getInt("locAvg", 5);
         interpolationAmount = (float)preferences.getInt("interp", 5) / 10.0f;
-
-        customBg = preferences.getUShort("cBg", 0x1082);
-        customPrimary = preferences.getUShort("cPrim", 0x06DD);
-        customDanger = preferences.getUShort("cDan", 0xFDB5);
-        customSuccess = preferences.getUShort("cSucc", 0x2F20);
-        customWarning = preferences.getUShort("cWarn", 0xFDCA);
-        customTarget1 = preferences.getUShort("cTgt1", TFT_ORANGE);
-        customTarget2 = preferences.getUShort("cTgt2", TFT_CYAN);
-        customTarget3 = preferences.getUShort("cTgt3", TFT_MAGENTA);
-
-        applyTheme();
         preferences.end();
     }
 
@@ -282,16 +137,6 @@ public:
         preferences.putInt("locAvg", locationAveraging);
         int interDisp = (int)(interpolationAmount * 10.0f + 0.5f);
         preferences.putInt("interp", interDisp);
-
-        preferences.putUShort("cBg", customBg);
-        preferences.putUShort("cPrim", customPrimary);
-        preferences.putUShort("cDan", customDanger);
-        preferences.putUShort("cSucc", customSuccess);
-        preferences.putUShort("cWarn", customWarning);
-        preferences.putUShort("cTgt1", customTarget1);
-        preferences.putUShort("cTgt2", customTarget2);
-        preferences.putUShort("cTgt3", customTarget3);
-
         preferences.end();
     }
 
@@ -314,6 +159,12 @@ public:
     }
 
     void handleEncoder(int dir) {
+        if (state == STATE_GUIDE) {
+            guidePage += dir;
+            if (guidePage < 0) guidePage = 0;
+            if (guidePage > 2) guidePage = 2;
+            return;
+        }
         if (state == STATE_MENU) {
             menuSelection += dir;
             if (menuSelection > maxMenuSelection) menuSelection = 0;
@@ -323,7 +174,15 @@ public:
         }
     }
 
+
+    void handleButtonLongPress() {
+        if (state == STATE_MENU) {
+            showTooltip = true;
+        }
+    }
+
     void handleButton() {
+
         if (state == STATE_RADAR_VIEW) {
             state = STATE_MENU;
             activePage = PAGE_MAIN;
@@ -384,9 +243,78 @@ public:
         }
     }
 
+    void drawGuideScreen() {
+        sprite.fillSprite(themeBg);
+        sprite.setTextColor(themePrimary, themeBg);
+        sprite.setTextSize(1);
+        sprite.setCursor(10, 10);
+
+        if (guidePage == 0) {
+            sprite.print("GUIDE 1/3: TARGETS");
+            sprite.setCursor(10, 40);
+            sprite.setTextColor(TFT_WHITE, themeBg);
+            sprite.print("The radar tracks up");
+            sprite.setCursor(10, 55);
+            sprite.print("to 3 targets at once.");
+
+            // Draw dummy targets
+            sprite.drawCircle(30, 90, 8, themePrimary);
+            sprite.setCursor(50, 85); sprite.print("Moving target");
+
+            sprite.drawRect(22, 112, 16, 16, themeWarning);
+            sprite.setCursor(50, 115); sprite.print("Stationary target");
+
+            sprite.fillTriangle(30, 140, 22, 156, 38, 156, themeSuccess);
+            sprite.setCursor(50, 145); sprite.print("Selected target");
+
+            sprite.setCursor(10, 200);
+            sprite.setTextColor(themeWarning, themeBg);
+            sprite.print("[Turn] Next  [Press] Exit");
+
+        } else if (guidePage == 1) {
+            sprite.print("GUIDE 2/3: CONTROLS");
+            sprite.setCursor(10, 40);
+            sprite.setTextColor(TFT_WHITE, themeBg);
+            sprite.print("Navigate via the dial:");
+
+            sprite.setCursor(20, 80); sprite.print("- TURN: Scroll/Adjust");
+            sprite.setCursor(20, 110); sprite.print("- PRESS: Select/Enter");
+            sprite.setCursor(20, 140); sprite.print("- HOLD: Info Tooltips");
+
+            sprite.setCursor(10, 200);
+            sprite.setTextColor(themeWarning, themeBg);
+            sprite.print("[Turn] Next  [Press] Exit");
+
+        } else if (guidePage == 2) {
+            sprite.print("GUIDE 3/3: ZONES");
+            sprite.setCursor(10, 40);
+            sprite.setTextColor(TFT_WHITE, themeBg);
+            sprite.print("Zones highlight targets.");
+
+            // Draw a mini radar zone
+            sprite.drawCircle(120, 160, 40, themeWarning);
+            sprite.setCursor(10, 80); sprite.setTextColor(themeWarning, themeBg);
+            sprite.print("Warning Zone (Amber)");
+
+            sprite.drawCircle(120, 160, 20, themeDanger);
+            sprite.setCursor(10, 100); sprite.setTextColor(themeDanger, themeBg);
+            sprite.print("Dead Zone (Hidden)");
+
+            sprite.setCursor(10, 200);
+            sprite.setTextColor(themeWarning, themeBg);
+            sprite.print("[Turn] Next  [Press] Exit");
+        }
+
+        sprite.pushSprite(0, 0);
+    }
+
     void renderLoop() {
         if (state == STATE_BOOT) {
             drawBootScreen();
+            return;
+        }
+        if (state == STATE_GUIDE) {
+            drawGuideScreen();
             return;
         }
 
@@ -514,9 +442,9 @@ public:
     }
 
     void drawSweepLine() {
-        if (sweepLineEnabled && true) {
+        if (sweepLineEnabled && theme != THEME_MINIMAL) {
             sweepAngle = (sweepAngle + 4) % 180;
-            uint16_t sweepColor = themePrimary;
+            uint16_t sweepColor = (theme == THEME_ALIEN) ? themePrimary : TFT_DARKGREY;
             for (int a = 0; a < 30; a += 2) {
                 float tr = (sweepAngle - a - 180) * 0.0174533f;
                 int tx = 120 + 180 * cosf(tr);
@@ -534,9 +462,15 @@ public:
             int cy = (int)targetCurrentY[i];
 
             uint16_t baseColor;
-            if (i == 0) baseColor = themeTarget1;
-            else if (i == 1) baseColor = themeTarget2;
-            else baseColor = themeTarget3;
+            if (theme == THEME_MINIMAL) {
+                baseColor = TFT_WHITE;
+            } else if (theme == THEME_ALIEN) {
+                baseColor = themePrimary;
+            } else {
+                if (i == 0) baseColor = TFT_ORANGE;
+                else if (i == 1) baseColor = TFT_CYAN;
+                else baseColor = TFT_MAGENTA;
+            }
 
             uint8_t currentAlpha = (uint8_t)(simAlpha[i] * 255.0f);
             uint16_t color = sprite.alphaBlend(currentAlpha, baseColor, themeBg);
@@ -627,7 +561,7 @@ public:
                 }
             }
 
-            if (telemetryMode != TELEMETRY_OFF) {
+            if (theme != THEME_ALIEN && telemetryMode != TELEMETRY_OFF) {
                 sprite.setTextColor(color, TFT_BLACK);
 
                 float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) / 1000.0f;
@@ -647,7 +581,7 @@ public:
                     sprite.setCursor(cx + 8, cy - 2);
                     sprite.printf("%.1fm/s", speed_ms);
                 }
-            } else if (telemetryMode == TELEMETRY_OFF) {
+            } else if (theme != THEME_ALIEN && telemetryMode == TELEMETRY_OFF) {
                 sprite.setTextColor(color, TFT_BLACK);
                 sprite.setCursor(cx + 8, cy - 8);
                 sprite.printf("T%d", i + 1);
@@ -679,7 +613,7 @@ public:
             sprite.print(" VIEW  [MENU]");
         }
 
-        if (theme == THEME_ALIEN) {
+        if (theme != THEME_MINIMAL) {
             if (anchorValid) {
                 sprite.setTextColor(themePrimary, themeBg);
                 sprite.setCursor(5, 5);
@@ -700,6 +634,8 @@ private:
     int menuSelection;
     int menuOverlayY;
     int maxMenuSelection;
+    int guidePage = 0;
+    bool showTooltip = false;
     unsigned long bootStartTime;
 
     ThemeStyle theme;
@@ -755,7 +691,7 @@ private:
         int maxR = (elapsed * 180) / 1000;
         if (maxR > 180) maxR = 180;
 
-        uint16_t gridColor = themePrimary;
+        uint16_t gridColor = (theme == THEME_ALIEN) ? themePrimary : themePrimary;
 
         for (int r = 60; r <= 180; r += 60) {
             if (maxR >= r) {
@@ -801,47 +737,25 @@ private:
     }
 
     void drawZones() {
-        bool editingZones = (state == STATE_MENU_EDIT || state == STATE_MENU) && (activePage == PAGE_ZONES);
-
-        // Find the index of "Dead Zone" to split Warn from Dead
-        int deadZoneIdx = 2; // Default if Warn is OFF
-        if (zoneManager.getWarnPreset() == ZONE_CUSTOM) deadZoneIdx += 4;
-        if (zoneManager.getWarnPreset() != ZONE_OFF) deadZoneIdx += 2;
-
-        bool editingWarn = editingZones && menuSelection >= 1 && menuSelection < deadZoneIdx;
-        bool editingDead = editingZones && menuSelection >= deadZoneIdx;
-
-        if (zoneManager.getDeadPreset() != ZONE_OFF || editingDead) {
+        if (zoneManager.getDeadPreset() != ZONE_OFF) {
             RadialZone z = zoneManager.getActiveDeadZone();
-            uint16_t color = themeDanger;
-            if (editingDead) {
-                color = sprite.alphaBlend(100, themeDanger, themeBg);
-            }
-            drawRadialWedge(z.minDist, z.maxDist, z.minAngle, z.maxAngle, color);
+            drawRadialWedge(z.minDist, z.maxDist, z.minAngle, z.maxAngle, themeDanger);
         }
-
-        if (zoneManager.getWarnPreset() != ZONE_OFF || editingWarn) {
+        if (zoneManager.getWarnPreset() != ZONE_OFF) {
             RadialZone z = zoneManager.getActiveWarnZone();
             float danger = zoneManager.getDangerLevel();
             uint16_t baseColor = themeBg;
             uint16_t activeColor = themePrimary;
-            uint16_t wedgeColor;
-
-            if (editingWarn) {
-                wedgeColor = sprite.alphaBlend(150, themeWarning, themeBg);
-            } else {
-                uint8_t alpha = (uint8_t)(danger * 255.0f);
-                uint16_t dangerColor = sprite.alphaBlend(alpha, themeDanger, themeWarning);
-                wedgeColor = sprite.alphaBlend(alpha, dangerColor, baseColor);
-            }
-
+            uint8_t alpha = (uint8_t)(danger * 255.0f);
+            uint16_t dangerColor = sprite.alphaBlend(alpha, themeDanger, themeWarning);
+            uint16_t wedgeColor = sprite.alphaBlend(alpha, dangerColor, baseColor);
             drawRadialWedge(z.minDist, z.maxDist, z.minAngle, z.maxAngle, wedgeColor);
         }
     }
 
 
     void drawRadarBackground() {
-        uint16_t gridColor = themePrimary;
+        uint16_t gridColor = (theme == THEME_ALIEN) ? themePrimary : TFT_DARKGREY;
         gridColor = sprite.alphaBlend(80, gridColor, themeBg); // Dimmer lines
         if (gridEnabled) {
             // Tactical crosshair
@@ -884,52 +798,16 @@ private:
         items[numItems++] = "  [BOUNDARIES]";
         items[numItems++] = "TARGET DATA";
         items[numItems++] = "  [GAIN/FILTER]";
+        items[numItems++] = "DEV OPTIONS";
+        items[numItems++] = "USER GUIDE";
         items[numItems++] = "[ Exit Menu ]";
-    }
-
-    // Helper to convert rgb565 to hex string
-    String colorToHex(uint16_t c) {
-        uint8_t r = (c >> 11) & 0x1F;
-        uint8_t g = (c >> 5) & 0x3F;
-        uint8_t b = c & 0x1F;
-
-        r = (r * 255) / 31;
-        g = (g * 255) / 63;
-        b = (b * 255) / 31;
-
-        char hex[8];
-        sprintf(hex, "#%02X%02X%02X", r, g, b);
-        return String(hex);
-    }
-
-    void populateCustomThemeMenu(String* items, int& numItems) {
-        sprite.setTextColor(themePrimary, themeBg);
-        sprite.setCursor(15, 5); sprite.print("--- CUSTOM THEME ---");
-
-        items[numItems++] = "< Back";
-        items[numItems++] = "Background: " + colorToHex(customBg);
-        items[numItems++] = "Primary: " + colorToHex(customPrimary);
-        items[numItems++] = "Danger: " + colorToHex(customDanger);
-        items[numItems++] = "Success: " + colorToHex(customSuccess);
-        items[numItems++] = "Warning: " + colorToHex(customWarning);
-        items[numItems++] = "Target 1: " + colorToHex(customTarget1);
-        items[numItems++] = "Target 2: " + colorToHex(customTarget2);
-        items[numItems++] = "Target 3: " + colorToHex(customTarget3);
     }
 
     void populateVisualsMenu(String* items, int& numItems) {
         sprite.setTextColor(themePrimary, themeBg);
         sprite.setCursor(15, 5); sprite.print("--- VISUAL SETTINGS ---");
 
-        String themeStr = (theme == THEME_STANDARD) ? "Standard" :
-                          (theme == THEME_ALIEN) ? "Alien" :
-                          (theme == THEME_MINIMAL) ? "Minimal" :
-                          (theme == THEME_TACTICAL) ? "Tactical" :
-                          (theme == THEME_B_W) ? "Blk/Wht" :
-                          (theme == THEME_W_B) ? "Wht/Blk" :
-                          (theme == THEME_RED_HOT) ? "Red Hot" :
-                          (theme == THEME_IRON) ? "Iron" :
-                          (theme == THEME_NEON) ? "Neon" : "Custom";
+        String themeStr = (theme == THEME_STANDARD) ? "Standard" : (theme == THEME_ALIEN ? "Alien" : "Minimal");
         String iconStr = (targetIcon == ICON_CIRCLE) ? "CIRCLE" :
                          (targetIcon == ICON_SQUARE) ? "SQUARE" :
                          (targetIcon == ICON_TRIANGLE) ? "TRIANGLE" : "SMART";
@@ -941,9 +819,6 @@ private:
         items[numItems++] = "Trails: " + String(trailLength);
         items[numItems++] = "Grid: " + String(gridEnabled ? "ON" : "OFF");
         items[numItems++] = "Boot Anim: " + String(startupAnimEnabled ? "ON" : "OFF");
-        if (theme == THEME_CUSTOM) {
-            items[numItems++] = "[ Edit Custom Colors ]";
-        }
     }
 
     void populateZonesMenu(String* items, int& numItems) {
@@ -1000,6 +875,18 @@ private:
         items[numItems++] = "[ Reset Tracking ]";
     }
 
+    void populateDevMenu(String* items, int& numItems) {
+        sprite.setTextColor(themeDanger, themeBg);
+        sprite.setCursor(15, 5); sprite.print("--- DEV OPTIONS ---");
+
+        items[numItems++] = "< Back";
+        items[numItems++] = "Accept Risk? " + String(devRiskAccepted ? "YES" : "NO");
+        if (devRiskAccepted) {
+            items[numItems++] = "Motion Comp: " + String(motionCompEnabled ? "ON" : "OFF");
+            items[numItems++] = "[ FACTORY RESET ]";
+        }
+    }
+
     void populateMenuPage(String* items, int& numItems) {
         if (activePage == PAGE_MAIN) {
             populateMainMenu(items, numItems);
@@ -1009,8 +896,8 @@ private:
             populateZonesMenu(items, numItems);
         } else if (activePage == PAGE_DATA) {
             populateDataMenu(items, numItems);
-        } else if (activePage == PAGE_CUSTOM_THEME) {
-            populateCustomThemeMenu(items, numItems);
+        } else if (activePage == PAGE_DEV) {
+            populateDevMenu(items, numItems);
         }
     }
 
@@ -1041,6 +928,32 @@ private:
             sprite.setCursor(15, yPos);
             sprite.print(items[idx]);
         }
+
+        if (showTooltip) {
+            sprite.fillRect(10, 140, 220, 60, themeBg);
+            sprite.drawRect(10, 140, 220, 60, themeWarning);
+            sprite.setTextColor(TFT_WHITE, themeBg);
+            sprite.setTextSize(1);
+            sprite.setCursor(15, 145);
+            sprite.print("INFO: ");
+            sprite.setCursor(15, 160);
+
+            // Simple logic to display something based on item
+            if (activePage == PAGE_MAIN) {
+                if (menuSelection == 0) sprite.print("Adjust visual themes,");
+                else if (menuSelection == 1) sprite.print("icons, and display settings.");
+                else if (menuSelection == 2) sprite.print("Configure warning and");
+                else if (menuSelection == 3) sprite.print("dead zones.");
+                else if (menuSelection == 4) sprite.print("Adjust raw telemetry");
+                else if (menuSelection == 5) sprite.print("filtering options.");
+                else if (menuSelection == 6) sprite.print("Return to radar view.");
+                else sprite.print("Select an option.");
+            } else {
+                sprite.print("Adjust this setting to");
+                sprite.setCursor(15, 175);
+                sprite.print("change device behavior.");
+            }
+        }
     }
 
     void drawMenuOverlay() {
@@ -1063,21 +976,19 @@ private:
             if (menuSelection == 0 || menuSelection == 1) { activePage = PAGE_VISUALS; menuSelection = 0; }
             else if (menuSelection == 2 || menuSelection == 3) { activePage = PAGE_ZONES; menuSelection = 0; }
             else if (menuSelection == 4 || menuSelection == 5) { activePage = PAGE_DATA; menuSelection = 0; }
-            else if (menuSelection == 6) { state = STATE_RADAR_VIEW; }
+            else if (menuSelection == 6) { activePage = PAGE_DEV; menuSelection = 0; }
+            else if (menuSelection == 7) { state = STATE_GUIDE; guidePage = 0; }
+            else if (menuSelection == 8) { state = STATE_RADAR_VIEW; }
         }
         else if (activePage == PAGE_VISUALS) {
             if (menuSelection == 0) { activePage = PAGE_MAIN; menuSelection = 0; }
-            else if (theme == THEME_CUSTOM && menuSelection == maxMenuSelection) {
-                activePage = PAGE_CUSTOM_THEME;
-                menuSelection = 0;
-            }
-            else { state = STATE_MENU_EDIT; }
-        }
-        else if (activePage == PAGE_CUSTOM_THEME) {
-            if (menuSelection == 0) { activePage = PAGE_VISUALS; menuSelection = 0; }
             else { state = STATE_MENU_EDIT; }
         }
         else if (activePage == PAGE_ZONES) {
+            if (menuSelection == 0) { activePage = PAGE_MAIN; menuSelection = 0; }
+            else { state = STATE_MENU_EDIT; }
+        }
+        else if (activePage == PAGE_DEV) {
             if (menuSelection == 0) { activePage = PAGE_MAIN; menuSelection = 0; }
             else { state = STATE_MENU_EDIT; }
         }
@@ -1094,9 +1005,11 @@ private:
         if (activePage == PAGE_VISUALS) {
             if (idx++ == menuSelection) {
                 int t = (int)theme + dir;
-                if (t > 9) t = 0; if (t < 0) t = 9;
+                if (t > 2) t = 0; if (t < 0) t = 2;
                 theme = (ThemeStyle)t;
-                applyTheme();
+                if (theme == THEME_ALIEN) { sweepLineEnabled = true; trailLength = 8; gridEnabled = true; }
+                else if (theme == THEME_MINIMAL) { sweepLineEnabled = false; trailLength = 0; gridEnabled = true; }
+                else { sweepLineEnabled = true; trailLength = 3; gridEnabled = true; }
                 return;
             }
             if (idx++ == menuSelection) {
@@ -1151,6 +1064,23 @@ private:
                 if (idx++ == menuSelection) { z.maxAngle += dir * 5; if(z.maxAngle > 90) z.maxAngle=90; zoneManager.setDeadCustom(z); return; }
             }
         }
+        else if (activePage == PAGE_DEV) {
+            if (idx++ == menuSelection) { devRiskAccepted = !devRiskAccepted; return; }
+            if (devRiskAccepted) {
+                if (idx++ == menuSelection) { motionCompEnabled = !motionCompEnabled; return; }
+                if (idx++ == menuSelection) {
+                    sprite.fillSprite(themeDanger);
+                    sprite.setTextColor(TFT_WHITE);
+                    sprite.setCursor(10, 100);
+                    sprite.print("WIPING PREFERENCES...");
+                    sprite.pushSprite(0, 0);
+                    preferences.clear();
+                    delay(1000);
+                    ESP.restart();
+                    return;
+                }
+            }
+        }
         else if (activePage == PAGE_DATA) {
             if (idx++ == menuSelection) {
                 int tm = (int)telemetryMode + dir;
@@ -1166,24 +1096,6 @@ private:
                 if (interpolationAmount > 1.05f) interpolationAmount = 1.0f;
                 return;
             }
-        }
-        else if (activePage == PAGE_CUSTOM_THEME) {
-            auto adjustColor = [](uint16_t c, int dir) -> uint16_t {
-                // Adjust Hue or generic RGB value roughly
-                int newVal = (int)c + (dir * 0x0841);
-                if (newVal < 0) newVal += 0xFFFF;
-                if (newVal > 0xFFFF) newVal -= 0xFFFF;
-                return (uint16_t)newVal;
-            };
-
-            if (idx++ == menuSelection) { customBg = adjustColor(customBg, dir); applyTheme(); return; }
-            if (idx++ == menuSelection) { customPrimary = adjustColor(customPrimary, dir); applyTheme(); return; }
-            if (idx++ == menuSelection) { customDanger = adjustColor(customDanger, dir); applyTheme(); return; }
-            if (idx++ == menuSelection) { customSuccess = adjustColor(customSuccess, dir); applyTheme(); return; }
-            if (idx++ == menuSelection) { customWarning = adjustColor(customWarning, dir); applyTheme(); return; }
-            if (idx++ == menuSelection) { customTarget1 = adjustColor(customTarget1, dir); applyTheme(); return; }
-            if (idx++ == menuSelection) { customTarget2 = adjustColor(customTarget2, dir); applyTheme(); return; }
-            if (idx++ == menuSelection) { customTarget3 = adjustColor(customTarget3, dir); applyTheme(); return; }
         }
     }
 };
