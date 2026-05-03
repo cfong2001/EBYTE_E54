@@ -58,3 +58,7 @@
 ## 2024-05-03 - Hardware Navigation Buttons
 **Learning:** Secondary hardware buttons can dramatically improve rotary encoder UIs by providing a dedicated 'Back' or 'Escape' function during menu navigation, reducing the need to scroll to an on-screen back option.
 **Action:** When integrating auxiliary buttons, map them to context-aware actions like cycling themes in the main view and canceling/exiting when in edit or menu states.
+
+## 2024-05-18 - Precision Brutalism Web UI
+**Learning:** Designing lightweight web UIs hosted directly on microcontrollers benefits immensely from a "Precision Brutalism" approach. Relying on strict grid lines, high contrast borders, CSS shapes (border-radius: 50% for blips), and a minimal color palette (cyan, red, yellow on dark grey) ensures fast parsing without relying on external assets or emojis, which can render unpredictably on different client devices.
+**Action:** Use CSS-only shapes, raw HTML grids, and hardcoded inline styles tailored for high-contrast "tactical" reading in future embedded web interfaces to balance visual impact with constrained microcontroller storage.
