@@ -91,12 +91,16 @@ void radarTask(void *pvParameters) {
                 }
                 ui.updateRadarData(compensatedTargets, motionComp.isAnchorValid(), motionComp.getAnchorX(), motionComp.getAnchorY());
                 bcastServer.updateZones(ui.zoneManager.getActiveWarnZone(), ui.zoneManager.getActiveDeadZone());
-                bcastServer.updateData(compensatedTargets);
 
+                float vX[3] = {0,0,0};
+                float vY[3] = {0,0,0};
                 for (int i = 0; i < 3; i++) {
-                    ui.setTargetMotion(i, motionComp.getTargetVelX(i), motionComp.getTargetVelY(i),
+                    vX[i] = motionComp.getTargetVelX(i);
+                    vY[i] = motionComp.getTargetVelY(i);
+                    ui.setTargetMotion(i, vX[i], vY[i],
                                           motionComp.getTargetAccX(i), motionComp.getTargetAccY(i));
                 }
+                bcastServer.updateData(compensatedTargets, vX, vY);
                 xSemaphoreGive(dataMutex);
             }
         }

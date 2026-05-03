@@ -10,6 +10,8 @@ BroadcastServer::BroadcastServer() : server(80), isRunning(false) {
         currentTargets[i].y = 0;
         currentTargets[i].speed = 0;
         currentTargets[i].resolution = 0;
+        currentVelX[i] = 0.0f;
+        currentVelY[i] = 0.0f;
     }
 }
 
@@ -33,10 +35,12 @@ void BroadcastServer::stop() {
     isRunning = false;
 }
 
-void BroadcastServer::updateData(const RadarTarget targets[3]) {
+void BroadcastServer::updateData(const RadarTarget targets[3], float velX[3], float velY[3]) {
     if (xSemaphoreTake(bcastMutex, pdMS_TO_TICKS(10))) {
         for (int i = 0; i < 3; i++) {
             currentTargets[i] = targets[i];
+            currentVelX[i] = velX[i];
+            currentVelY[i] = velY[i];
         }
         xSemaphoreGive(bcastMutex);
     }
@@ -171,6 +175,40 @@ void BroadcastServer::setupRoutes() {
             svg.appendChild(path);
         }
 
+
+        function drawArrow(svg, id, cx, cy, vx, vy, color) {
+            // Speed vector scale (cm/s -> UI px). Arbitrary scale factor for visuals.
+            const scale = 2.0;
+            const endX = cx + (vx * scale);
+            const endY = cy - (vy * scale); // Invert Y for screen coords
+
+            // Vector magnitude
+            const mag = Math.sqrt(vx*vx + vy*vy);
+            if (mag < 2) return; // Don't draw if too slow
+
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", cx);
+            line.setAttribute("y1", cy);
+            line.setAttribute("x2", endX);
+            line.setAttribute("y2", endY);
+            line.setAttribute("stroke", color);
+            line.setAttribute("stroke-width", "2");
+            line.setAttribute("stroke-dasharray", "4,2");
+            svg.appendChild(line);
+
+            // Arrow head
+            const angle = Math.atan2(-vy, vx);
+            const headlen = 6;
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            const x1 = endX - headlen * Math.cos(angle - Math.PI / 6);
+            const y1 = endY - headlen * Math.sin(angle - Math.PI / 6);
+            const x2 = endX - headlen * Math.cos(angle + Math.PI / 6);
+            const y2 = endY - headlen * Math.sin(angle + Math.PI / 6);
+            path.setAttribute("d", `M ${endX} ${endY} L ${x1} ${y1} L ${x2} ${y2} Z`);
+            path.setAttribute("fill", color);
+            svg.appendChild(path);
+        }
+
         function updateData() {
             fetch('/api/data')
                 .then(response => response.json())
@@ -210,7 +248,15 @@ void BroadcastServer::setupRoutes() {
                             dot.style.top = yPct + '%';
                             dot.style.display = 'block';
 
+
+                            let xPx = (xPct / 100) * 300;
+                            let yPx = (yPct / 100) * 300;
+                            if (t.velX !== undefined && t.velY !== undefined) {
+                                drawArrow(svg, i, xPx, yPx, t.velX, t.velY, COLORS[i]);
+                            }
+
                             html += `<div class="target active-${i}">
+
                                 <div class="target-header">
                                     <span style="color: ${COLORS[i]}">[ACT] ${IDS[i]}</span>
                                 </div>
@@ -256,6 +302,8 @@ void BroadcastServer::setupRoutes() {
                 tObj["y"] = currentTargets[i].y;
                 tObj["speed"] = currentTargets[i].speed;
                 tObj["resolution"] = currentTargets[i].resolution;
+                tObj["velX"] = currentVelX[i];
+                tObj["velY"] = currentVelY[i];
             }
             JsonObject wObj = doc["warnZone"].to<JsonObject>();
             wObj["minDist"] = currentWarnZone.minDist;

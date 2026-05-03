@@ -62,3 +62,7 @@
 ## 2024-05-18 - Precision Brutalism Web UI
 **Learning:** Designing lightweight web UIs hosted directly on microcontrollers benefits immensely from a "Precision Brutalism" approach. Relying on strict grid lines, high contrast borders, CSS shapes (border-radius: 50% for blips), and a minimal color palette (cyan, red, yellow on dark grey) ensures fast parsing without relying on external assets or emojis, which can render unpredictably on different client devices.
 **Action:** Use CSS-only shapes, raw HTML grids, and hardcoded inline styles tailored for high-contrast "tactical" reading in future embedded web interfaces to balance visual impact with constrained microcontroller storage.
+
+## 2024-05-18 - SVG Canvas for Dynamic IoT Visualization
+**Learning:** For rendering complex dynamic data (such as radar exclusion zones or target velocity vectors) on a microcontroller web interface, embedding a raw SVG canvas directly into the HTML string and manipulating its DOM via vanilla JavaScript is vastly superior to importing heavy charting libraries or using Canvas API. SVGs scale perfectly without pixelation and do not bloat the initial payload size.
+**Action:** Default to raw SVG manipulation via `document.createElementNS` in lightweight embedded web servers when visual aids like lines, arcs, or shapes are necessary.
