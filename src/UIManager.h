@@ -58,6 +58,7 @@ public:
     Preferences preferences;
     bool devRiskAccepted = false;
     bool motionCompEnabled = true;
+    int uiTextSize = 1;
 
     UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
         state = STATE_BOOT;
@@ -116,6 +117,7 @@ public:
         simulatedSweep = preferences.getBool("simSwp", false);
 
         telemetryMode = (TelemetryMode)preferences.getInt("tData", TELEMETRY_OFF);
+        uiTextSize = preferences.getInt("textSize", 1);
         sensitivity = preferences.getInt("sens", 5);
         locationAveraging = preferences.getInt("locAvg", 5);
         interpolationAmount = (float)preferences.getInt("interp", 5) / 10.0f;
@@ -133,6 +135,7 @@ public:
         preferences.putBool("simSwp", simulatedSweep);
 
         preferences.putInt("tData", telemetryMode);
+        preferences.putInt("textSize", uiTextSize);
         preferences.putInt("sens", sensitivity);
         preferences.putInt("locAvg", locationAveraging);
         int interDisp = (int)(interpolationAmount * 10.0f + 0.5f);
@@ -246,7 +249,7 @@ public:
     void drawGuideScreen() {
         sprite.fillSprite(themeBg);
         sprite.setTextColor(themePrimary, themeBg);
-        sprite.setTextSize(1);
+        sprite.setTextSize(uiTextSize);
         sprite.setCursor(10, 10);
 
         if (guidePage == 0) {
@@ -346,7 +349,7 @@ public:
             float pulse = (sinf(millis() / 800.0f) + 1.0f) * 0.5f;
             uint16_t emptyColor = sprite.alphaBlend((uint8_t)(pulse * 150.0f) + 50, themePrimary, themeBg);
             sprite.setTextColor(emptyColor, themeBg);
-            sprite.setTextSize(1);
+            sprite.setTextSize(uiTextSize);
             sprite.setCursor(85, 116);
             sprite.print("NO CONTACTS");
         }
@@ -597,7 +600,7 @@ public:
         sprite.drawLine(0, 224, 240, 224, sprite.alphaBlend(100, themePrimary, themeBg));
 
         sprite.setTextColor(themePrimary, themeBg);
-        sprite.setTextSize(1);
+        sprite.setTextSize(uiTextSize);
         sprite.setCursor(5, 4);
         sprite.print("((o)) RADAR_V1.0");
 
@@ -711,7 +714,7 @@ private:
         }
 
         sprite.setTextColor(themePrimary, themeBg);
-        sprite.setTextSize(1);
+        sprite.setTextSize(uiTextSize);
         if (elapsed < 300) sprite.setCursor(100, 120), sprite.print("INIT");
         else if (elapsed < 600) sprite.setCursor(90, 120), sprite.print("CALIBRATING");
         else if (elapsed < 1000) sprite.setCursor(95, 120), sprite.print("SCANNING...");
@@ -811,9 +814,10 @@ private:
         String iconStr = (targetIcon == ICON_CIRCLE) ? "CIRCLE" :
                          (targetIcon == ICON_SQUARE) ? "SQUARE" :
                          (targetIcon == ICON_TRIANGLE) ? "TRIANGLE" : "SMART";
-        items[numItems++] = "< Back";
+        items[numItems++] = "<- Back";
         items[numItems++] = "Theme: " + themeStr;
         items[numItems++] = "Icon: " + iconStr;
+        items[numItems++] = "Text Size: " + String(uiTextSize);
         items[numItems++] = "Sweep Line: " + String(sweepLineEnabled ? "ON" : "OFF");
         items[numItems++] = "Sweep Mode: " + String(simulatedSweep ? "SIMULATED" : "VISUAL");
         items[numItems++] = "Trails: " + String(trailLength);
@@ -835,7 +839,7 @@ private:
                          (zoneManager.getDeadPreset() == ZONE_MEDIUM) ? "MED" :
                          (zoneManager.getDeadPreset() == ZONE_FAR) ? "FAR" : "CUSTOM";
 
-        items[numItems++] = "< Back";
+        items[numItems++] = "<- Back";
         items[numItems++] = "Warn Zone: " + warnStr;
         if (zoneManager.getWarnPreset() == ZONE_CUSTOM) {
             items[numItems++] = " W-MinD: " + String(zoneManager.getWarnCustom().minDist);
@@ -867,7 +871,7 @@ private:
                           (telemetryMode == TELEMETRY_RAW) ? "RAW X/Y" : "ALL";
         int interDisp = (int)(interpolationAmount * 10.0f + 0.5f);
 
-        items[numItems++] = "< Back";
+        items[numItems++] = "<- Back";
         items[numItems++] = "Telemetry: " + tDataStr;
         items[numItems++] = "Sensitivity: " + String(sensitivity);
         items[numItems++] = "Loc Avg: " + String(locationAveraging);
@@ -879,7 +883,7 @@ private:
         sprite.setTextColor(themeDanger, themeBg);
         sprite.setCursor(15, 5); sprite.print("--- DEV OPTIONS ---");
 
-        items[numItems++] = "< Back";
+        items[numItems++] = "<- Back";
         items[numItems++] = "Accept Risk? " + String(devRiskAccepted ? "YES" : "NO");
         if (devRiskAccepted) {
             items[numItems++] = "Motion Comp: " + String(motionCompEnabled ? "ON" : "OFF");
@@ -933,7 +937,7 @@ private:
             sprite.fillRect(10, 140, 220, 60, themeBg);
             sprite.drawRect(10, 140, 220, 60, themeWarning);
             sprite.setTextColor(TFT_WHITE, themeBg);
-            sprite.setTextSize(1);
+            sprite.setTextSize(uiTextSize);
             sprite.setCursor(15, 145);
             sprite.print("INFO: ");
             sprite.setCursor(15, 160);
@@ -963,7 +967,7 @@ private:
         sprite.drawLine(0, menuOverlayY, 240, menuOverlayY, themePrimary);
         if (menuOverlayY < 200) return;
 
-        sprite.setTextSize(1);
+        sprite.setTextSize(uiTextSize);
         static String items[24];
         int numItems = 0;
 
@@ -1000,7 +1004,7 @@ private:
     }
 
     void executeMenuEdit(int dir) {
-        int idx = 1; // 0 is always < Back
+        int idx = 1; // 0 is always <- Back
 
         if (activePage == PAGE_VISUALS) {
             if (idx++ == menuSelection) {
@@ -1018,6 +1022,7 @@ private:
                 targetIcon = (TargetIcon)ic;
                 return;
             }
+            if (idx++ == menuSelection) { uiTextSize += dir; if (uiTextSize < 1) uiTextSize = 1; if (uiTextSize > 2) uiTextSize = 2; return; }
             if (idx++ == menuSelection) { sweepLineEnabled = !sweepLineEnabled; return; }
             if (idx++ == menuSelection) { simulatedSweep = !simulatedSweep; return; }
             if (idx++ == menuSelection) { trailLength += dir; if (trailLength < 0) trailLength = 0; if (trailLength > 10) trailLength = 10; return; }
