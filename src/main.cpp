@@ -7,12 +7,14 @@
 #include "MotionCompensation.h"
 #include "UIManager.h"
 #include "PerformanceMonitor.h"
+#include "BroadcastServer.h"
 
 // Hardware instances
 HardwareSerial radarUART(1);
 E54_Radar radar(radarUART);
 MotionCompensation motionComp;
 PerformanceMonitor perfMonitor;
+BroadcastServer bcastServer;
 
 TFT_eSPI tft = TFT_eSPI();
 UIManager ui(tft);
@@ -88,6 +90,7 @@ void radarTask(void *pvParameters) {
                     }
                 }
                 ui.updateRadarData(compensatedTargets, motionComp.isAnchorValid(), motionComp.getAnchorX(), motionComp.getAnchorY());
+                bcastServer.updateData(compensatedTargets);
 
                 for (int i = 0; i < 3; i++) {
                     ui.setTargetMotion(i, motionComp.getTargetVelX(i), motionComp.getTargetVelY(i),
@@ -117,6 +120,11 @@ void setup() {
 
     // Initialize UI
     ui.init();
+
+    // Initialize Broadcast AP if enabled
+    if (ui.broadcastModeEnabled) {
+        bcastServer.begin();
+    }
 
     // Initialize inputs
     attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_A), checkPosition, CHANGE);
@@ -158,6 +166,17 @@ void loop() {
     if (act == 1) { // Reset Tracking
         motionComp.forceReset();
         Serial.println("Motion Compensation Tracking Reset.");
+    }
+
+    // Handle Broadcast AP Toggles
+    static bool lastBroadcastMode = ui.broadcastModeEnabled;
+    if (ui.broadcastModeEnabled != lastBroadcastMode) {
+        lastBroadcastMode = ui.broadcastModeEnabled;
+        if (ui.broadcastModeEnabled) {
+            bcastServer.begin();
+        } else {
+            bcastServer.stop();
+        }
     }
 
 // Apply Settings

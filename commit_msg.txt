@@ -1,6 +1,0 @@
-feat: Fix compilation and cleanly integrate modular FreeRTOS CPU usage and memory profiler
-
-* Implemented `PerformanceMonitor` class mapping a background telemetry task to Core 1 via `xTaskCreatePinnedToCore` using `tskNO_AFFINITY`.
-* Handled the missing Trace Facility (uxTaskGetSystemState) in default esp32-wrover-ie SDK by gracefully falling back to standard ESP memory metrics via `getFreeHeap()` and `getMaxAllocHeap()`.
-* Ensured task modularity, completely decoupled from `UIManager.h` UI render loops, allowing for robust continuous metrics.
-* Fixed syntax bracket errors in `UIManager.h` that had previously broken `esp32-wrover-ie` and `esp32-s3` builds.

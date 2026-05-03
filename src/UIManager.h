@@ -78,6 +78,7 @@ public:
     int uiTextSize = 1;
     DisplayRotation displayRotation = ROTATION_UP;
     MenuPosition menuPosition = MENU_POS_CENTER;
+    bool broadcastModeEnabled = false;
 
     UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
         state = STATE_BOOT;
@@ -139,6 +140,7 @@ public:
         simulatedSweep = preferences.getBool("simSwp", false);
         displayRotation = (DisplayRotation)preferences.getInt("rot", ROTATION_UP);
         menuPosition = (MenuPosition)preferences.getInt("menuP", MENU_POS_CENTER);
+        broadcastModeEnabled = preferences.getBool("bcast", false);
 
         telemetryMode = (TelemetryMode)preferences.getInt("tData", TELEMETRY_OFF);
         uiTextSize = preferences.getInt("textSize", 1);
@@ -159,6 +161,7 @@ public:
         preferences.putBool("simSwp", simulatedSweep);
         preferences.putInt("rot", displayRotation);
         preferences.putInt("menuP", menuPosition);
+        preferences.putBool("bcast", broadcastModeEnabled);
 
         preferences.putInt("tData", telemetryMode);
         preferences.putInt("textSize", uiTextSize);
@@ -955,6 +958,7 @@ private:
         if (devRiskAccepted) {
             items[numItems++] = "Motion Comp: " + String(motionCompEnabled ? "ON" : "OFF");
             items[numItems++] = "Passthrough: " + String(passthroughMode ? "ON" : "OFF");
+            items[numItems++] = "Broadcast AP: " + String(broadcastModeEnabled ? "ON" : "OFF");
             items[numItems++] = "[ FACTORY RESET ]";
         }
     }
@@ -1203,6 +1207,7 @@ private:
             if (devRiskAccepted) {
                 if (idx++ == menuSelection) { motionCompEnabled = !motionCompEnabled; return; }
                 if (idx++ == menuSelection) { passthroughMode = !passthroughMode; return; }
+                if (idx++ == menuSelection) { broadcastModeEnabled = !broadcastModeEnabled; return; }
                 if (idx++ == menuSelection) {
                     sprite.fillSprite(themeDanger);
                     sprite.setTextColor(TFT_WHITE);
