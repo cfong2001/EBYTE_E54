@@ -206,12 +206,12 @@ public:
 
     void handleButtonLongPress() {
         if (state == STATE_MENU) {
-            showTooltip = true;
+            showTooltip = !showTooltip;
         }
     }
 
     void handleButton() {
-
+        showTooltip = false; // Reset tooltip on any interaction
         if (state == STATE_RADAR_VIEW) {
             state = STATE_MENU;
             activePage = PAGE_MAIN;
@@ -653,11 +653,11 @@ public:
 
         sprite.setCursor(5, h - 12);
         if (state == STATE_RADAR_VIEW) {
-            sprite.print("[VIEW]  MENU");
+            sprite.print("RADAR [MENU]");
         } else if (state == STATE_MENU_EDIT) {
-            sprite.print(" EDIT  [SAVE]");
+            sprite.print("EDIT [SAVE]");
         } else {
-            sprite.print(" VIEW  [MENU]");
+            sprite.print("MENU [SELECT] (HOLD: INFO)");
         }
 
         if (theme != THEME_MINIMAL) {
