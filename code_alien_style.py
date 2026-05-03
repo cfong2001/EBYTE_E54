@@ -119,20 +119,21 @@ def draw_radar_screen():
     
     # Draw all targets
     active_targets = 0
-    closest_dist = 999.0
+    closest_dist_sq = 998001000000.0  # 999m squared
     
     for target_data in targets:
         x_mm, y_mm, age, t_idx = target_data
         
         # Calculate polar coordinates
-        dist_mm = int(math.sqrt(x_mm * x_mm + y_mm * y_mm))
-        dist_m = dist_mm / 1000.0
+        dist_sq = x_mm * x_mm + y_mm * y_mm
         
-        if dist_m < closest_dist and age < 5:
-            closest_dist = dist_m
-        
+        if age < 5 and dist_sq < closest_dist_sq:
+            closest_dist_sq = dist_sq
+
         # Only draw if in range
-        if dist_mm <= MAX_RANGE:
+        # Compare squared distances to avoid expensive math.sqrt() in hot loop
+        if dist_sq <= MAX_RANGE * MAX_RANGE:
+            dist_mm = int(math.sqrt(dist_sq))
             active_targets += 1
             
             # Calculate angle (0° = up, clockwise)
@@ -158,6 +159,7 @@ def draw_radar_screen():
     if active_targets == 0:
         oled.text("NO CONTACT", 25, 56, 1)
     else:
+        closest_dist = math.sqrt(closest_dist_sq) / 1000.0
         # Show closest target distance
         oled.text("%.1fm [%d]" % (closest_dist, active_targets), 40, 56, 1)
     
