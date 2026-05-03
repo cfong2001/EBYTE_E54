@@ -58,3 +58,7 @@
 ## 2024-05-03 - Hardware Navigation Buttons
 **Learning:** Secondary hardware buttons can dramatically improve rotary encoder UIs by providing a dedicated 'Back' or 'Escape' function during menu navigation, reducing the need to scroll to an on-screen back option.
 **Action:** When integrating auxiliary buttons, map them to context-aware actions like cycling themes in the main view and canceling/exiting when in edit or menu states.
+
+## 2026-05-20 - [Menu Categorization & Intuitive Flow]
+**Learning:** Having excessive top-level menu categories (like splitting "VISUALS" and "DISPLAY POS") increases cognitive load and navigation time.
+**Action:** Consolidate related settings under logical groups (e.g. merging Display Orientation and Menu Position under the existing Visual Settings page). When reorganizing C++ array-based menus, ensure index mappings across population functions (`populateMainMenu`), click handlers (`handleMenuClick`), and edit functions (`executeMenuEdit`) are perfectly synchronized to avoid inaccessible options.
