@@ -51,6 +51,10 @@ void handleButtonPress() {
     ui.handleButton();
 }
 
+void handleButtonLongPressStart() {
+    ui.handleButtonLongPress();
+}
+
 void radarTask(void *pvParameters) {
     while (1) {
         if (radar.update()) {
@@ -61,7 +65,13 @@ void radarTask(void *pvParameters) {
                 ui.zoneManager.updateFuzzing(activeArr, xArr, yArr);
 
                 RadarTarget compensatedTargets[3];
-                motionComp.process(radar.targets, compensatedTargets);
+                if (ui.motionCompEnabled) {
+                    motionComp.process(radar.targets, compensatedTargets);
+                } else {
+                    for(int i=0; i<3; i++) {
+                        compensatedTargets[i] = radar.targets[i];
+                    }
+                }
 
                 for(int i=0; i<3; i++) {
                     if (compensatedTargets[i].active && ui.zoneManager.isDead(compensatedTargets[i].x, compensatedTargets[i].y)) {
@@ -98,6 +108,7 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_A), checkPosition, CHANGE);
     attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_B), checkPosition, CHANGE);
 button.attachClick(handleButtonPress);
+    button.attachLongPressStart(handleButtonLongPressStart);
 
     xTaskCreatePinnedToCore(
         radarTask,   /* Task function. */

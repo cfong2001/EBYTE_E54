@@ -20,6 +20,8 @@ struct RadialZone {
     int maxAngle;  // degrees
 };
 
+#include <Preferences.h>
+
 class ZoneManager {
 public:
     Preferences preferences;
