@@ -58,6 +58,7 @@ public:
     Preferences preferences;
     bool devRiskAccepted = false;
     bool motionCompEnabled = true;
+    bool passthroughMode = false;
     int uiTextSize = 1;
 
     UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
@@ -887,6 +888,7 @@ private:
         items[numItems++] = "Accept Risk? " + String(devRiskAccepted ? "YES" : "NO");
         if (devRiskAccepted) {
             items[numItems++] = "Motion Comp: " + String(motionCompEnabled ? "ON" : "OFF");
+            items[numItems++] = "Passthrough: " + String(passthroughMode ? "ON" : "OFF");
             items[numItems++] = "[ FACTORY RESET ]";
         }
     }
@@ -1073,6 +1075,7 @@ private:
             if (idx++ == menuSelection) { devRiskAccepted = !devRiskAccepted; return; }
             if (devRiskAccepted) {
                 if (idx++ == menuSelection) { motionCompEnabled = !motionCompEnabled; return; }
+                if (idx++ == menuSelection) { passthroughMode = !passthroughMode; return; }
                 if (idx++ == menuSelection) {
                     sprite.fillSprite(themeDanger);
                     sprite.setTextColor(TFT_WHITE);
