@@ -24,7 +24,7 @@ public:
         bool updated = false;
         while (radarSerial.available()) {
             uint8_t b = radarSerial.read();
-            if (passthroughMode) {
+            if (passthroughMode && Serial) {
                 Serial.write(b);
             }
             if (processByte(b)) {

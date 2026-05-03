@@ -149,7 +149,7 @@ void loop() {
 
     radar.passthroughMode = ui.passthroughMode;
 
-    if (ui.passthroughMode) {
+    if (ui.passthroughMode && Serial) {
         while (Serial.available()) {
             radarUART.write(Serial.read());
         }
