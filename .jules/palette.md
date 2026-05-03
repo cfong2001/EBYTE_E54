@@ -45,3 +45,9 @@
 ## 2024-05-03 - Menu Back button and Customizable UI Text Size
 **Learning:** Raw string manipulation (e.g., using just `<` for a back arrow) isn't as polished or readable on tiny screens as explicitly forming an arrow `<-`, and hardcoding standard text sizes prevents users with varying setups from properly reading UI menus. TFT fonts lack standard Unicode glyphs without extra heavy library dependencies, so ASCII composite arrows are best for compatibility.
 **Action:** Always offer custom scaling (`uiTextSize` parameter bounded to practical limits like 1-2) mapped directly to hardware rendering functions, while saving preferences dynamically. Use `<-` for backward arrows when Unicode coverage on TFTs isn't guaranteed.
+## 2026-05-03 - Added display rotation and positioning
+**Learning:** Hardcoded coordinates (like 120 and 240) in UI drawing code break when switching orientations or moving between square and rectangular screen profiles.
+**Action:** Replaced hardcoded boundaries and center points with dynamic math relying on `getScreenDimensions()` (e.g. `w/2`, `h`). Implemented flexible offset logic based on enum settings.
+## 2026-05-03 - Added display rotation and positioning
+**Learning:** Hardcoded coordinates (like 120 and 240) in UI drawing code break when switching orientations or moving between square and rectangular screen profiles.
+**Action:** Replaced hardcoded boundaries and center points with dynamic math relying on `getScreenDimensions()` (e.g. `w/2`, `h`). Implemented flexible offset logic based on enum settings.
