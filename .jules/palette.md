@@ -29,3 +29,16 @@
 ## 2026-05-19 - [Progressive Visual Feedback with sinf()]
 **Learning:** Hard-coded binary blinking loops (e.g. alternating states based on `millis() % 2 == 0`) create visual fatigue. In embedded environments, utilizing single-precision math `sinf` combined with `millis()` creates highly polished, smooth interpolation of values like scale, alpha, and blending ratio.
 **Action:** Replace abrupt toggle UI elements with smooth sinewave oscillators. Example: `float pulse = (sinf(millis() / 150.0f) + 1.0f) * 0.5f;` to generate a smooth 0-1 scalar, and apply it to `sprite.alphaBlend` for color transitions and radius offsets for pulsing animations. Ensure you utilize `sinf` rather than double-precision `sin` to avoid computational overhead on the ESP32.
+## YYYY-MM-DD - Dynamic Custom Theme Colors
+**What:** Implemented dynamic target coloring tied directly to the current theme/palette rather than relying on hardcoded overrides.
+**Why:** Prevented text and icon colors from clashing or becoming invisible when the background color changes through theming.
+**Before/After:** Before: 'Target 1' was always orange. After: 'Target 1' checks the active theme (e.g. `themeTarget1`), adapting dynamically.
+**Accessibility:** Improved color contrast flexibility and user-facing choices. Added rotary-stepper palette selection to avoid tedious hex code inputs via an encoder.
+
+## 2026-05-02 - Visualizing UI Edits
+**What:** Added visual previews of radar zones during creation in the settings menu.
+**Why:** To reduce user uncertainty, any visual parameters edited via a rotary UI should be previewed live on the screen behind the menu overlay. Alpha-blending the previews clarifies that they are placeholders and not live active targets.
+
+## 2026-05-20 - Contextual Empty States & Dynamic Hints
+**Learning:** Hardcoded "VIEW [MENU]" hints create friction when a user is in an edit state (like `STATE_MENU_EDIT`), leading to errors or confusion about what pushing the button does. Furthermore, an entirely blank radar screen when no targets are active can cause a user to question if the device is functioning or frozen.
+**Action:** When working on hardware interfaces, implement pulsing empty states (e.g., "NO CONTACTS") using smooth `sinf` blending to reassure users the system is actively scanning but finding nothing. Simultaneously, ensure hardware button label prompts on the screen dynamically update their text (e.g., "EDIT [SAVE]") to precisely match the context of the user's current interaction mode.
