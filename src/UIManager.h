@@ -20,7 +20,9 @@ enum AppState {
     STATE_RADAR_VIEW,
     STATE_MENU,
     STATE_MENU_EDIT,
-    STATE_GUIDE
+    STATE_GUIDE,
+    STATE_IMPORTING,
+    STATE_FALLBACK
 };
 
 enum MenuPage {
@@ -187,7 +189,12 @@ public:
 
     void handleButton() {
 
-        if (state == STATE_RADAR_VIEW) {
+        if (state == STATE_IMPORTING) {
+            state = STATE_MENU; // Cancel import
+        } else if (state == STATE_FALLBACK) {
+            actionRequested = 3; // Confirm fallback
+            state = STATE_RADAR_VIEW;
+        } else if (state == STATE_RADAR_VIEW) {
             state = STATE_MENU;
             activePage = PAGE_MAIN;
             menuSelection = 0;
@@ -359,6 +366,22 @@ public:
 
         if (state == STATE_MENU || state == STATE_MENU_EDIT) {
             drawMenuOverlay();
+        } else if (state == STATE_IMPORTING) {
+            sprite.fillRect(10, 100, 220, 40, themeWarning);
+            sprite.setTextColor(themeBg, themeWarning);
+            sprite.setCursor(20, 110);
+            sprite.print("WAITING FOR CONFIG...");
+            sprite.setCursor(20, 125);
+            sprite.print("[PRESS BUTTON TO CANCEL]");
+        } else if (state == STATE_FALLBACK) {
+            sprite.fillRect(10, 90, 220, 60, themeDanger);
+            sprite.setTextColor(TFT_WHITE, themeDanger);
+            sprite.setCursor(20, 100);
+            sprite.print("NEW CONFIG LOADED");
+            sprite.setCursor(20, 115);
+            sprite.print("PRESS BUTTON TO KEEP");
+            sprite.setCursor(20, 130);
+            sprite.print("OR WAIT TO REVERT...");
         }
 
         tft.startWrite();
@@ -633,6 +656,7 @@ public:
 private:
     TFT_eSPI& tft;
     TFT_eSprite sprite;
+public:
     AppState state;
     MenuPage activePage;
     int menuSelection;
@@ -890,6 +914,8 @@ private:
             items[numItems++] = "Motion Comp: " + String(motionCompEnabled ? "ON" : "OFF");
             items[numItems++] = "Passthrough: " + String(passthroughMode ? "ON" : "OFF");
             items[numItems++] = "[ FACTORY RESET ]";
+            items[numItems++] = "[ EXPORT CONFIG ]";
+            items[numItems++] = "[ IMPORT CONFIG ]";
         }
     }
 
@@ -996,6 +1022,8 @@ private:
         }
         else if (activePage == PAGE_DEV) {
             if (menuSelection == 0) { activePage = PAGE_MAIN; menuSelection = 0; }
+            else if (menuSelection == maxMenuSelection - 1 && devRiskAccepted) { actionRequested = 2; state = STATE_RADAR_VIEW; }
+            else if (menuSelection == maxMenuSelection && devRiskAccepted) { state = STATE_IMPORTING; }
             else { state = STATE_MENU_EDIT; }
         }
         else if (activePage == PAGE_DATA) {
@@ -1087,6 +1115,8 @@ private:
                     ESP.restart();
                     return;
                 }
+                idx++; // EXPORT
+                idx++; // IMPORT
             }
         }
         else if (activePage == PAGE_DATA) {

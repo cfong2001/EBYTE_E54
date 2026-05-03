@@ -7,6 +7,9 @@
 #include "MotionCompensation.h"
 #include "UIManager.h"
 #include "PerformanceMonitor.h"
+#include "ConfigManager.h"
+
+ConfigManager configManager;
 
 // Hardware instances
 HardwareSerial radarUART(1);
@@ -91,10 +94,19 @@ void radarTask(void *pvParameters) {
     }
 }
 
+unsigned long fallbackStart = 0;
+String serialBuffer = "";
+
 void setup() {
     dataMutex = xSemaphoreCreateMutex();
     Serial.begin(115200);
     Serial.println("System starting...");
+
+    // Fallback logic
+    if (configManager.checkFallback()) {
+        ui.state = STATE_FALLBACK;
+        fallbackStart = millis();
+    }
 
     // Initialize radar
     radar.begin(RADAR_RX_PIN, RADAR_TX_PIN);
@@ -107,7 +119,7 @@ void setup() {
     // Initialize inputs
     attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_A), checkPosition, CHANGE);
     attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_B), checkPosition, CHANGE);
-button.attachClick(handleButtonPress);
+    button.attachClick(handleButtonPress);
     button.attachLongPressStart(handleButtonLongPressStart);
 
     xTaskCreatePinnedToCore(
@@ -142,6 +154,29 @@ void loop() {
     if (act == 1) { // Reset Tracking
         motionComp.forceReset();
         Serial.println("Motion Compensation Tracking Reset.");
+    } else if (act == 2) {
+        configManager.exportConfig(ui);
+    } else if (act == 3) {
+        // Confirmed fallback
+        Serial.println("New config confirmed.");
+    }
+
+    if (ui.state == STATE_IMPORTING) {
+        while (Serial.available()) {
+            char c = Serial.read();
+            serialBuffer += c;
+            if (serialBuffer.endsWith("}")) {
+                configManager.importConfig(serialBuffer);
+                serialBuffer = "";
+            }
+        }
+    } else if (ui.state == STATE_FALLBACK) {
+        if (millis() - fallbackStart > 15000) { // 15s timeout
+            Serial.println("Fallback timeout. Reverting...");
+            configManager.restoreFromFallback();
+            delay(1000);
+            ESP.restart();
+        }
     }
 
 // Apply Settings
