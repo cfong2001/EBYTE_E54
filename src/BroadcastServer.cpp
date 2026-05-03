@@ -11,10 +11,10 @@ BroadcastServer::BroadcastServer() : server(80), isRunning(false) {
     }
 }
 
-void BroadcastServer::begin() {
+void BroadcastServer::begin(String apName) {
     if (isRunning) return;
 
-    WiFi.softAP("ESP32-Radar-Tracker", ""); // Open AP
+    WiFi.softAP(apName.c_str(), ""); // Open AP
     IPAddress IP = WiFi.softAPIP();
     Serial.print("AP IP address: ");
     Serial.println(IP);
@@ -66,6 +66,9 @@ void BroadcastServer::setupRoutes() {
         .grid-circle-2 { position: absolute; inset: 25%; border: 1px solid rgba(0, 219, 233, 0.15); border-radius: 50%; pointer-events: none; }
 
         .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
             position: absolute;
             width: 12px; height: 12px;
             border-radius: 50%;
@@ -117,6 +120,14 @@ void BroadcastServer::setupRoutes() {
             <div id="dot-1" class="dot" style="display:none;"></div>
             <div id="dot-2" class="dot" style="display:none;"></div>
         </div>
+    <h1>Radar Tracker</h1>
+
+    <div id="radar-container">
+        <div class="grid-y"></div>
+        <div class="grid-x"></div>
+        <div id="dot-0" class="dot" style="display:none; background-color: #ffb4ab;"></div>
+        <div id="dot-1" class="dot" style="display:none; background-color: #2ae500;"></div>
+        <div id="dot-2" class="dot" style="display:none; background-color: #ffb950;"></div>
     </div>
 
     <div class="info-panel" id="data">Loading feed...</div>

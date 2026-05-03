@@ -10,7 +10,7 @@
 class BroadcastServer {
 public:
     BroadcastServer();
-    void begin();
+    void begin(String apName = "ESP32-Radar-Tracker");
     void stop();
     void updateData(const RadarTarget targets[3]);
 

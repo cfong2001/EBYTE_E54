@@ -123,7 +123,7 @@ void setup() {
 
     // Initialize Broadcast AP if enabled
     if (ui.broadcastModeEnabled) {
-        bcastServer.begin();
+        bcastServer.begin(ui.getApNameStr());
     }
 
     // Initialize inputs
@@ -170,10 +170,15 @@ void loop() {
 
     // Handle Broadcast AP Toggles
     static bool lastBroadcastMode = ui.broadcastModeEnabled;
-    if (ui.broadcastModeEnabled != lastBroadcastMode) {
+    static ApNameMode lastApNameMode = ui.apNameMode;
+    if (ui.broadcastModeEnabled != lastBroadcastMode || ui.apNameMode != lastApNameMode) {
+        if (ui.broadcastModeEnabled && lastBroadcastMode && ui.apNameMode != lastApNameMode) {
+            bcastServer.stop();
+        }
         lastBroadcastMode = ui.broadcastModeEnabled;
+        lastApNameMode = ui.apNameMode;
         if (ui.broadcastModeEnabled) {
-            bcastServer.begin();
+            bcastServer.begin(ui.getApNameStr());
         } else {
             bcastServer.stop();
         }
