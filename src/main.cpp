@@ -31,11 +31,11 @@ SemaphoreHandle_t dataMutex;
 #endif
 
 #ifndef PIN_BUTTON
-#define PIN_BUTTON    27
+#define PIN_BUTTON    32
 #endif
 
 #ifndef PIN_KEY0
-#define PIN_KEY0      0
+#define PIN_KEY0      33
 #endif
 
 #ifndef RADAR_RX_PIN
@@ -63,7 +63,7 @@ void handleButtonLongPressStart() {
 }
 
 void handleKey0Press() {
-    Serial.println("KEY0 pressed.");
+    ui.handleExtraButton();
 }
 
 void radarTask(void *pvParameters) {

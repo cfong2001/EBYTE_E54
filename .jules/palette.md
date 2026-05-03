@@ -54,3 +54,7 @@
 ## 2026-05-20 - Contextual Empty States & Dynamic Hints (Extended)
 **Learning:** Hardcoded "pseudo-tab-bar" labels that don't accurately reflect hardware button actions cause significant confusion (e.g. `[VIEW] MENU` implies two buttons or touch areas, when there's only one encoder button). Furthermore, "UI traps" like tooltips that can be turned on but not dismissed create frustration.
 **Action:** Ensure hardware button label prompts on the screen dynamically update their text to explicitly match the exact action the single button performs in that context (e.g., `RADAR [MENU]`, `MENU [SELECT]`, `EDIT [SAVE]`). Always ensure that secondary UI states (like long-press tooltips) act as toggles (`!state`) rather than one-way setters.
+
+## 2024-05-03 - Hardware Navigation Buttons
+**Learning:** Secondary hardware buttons can dramatically improve rotary encoder UIs by providing a dedicated 'Back' or 'Escape' function during menu navigation, reducing the need to scroll to an on-screen back option.
+**Action:** When integrating auxiliary buttons, map them to context-aware actions like cycling themes in the main view and canceling/exiting when in edit or menu states.
