@@ -147,6 +147,14 @@ void loop() {
 // Apply Settings
     motionComp.setAveragingStrength(ui.getLocationAveraging());
 
+    radar.passthroughMode = ui.passthroughMode;
+
+    if (ui.passthroughMode && Serial) {
+        while (Serial.available()) {
+            radarUART.write(Serial.read());
+        }
+    }
+
     // Render loop (decoupled, max frame rate ~30-60Hz)
     unsigned long now = millis();
     if (now - lastRender >= 30) { // ~33Hz display rendering
