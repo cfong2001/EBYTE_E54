@@ -24,4 +24,6 @@ jobs:
     - name: Build C++ Code (WROVER-IE)
       run: pio run -e esp32-wrover-ie
     - name: Run C++ Unit Tests
+      run: make -C test test
+    - name: Run Python Utilities Tests
       run: python3 test_all_modules.py --all
