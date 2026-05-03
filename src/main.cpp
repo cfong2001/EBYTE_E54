@@ -32,6 +32,10 @@ SemaphoreHandle_t dataMutex;
 #define PIN_BUTTON    27
 #endif
 
+#ifndef PIN_KEY0
+#define PIN_KEY0      0
+#endif
+
 #ifndef RADAR_RX_PIN
 #define RADAR_RX_PIN 16
 #endif
@@ -41,6 +45,7 @@ SemaphoreHandle_t dataMutex;
 
 RotaryEncoder encoder(PIN_ENCODER_A, PIN_ENCODER_B, RotaryEncoder::LatchMode::TWO03);
 OneButton button(PIN_BUTTON, true, true);
+OneButton key0(PIN_KEY0, true, true);
 
 // Interrupt routine for rotary encoder
 void IRAM_ATTR checkPosition() {
@@ -53,6 +58,10 @@ void handleButtonPress() {
 
 void handleButtonLongPressStart() {
     ui.handleButtonLongPress();
+}
+
+void handleKey0Press() {
+    Serial.println("KEY0 pressed.");
 }
 
 void radarTask(void *pvParameters) {
@@ -96,6 +105,11 @@ void setup() {
     Serial.begin(115200);
     Serial.println("System starting...");
 
+#ifdef TFT_BLK
+    pinMode(TFT_BLK, OUTPUT);
+    digitalWrite(TFT_BLK, HIGH);
+#endif
+
     // Initialize radar
     radar.begin(RADAR_RX_PIN, RADAR_TX_PIN);
     motionComp.init();
@@ -109,6 +123,7 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_B), checkPosition, CHANGE);
 button.attachClick(handleButtonPress);
     button.attachLongPressStart(handleButtonLongPressStart);
+    key0.attachClick(handleKey0Press);
 
     xTaskCreatePinnedToCore(
         radarTask,   /* Task function. */
@@ -126,6 +141,7 @@ unsigned long lastRender = 0;
 void loop() {
     // Process button
     button.tick();
+    key0.tick();
 
     // Process encoder
     encoder.tick();
