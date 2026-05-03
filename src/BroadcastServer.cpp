@@ -49,17 +49,52 @@ void BroadcastServer::setupRoutes() {
     <title>ESP32 Radar Tracker</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { font-family: monospace; background-color: #121315; color: #fff; margin: 20px; }
-        .target { background: #333; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        body { font-family: monospace; background-color: #121315; color: #fff; margin: 20px; display: flex; flex-direction: column; align-items: center; }
+        h1 { color: #00dbe9; text-align: center; }
+        #radar-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            background-color: #1a1c20;
+            border: 2px solid #00dbe9;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        /* Grid lines */
+        .grid-y { position: absolute; left: 50%; top: 0; bottom: 0; border-left: 1px dashed #333; }
+        .grid-x { position: absolute; top: 50%; left: 0; right: 0; border-top: 1px dashed #333; }
+
+        .dot {
+            position: absolute;
+            font-size: 20px;
+            transform: translate(-50%, -50%);
+            transition: left 0.3s linear, top 0.3s linear;
+        }
+
+        .info-panel { width: 300px; display: flex; flex-direction: column; gap: 10px; }
+        .target { background: #333; padding: 10px; border-radius: 5px; font-size: 12px; }
         .active { border-left: 5px solid #00dbe9; }
         .inactive { border-left: 5px solid #555; color: #888; }
-        h1 { color: #00dbe9; }
     </style>
 </head>
 <body>
-    <h1>ESP32 Radar Tracker Data</h1>
-    <div id="data">Loading...</div>
+    <h1>Radar Tracker</h1>
+
+    <div id="radar-container">
+        <div class="grid-y"></div>
+        <div class="grid-x"></div>
+        <div id="dot-0" class="dot" style="display:none;">🔴</div>
+        <div id="dot-1" class="dot" style="display:none;">🟢</div>
+        <div id="dot-2" class="dot" style="display:none;">🟡</div>
+    </div>
+
+    <div class="info-panel" id="data">Loading...</div>
+
     <script>
+        // Sensor max range in mm (roughly 6000mm)
+        const MAX_RANGE = 6000;
+
         function updateData() {
             fetch('/api/data')
                 .then(response => response.json())
@@ -67,14 +102,30 @@ void BroadcastServer::setupRoutes() {
                     let html = '';
                     for (let i = 0; i < data.targets.length; i++) {
                         let t = data.targets[i];
+                        let dot = document.getElementById('dot-' + i);
+
                         if (t.active) {
+                            // Map coordinate to percentage (0-100%)
+                            // X is horizontal (-3000 to 3000mm mapped to 0-100%, center is 50%)
+                            // Y is vertical (0 to 6000mm mapped to 100-0%, sensor is at bottom 100%)
+                            let xPct = 50 + ((t.x / (MAX_RANGE/2)) * 50);
+                            let yPct = 100 - ((t.y / MAX_RANGE) * 100);
+
+                            // Clamp values to keep inside box
+                            xPct = Math.max(0, Math.min(100, xPct));
+                            yPct = Math.max(0, Math.min(100, yPct));
+
+                            dot.style.left = xPct + '%';
+                            dot.style.top = yPct + '%';
+                            dot.style.display = 'block';
+
                             html += `<div class="target active">`;
                             html += `<b>Target ${i+1}</b><br>`;
                             html += `X: ${t.x} mm, Y: ${t.y} mm<br>`;
-                            html += `Speed: ${t.speed} cm/s<br>`;
-                            html += `Res: ${t.resolution} mm`;
+                            html += `Speed: ${t.speed} cm/s | Res: ${t.resolution} mm`;
                             html += `</div>`;
                         } else {
+                            dot.style.display = 'none';
                             html += `<div class="target inactive"><b>Target ${i+1}</b> - INACTIVE</div>`;
                         }
                     }
@@ -82,7 +133,7 @@ void BroadcastServer::setupRoutes() {
                 })
                 .catch(err => console.error(err));
         }
-        setInterval(updateData, 500); // 2Hz updates
+        setInterval(updateData, 200); // 5Hz updates
         updateData();
     </script>
 </body>
