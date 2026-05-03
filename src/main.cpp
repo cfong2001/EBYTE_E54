@@ -10,14 +10,12 @@
 #include "ConfigManager.h"
 
 ConfigManager configManager;
-#include "BroadcastServer.h"
 
 // Hardware instances
 HardwareSerial radarUART(1);
 E54_Radar radar(radarUART);
 MotionCompensation motionComp;
 PerformanceMonitor perfMonitor;
-BroadcastServer bcastServer;
 
 TFT_eSPI tft = TFT_eSPI();
 UIManager ui(tft);
@@ -34,11 +32,7 @@ SemaphoreHandle_t dataMutex;
 #endif
 
 #ifndef PIN_BUTTON
-#define PIN_BUTTON    32
-#endif
-
-#ifndef PIN_KEY0
-#define PIN_KEY0      33
+#define PIN_BUTTON    27
 #endif
 
 #ifndef RADAR_RX_PIN
@@ -50,7 +44,6 @@ SemaphoreHandle_t dataMutex;
 
 RotaryEncoder encoder(PIN_ENCODER_A, PIN_ENCODER_B, RotaryEncoder::LatchMode::TWO03);
 OneButton button(PIN_BUTTON, true, true);
-OneButton key0(PIN_KEY0, true, true);
 
 // Interrupt routine for rotary encoder
 void IRAM_ATTR checkPosition() {
@@ -63,10 +56,6 @@ void handleButtonPress() {
 
 void handleButtonLongPressStart() {
     ui.handleButtonLongPress();
-}
-
-void handleKey0Press() {
-    ui.handleExtraButton();
 }
 
 void radarTask(void *pvParameters) {
@@ -93,7 +82,6 @@ void radarTask(void *pvParameters) {
                     }
                 }
                 ui.updateRadarData(compensatedTargets, motionComp.isAnchorValid(), motionComp.getAnchorX(), motionComp.getAnchorY());
-                bcastServer.updateData(compensatedTargets);
 
                 for (int i = 0; i < 3; i++) {
                     ui.setTargetMotion(i, motionComp.getTargetVelX(i), motionComp.getTargetVelY(i),
@@ -119,10 +107,6 @@ void setup() {
         ui.state = STATE_FALLBACK;
         fallbackStart = millis();
     }
-#ifdef TFT_BLK
-    pinMode(TFT_BLK, OUTPUT);
-    digitalWrite(TFT_BLK, HIGH);
-#endif
 
     // Initialize radar
     radar.begin(RADAR_RX_PIN, RADAR_TX_PIN);
@@ -132,17 +116,11 @@ void setup() {
     // Initialize UI
     ui.init();
 
-    // Initialize Broadcast AP if enabled
-    if (ui.broadcastModeEnabled) {
-        bcastServer.begin(ui.getApNameStr());
-    }
-
     // Initialize inputs
     attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_A), checkPosition, CHANGE);
     attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_B), checkPosition, CHANGE);
     button.attachClick(handleButtonPress);
     button.attachLongPressStart(handleButtonLongPressStart);
-    key0.attachClick(handleKey0Press);
 
     xTaskCreatePinnedToCore(
         radarTask,   /* Task function. */
@@ -160,7 +138,6 @@ unsigned long lastRender = 0;
 void loop() {
     // Process button
     button.tick();
-    key0.tick();
 
     // Process encoder
     encoder.tick();
@@ -199,22 +176,6 @@ void loop() {
             configManager.restoreFromFallback();
             delay(1000);
             ESP.restart();
-        }
-    }
-
-    // Handle Broadcast AP Toggles
-    static bool lastBroadcastMode = ui.broadcastModeEnabled;
-    static ApNameMode lastApNameMode = ui.apNameMode;
-    if (ui.broadcastModeEnabled != lastBroadcastMode || ui.apNameMode != lastApNameMode) {
-        if (ui.broadcastModeEnabled && lastBroadcastMode && ui.apNameMode != lastApNameMode) {
-            bcastServer.stop();
-        }
-        lastBroadcastMode = ui.broadcastModeEnabled;
-        lastApNameMode = ui.apNameMode;
-        if (ui.broadcastModeEnabled) {
-            bcastServer.begin(ui.getApNameStr());
-        } else {
-            bcastServer.stop();
         }
     }
 
