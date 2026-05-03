@@ -210,6 +210,27 @@ public:
         }
     }
 
+
+    void handleExtraButton() {
+        if (state == STATE_RADAR_VIEW) {
+            int t = (int)theme + 1;
+            if (t > 2) t = 0;
+            theme = (ThemeStyle)t;
+            if (theme == THEME_ALIEN) { sweepLineEnabled = true; trailLength = 8; gridEnabled = true; }
+            else if (theme == THEME_MINIMAL) { sweepLineEnabled = false; trailLength = 0; gridEnabled = true; }
+            else { sweepLineEnabled = true; trailLength = 3; gridEnabled = true; }
+        } else if (state == STATE_MENU || state == STATE_MENU_EDIT || state == STATE_GUIDE) {
+            if (state == STATE_MENU_EDIT) {
+                state = STATE_MENU;
+            } else if (activePage != PAGE_MAIN && state == STATE_MENU) {
+                activePage = PAGE_MAIN;
+                menuSelection = 0;
+            } else {
+                state = STATE_RADAR_VIEW;
+            }
+        }
+    }
+
     void handleButton() {
         showTooltip = false; // Reset tooltip on any interaction
         if (state == STATE_RADAR_VIEW) {
