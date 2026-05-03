@@ -6,6 +6,7 @@
 #include <RotaryEncoder.h>
 #include <OneButton.h>
 #include <Preferences.h>
+#include <esp_random.h>
 #include "E54_Radar.h"
 #include "ZoneManager.h"
 
@@ -54,6 +55,28 @@ enum TargetIcon {
     ICON_SMART
 };
 
+enum MenuPosition {
+    MENU_POS_TOP,
+    MENU_POS_BOTTOM,
+    MENU_POS_LEFT,
+    MENU_POS_RIGHT,
+    MENU_POS_CENTER
+};
+
+enum ApNameMode {
+    AP_NAME_ESP32,
+    AP_NAME_E54,
+    AP_NAME_RADAR,
+    AP_NAME_RANDOM
+};
+
+enum DisplayRotation {
+    ROTATION_UP = 1,
+    ROTATION_LEFT = 2,
+    ROTATION_DOWN = 3,
+    ROTATION_RIGHT = 0
+};
+
 class UIManager {
 public:
     ZoneManager zoneManager;
@@ -62,6 +85,21 @@ public:
     bool motionCompEnabled = true;
     bool passthroughMode = false;
     int uiTextSize = 1;
+    DisplayRotation displayRotation = ROTATION_UP;
+    MenuPosition menuPosition = MENU_POS_CENTER;
+    bool broadcastModeEnabled = false;
+    ApNameMode apNameMode = AP_NAME_ESP32;
+    String randomApName;
+
+    String getApNameStr() {
+        if (apNameMode == AP_NAME_ESP32) return "ESP32-Radar-Tracker";
+        if (apNameMode == AP_NAME_E54) return "E54-Tracker";
+        if (apNameMode == AP_NAME_RADAR) return "Radar";
+        if (randomApName == "") {
+            randomApName = "AP-" + String(esp_random() % 10000);
+        }
+        return randomApName;
+    }
 
     UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
         state = STATE_BOOT;
@@ -84,15 +122,17 @@ public:
 
         sweepAngle = 0;
         menuOverlayY = 0;
+        menuOverlayW = 0;
         maxMenuSelection = 0;
         bootStartTime = 0;
 
         for (int i=0; i<3; i++) {
             lastTargetActive[i] = false;
-            targetCurrentX[i] = 120.0f;
-            targetCurrentY[i] = 240.0f;
-            lastDrawnX[i] = 120;
-            lastDrawnY[i] = 240;
+            int w,h; getScreenDimensions(w,h);
+            targetCurrentX[i] = w/2.0f;
+            targetCurrentY[i] = (float)h;
+            lastDrawnX[i] = w/2;
+            lastDrawnY[i] = h;
 
             rawTargetX[i] = 0;
             rawTargetY[i] = 0;
@@ -103,8 +143,9 @@ public:
             smoothSpeed[i] = 0.0f;
 
             for (int h=0; h<10; h++) {
-                targetHistoryX[i][h] = 120.0f;
-                targetHistoryY[i][h] = 240.0f;
+                int s_w,s_h; getScreenDimensions(s_w,s_h);
+                targetHistoryX[i][h] = s_w/2.0f;
+                targetHistoryY[i][h] = (float)s_h;
             }
         }
     }
@@ -118,6 +159,10 @@ public:
         gridEnabled = preferences.getBool("grid", true);
         startupAnimEnabled = preferences.getBool("startup", true);
         simulatedSweep = preferences.getBool("simSwp", false);
+        displayRotation = (DisplayRotation)preferences.getInt("rot", ROTATION_UP);
+        menuPosition = (MenuPosition)preferences.getInt("menuP", MENU_POS_CENTER);
+        broadcastModeEnabled = preferences.getBool("bcast", false);
+        apNameMode = (ApNameMode)preferences.getInt("apName", AP_NAME_ESP32);
 
         telemetryMode = (TelemetryMode)preferences.getInt("tData", TELEMETRY_OFF);
         uiTextSize = preferences.getInt("textSize", 1);
@@ -136,6 +181,10 @@ public:
         preferences.putBool("grid", gridEnabled);
         preferences.putBool("startup", startupAnimEnabled);
         preferences.putBool("simSwp", simulatedSweep);
+        preferences.putInt("rot", displayRotation);
+        preferences.putInt("menuP", menuPosition);
+        preferences.putBool("bcast", broadcastModeEnabled);
+        preferences.putInt("apName", apNameMode);
 
         preferences.putInt("tData", telemetryMode);
         preferences.putInt("textSize", uiTextSize);
@@ -151,9 +200,9 @@ public:
         loadSettings();
 
         tft.init();
-        tft.setRotation(1);
+        tft.setRotation(displayRotation);
         tft.initDMA();
-        sprite.createSprite(240, 240);
+        int w, h; getScreenDimensions(w, h); sprite.createSprite(w, h);
         sprite.setSwapBytes(true);
 
         if (startupAnimEnabled) {
@@ -178,27 +227,47 @@ public:
         } else if (state == STATE_MENU_EDIT) {
             executeMenuEdit(dir);
         }
-    }
-
-
-    void handleButtonLongPress() {
-        if (state == STATE_MENU) {
-            showTooltip = true;
-        }
-    }
-
-    void handleButton() {
-
-        if (state == STATE_IMPORTING) {
+      if (state == STATE_IMPORTING) {
             state = STATE_MENU; // Cancel import
         } else if (state == STATE_FALLBACK) {
             actionRequested = 3; // Confirm fallback
             state = STATE_RADAR_VIEW;
         } else if (state == STATE_RADAR_VIEW) {
+    void handleExtraButton() {
+        if (state == STATE_RADAR_VIEW) {
+            int t = (int)theme + 1;
+            if (t > 2) t = 0;
+            theme = (ThemeStyle)t;
+            if (theme == THEME_ALIEN) { sweepLineEnabled = true; trailLength = 8; gridEnabled = true; }
+            else if (theme == THEME_MINIMAL) { sweepLineEnabled = false; trailLength = 0; gridEnabled = true; }
+            else { sweepLineEnabled = true; trailLength = 3; gridEnabled = true; }
+        } else if (state == STATE_MENU || state == STATE_MENU_EDIT || state == STATE_GUIDE) {
+            if (state == STATE_MENU_EDIT) {
+                state = STATE_MENU;
+            } else if (activePage != PAGE_MAIN && state == STATE_MENU) {
+                activePage = PAGE_MAIN;
+                menuSelection = 0;
+            } else {
+                state = STATE_RADAR_VIEW;
+            }
+    }
+
+
+    void handleButtonLongPress() {
+        if (state == STATE_MENU) {
+            showTooltip = !showTooltip;
+        }
+    }
+
+
+    void handleButton() {
+        showTooltip = false; // Reset tooltip on any interaction
+        if (state == STATE_RADAR_VIEW) {
             state = STATE_MENU;
             activePage = PAGE_MAIN;
             menuSelection = 0;
             menuOverlayY = 0;
+            menuOverlayW = 0;
         } else if (state == STATE_MENU) {
             handleMenuClick();
         } else if (state == STATE_MENU_EDIT) {
@@ -212,10 +281,11 @@ public:
     void setTargetMotion(int index, float vx, float vy, float ax, float ay) {
         if (index >= 0 && index < 3) {
             // Convert mm/s to screen pixels
-            targetVelX[index] = vx * 120 / 5000;
-            targetVelY[index] = -vy * 240 / 5000; // Y is inverted on screen
-            targetAccX[index] = ax * 120 / 5000;
-            targetAccY[index] = -ay * 240 / 5000;
+            int w, h; getScreenDimensions(w, h);
+            targetVelX[index] = vx * (w/2) / 5000;
+            targetVelY[index] = -vy * h / 5000;
+            targetAccX[index] = ax * (w/2) / 5000;
+            targetAccY[index] = -ay * h / 5000;
         }
     }
 
@@ -234,14 +304,15 @@ public:
                 if (absSpeed < sensitivity && sensitivity > 1) {
                     targetActive[i] = false;
                 } else {
-                    targetGoalX[i] = 120 + (targets[i].x * 120 / 5000);
-                    targetGoalY[i] = 240 - (targets[i].y * 240 / 5000);
+                    int w, h; getScreenDimensions(w, h);
+                    targetGoalX[i] = (w/2) + (targets[i].x * (w/2) / 5000);
+                    targetGoalY[i] = h - (targets[i].y * h / 5000);
 
                     rawTargetX[i] = targets[i].x;
                     rawTargetY[i] = targets[i].y;
                     rawTargetSpeed[i] = targets[i].speed;
 
-                    if (targetGoalX[i] < 0 || targetGoalX[i] >= 240 || targetGoalY[i] < 0 || targetGoalY[i] >= 240) {
+                    if (targetGoalX[i] < 0 || targetGoalX[i] >= w || targetGoalY[i] < 0 || targetGoalY[i] >= h) {
                         targetActive[i] = false;
                     }
                 }
@@ -319,6 +390,19 @@ public:
         sprite.pushSprite(0, 0);
     }
 
+    void getScreenDimensions(int& w, int& h) {
+        if (displayRotation == ROTATION_UP || displayRotation == ROTATION_DOWN) {
+            w = 240;
+            h = 320;
+        } else {
+            w = 320;
+            h = 240;
+        }
+        // The standard defines ST7789 displays generally as 240x240, 240x320.
+        // The product datasheet mentions "2.0-inch SPI interface TFT" which is often 240x320.
+        // We adjust radar shape dynamically here.
+    }
+
     void renderLoop() {
         if (state == STATE_BOOT) {
             drawBootScreen();
@@ -335,8 +419,9 @@ public:
 
         if (theme == THEME_MINIMAL) {
             if (gridEnabled) {
-                sprite.drawCircle(120, 240, 180, 0x18E3);
-                sprite.fillCircle(120, 240, 4, 0x18E3);
+                int w, h; getScreenDimensions(w, h);
+                sprite.drawCircle(w/2, h, 180, 0x18E3);
+                sprite.fillCircle(w/2, h, 4, 0x18E3);
             }
         } else {
             drawRadarBackground();
@@ -385,7 +470,7 @@ public:
         }
 
         tft.startWrite();
-        tft.pushImageDMA(0, 0, 240, 240, (uint16_t*)sprite.getPointer());
+        int w,h; getScreenDimensions(w,h); tft.pushImageDMA(0, 0, w, h, (uint16_t*)sprite.getPointer());
         tft.dmaWait();
         tft.endWrite();
     }
@@ -617,27 +702,28 @@ public:
     }
 
     void drawHUD() {
-        sprite.fillRect(0, 0, 240, 16, themeBg);
-        sprite.fillRect(0, 224, 240, 16, themeBg);
+        int w, h; getScreenDimensions(w, h);
+        sprite.fillRect(0, 0, w, 16, themeBg);
+        sprite.fillRect(0, h-16, w, 16, themeBg);
 
-        sprite.drawLine(0, 16, 240, 16, sprite.alphaBlend(100, themePrimary, themeBg));
-        sprite.drawLine(0, 224, 240, 224, sprite.alphaBlend(100, themePrimary, themeBg));
+        sprite.drawLine(0, 16, w, 16, sprite.alphaBlend(100, themePrimary, themeBg));
+        sprite.drawLine(0, h-16, w, h-16, sprite.alphaBlend(100, themePrimary, themeBg));
 
         sprite.setTextColor(themePrimary, themeBg);
         sprite.setTextSize(uiTextSize);
         sprite.setCursor(5, 4);
         sprite.print("((o)) RADAR_V1.0");
 
-        sprite.setCursor(215, 4);
+        sprite.setCursor(w - 25, 4);
         sprite.print("BAT");
 
-        sprite.setCursor(5, 228);
+        sprite.setCursor(5, h - 12);
         if (state == STATE_RADAR_VIEW) {
-            sprite.print("[VIEW]  MENU");
+            sprite.print("RADAR [MENU]");
         } else if (state == STATE_MENU_EDIT) {
-            sprite.print(" EDIT  [SAVE]");
+            sprite.print("EDIT [SAVE]");
         } else {
-            sprite.print(" VIEW  [MENU]");
+            sprite.print("MENU [SELECT] (HOLD: INFO)");
         }
 
         if (theme != THEME_MINIMAL) {
@@ -661,6 +747,7 @@ public:
     MenuPage activePage;
     int menuSelection;
     int menuOverlayY;
+    int menuOverlayW;
     int maxMenuSelection;
     int guidePage = 0;
     bool showTooltip = false;
@@ -727,15 +814,17 @@ public:
                 if (sweepDeg > 360) sweepDeg = 360;
                 for (int a = -180; a < -180 + sweepDeg; a += 5) {
                     float rad = a * 0.0174533f;
-                    sprite.drawPixel(120 + r * cosf(rad), 240 + r * sinf(rad), gridColor);
+                    int w, h; getScreenDimensions(w, h);
+                    sprite.drawPixel(w/2 + r * cosf(rad), h + r * sinf(rad), gridColor);
                 }
             }
         }
 
         if (maxR > 0) {
-            sprite.drawLine(120, 240, 120, 240 - maxR, gridColor);
-            sprite.drawLine(120, 240, 120 - maxR, 240, gridColor);
-            sprite.drawLine(120, 240, 120 + maxR, 240, gridColor);
+            int w, h; getScreenDimensions(w, h);
+            sprite.drawLine(w/2, h, w/2, h - maxR, gridColor);
+            sprite.drawLine(w/2, h, w/2 - maxR, h, gridColor);
+            sprite.drawLine(w/2, h, w/2 + maxR, h, gridColor);
         }
 
         sprite.setTextColor(themePrimary, themeBg);
@@ -744,7 +833,7 @@ public:
         else if (elapsed < 600) sprite.setCursor(90, 120), sprite.print("CALIBRATING");
         else if (elapsed < 1000) sprite.setCursor(95, 120), sprite.print("SCANNING...");
 
-        tft.startWrite(); tft.pushImageDMA(0, 0, 240, 240, (uint16_t*)sprite.getPointer()); tft.endWrite();
+        tft.startWrite(); int w,h; getScreenDimensions(w,h); tft.pushImageDMA(0, 0, w, h, (uint16_t*)sprite.getPointer()); tft.endWrite();
 
         if (elapsed > 1200) {
             state = STATE_RADAR_VIEW;
@@ -760,7 +849,8 @@ public:
             float rad = (a - 90) * 0.0174533f;
             float cosA = cosf(rad);
             float sinA = sinf(rad);
-            sprite.drawLine(120 + minR*cosA, 240 + minR*sinA, 120 + maxR*cosA, 240 + maxR*sinA, color);
+            int w, h; getScreenDimensions(w, h);
+            sprite.drawLine(w/2 + minR*cosA, h + minR*sinA, w/2 + maxR*cosA, h + maxR*sinA, color);
         }
     }
 
@@ -798,7 +888,8 @@ public:
                 for (int r=60; r<=180; r+=60) {
                     for (int a=0; a<=180; a+=5) {
                         float rad = (a - 180) * 0.0174533f;
-                        sprite.drawPixel(120 + r * cosf(rad), 240 + r * sinf(rad), gridColor);
+                        int w, h; getScreenDimensions(w, h);
+                    sprite.drawPixel(w/2 + r * cosf(rad), h + r * sinf(rad), gridColor);
                     }
                 }
             } else {
@@ -848,6 +939,16 @@ public:
         items[numItems++] = "Trails: " + String(trailLength);
         items[numItems++] = "Grid: " + String(gridEnabled ? "ON" : "OFF");
         items[numItems++] = "Boot Anim: " + String(startupAnimEnabled ? "ON" : "OFF");
+        String rotStr = (displayRotation == ROTATION_UP) ? "UP" :
+                        (displayRotation == ROTATION_LEFT) ? "LEFT" :
+                        (displayRotation == ROTATION_DOWN) ? "DOWN" : "RIGHT";
+        String posStr = (menuPosition == MENU_POS_TOP) ? "TOP" :
+                        (menuPosition == MENU_POS_BOTTOM) ? "BOTTOM" :
+                        (menuPosition == MENU_POS_LEFT) ? "LEFT" :
+                        (menuPosition == MENU_POS_RIGHT) ? "RIGHT" : "CENTER";
+
+        items[numItems++] = "Orientation: " + rotStr;
+        items[numItems++] = "Menu Pos: " + posStr;
     }
 
     void populateZonesMenu(String* items, int& numItems) {
@@ -913,6 +1014,8 @@ public:
         if (devRiskAccepted) {
             items[numItems++] = "Motion Comp: " + String(motionCompEnabled ? "ON" : "OFF");
             items[numItems++] = "Passthrough: " + String(passthroughMode ? "ON" : "OFF");
+            items[numItems++] = "Broadcast AP: " + String(broadcastModeEnabled ? "ON" : "OFF");
+            items[numItems++] = "AP Name: " + getApNameStr();
             items[numItems++] = "[ FACTORY RESET ]";
             items[numItems++] = "[ EXPORT CONFIG ]";
             items[numItems++] = "[ IMPORT CONFIG ]";
@@ -939,6 +1042,9 @@ public:
         int startIdx = max(0, menuSelection - 2);
         if (startIdx > numItems - 4) startIdx = max(0, numItems - 4);
 
+        int w, h; getScreenDimensions(w, h);
+        if (menuPosition == MENU_POS_LEFT || menuPosition == MENU_POS_RIGHT) w = w / 2 + 30;
+
         for (int i = 0; i < 4; i++) {
             int idx = startIdx + i;
             if (idx >= numItems) break;
@@ -947,10 +1053,10 @@ public:
 
             if (idx == menuSelection) {
                 if (state == STATE_MENU_EDIT) {
-                    sprite.fillRect(5, yPos - 4, 230, 24, themeWarning);
+                    sprite.fillRect(5, yPos - 4, w - 10, 24, themeWarning);
                     sprite.setTextColor(themeBg, themeWarning);
                 } else {
-                    sprite.fillRect(5, yPos - 4, 230, 24, themePrimary);
+                    sprite.fillRect(5, yPos - 4, w - 10, 24, themePrimary);
                     sprite.setTextColor(themeBg, themePrimary);
                 }
             } else {
@@ -962,13 +1068,15 @@ public:
         }
 
         if (showTooltip) {
-            sprite.fillRect(10, 140, 220, 60, themeBg);
-            sprite.drawRect(10, 140, 220, 60, themeWarning);
+            int th = h;
+            if (menuPosition == MENU_POS_TOP || menuPosition == MENU_POS_BOTTOM) th = h - 60;
+            sprite.fillRect(10, th - 100, w - 20, 60, themeBg);
+            sprite.drawRect(10, th - 100, w - 20, 60, themeWarning);
             sprite.setTextColor(TFT_WHITE, themeBg);
             sprite.setTextSize(uiTextSize);
-            sprite.setCursor(15, 145);
+            sprite.setCursor(15, th - 95);
             sprite.print("INFO: ");
-            sprite.setCursor(15, 160);
+            sprite.setCursor(15, th - 80);
 
             // Simple logic to display something based on item
             if (activePage == PAGE_MAIN) {
@@ -978,7 +1086,9 @@ public:
                 else if (menuSelection == 3) sprite.print("dead zones.");
                 else if (menuSelection == 4) sprite.print("Adjust raw telemetry");
                 else if (menuSelection == 5) sprite.print("filtering options.");
-                else if (menuSelection == 6) sprite.print("Return to radar view.");
+                else if (menuSelection == 6) sprite.print("Advanced device config.");
+                else if (menuSelection == 7) sprite.print("Open user manual.");
+                else if (menuSelection == 8) sprite.print("Return to radar view.");
                 else sprite.print("Select an option.");
             } else {
                 sprite.print("Adjust this setting to");
@@ -989,11 +1099,47 @@ public:
     }
 
     void drawMenuOverlay() {
-        if (menuOverlayY < 200) menuOverlayY += 15;
+        int w, h; getScreenDimensions(w, h);
 
-        sprite.fillRect(0, 0, 240, menuOverlayY, sprite.alphaBlend(220, themeBg, TFT_WHITE));
-        sprite.drawLine(0, menuOverlayY, 240, menuOverlayY, themePrimary);
-        if (menuOverlayY < 200) return;
+        int targetW = w;
+        int targetH = h;
+        int offX = 0;
+        int offY = 0;
+
+        if (menuPosition == MENU_POS_LEFT || menuPosition == MENU_POS_RIGHT) {
+             targetW = w / 2 + 30;
+             if (menuPosition == MENU_POS_RIGHT) offX = w - targetW;
+             if (menuOverlayW < targetW) menuOverlayW += 15;
+             if (menuOverlayW > targetW) menuOverlayW = targetW;
+
+             int animW = menuOverlayW;
+             if (menuPosition == MENU_POS_RIGHT) {
+                 sprite.fillRect(w - animW, 0, animW, h, sprite.alphaBlend(220, themeBg, TFT_WHITE));
+                 sprite.drawLine(w - animW, 0, w - animW, h, themePrimary);
+             } else {
+                 sprite.fillRect(0, 0, animW, h, sprite.alphaBlend(220, themeBg, TFT_WHITE));
+                 sprite.drawLine(animW, 0, animW, h, themePrimary);
+             }
+             if (menuOverlayW < targetW) return;
+             sprite.setViewport(offX, offY, targetW, targetH);
+        } else {
+             if (menuPosition == MENU_POS_TOP) { targetH = h - 60; }
+             else if (menuPosition == MENU_POS_BOTTOM) { targetH = h - 60; offY = 60; }
+
+             if (menuOverlayY < targetH) menuOverlayY += 15;
+             if (menuOverlayY > targetH) menuOverlayY = targetH;
+
+             int animH = menuOverlayY;
+             if (menuPosition == MENU_POS_BOTTOM) {
+                 sprite.fillRect(0, h - animH, w, animH, sprite.alphaBlend(220, themeBg, TFT_WHITE));
+                 sprite.drawLine(0, h - animH, w, h - animH, themePrimary);
+             } else {
+                 sprite.fillRect(0, 0, w, animH, sprite.alphaBlend(220, themeBg, TFT_WHITE));
+                 sprite.drawLine(0, animH, w, animH, themePrimary);
+             }
+             if (menuOverlayY < targetH) return;
+             sprite.setViewport(offX, offY, targetW, targetH);
+        }
 
         sprite.setTextSize(uiTextSize);
         static String items[24];
@@ -1001,6 +1147,8 @@ public:
 
         populateMenuPage(items, numItems);
         drawMenuItems(items, numItems);
+
+        sprite.resetViewport();
     }
 
     void handleMenuClick() {
@@ -1058,6 +1206,19 @@ public:
             if (idx++ == menuSelection) { trailLength += dir; if (trailLength < 0) trailLength = 0; if (trailLength > 10) trailLength = 10; return; }
             if (idx++ == menuSelection) { gridEnabled = !gridEnabled; return; }
             if (idx++ == menuSelection) { startupAnimEnabled = !startupAnimEnabled; return; }
+            if (idx++ == menuSelection) {
+                int r = (int)displayRotation + dir;
+                if (r > 3) r = 0; if (r < 0) r = 3;
+                displayRotation = (DisplayRotation)r;
+                tft.setRotation(displayRotation);
+                return;
+            }
+            if (idx++ == menuSelection) {
+                int m = (int)menuPosition + dir;
+                if (m > 4) m = 0; if (m < 0) m = 4;
+                menuPosition = (MenuPosition)m;
+                return;
+            }
         }
         else if (activePage == PAGE_ZONES) {
             if (idx++ == menuSelection) {
@@ -1099,11 +1260,20 @@ public:
                 if (idx++ == menuSelection) { z.maxAngle += dir * 5; if(z.maxAngle > 90) z.maxAngle=90; zoneManager.setDeadCustom(z); return; }
             }
         }
+
         else if (activePage == PAGE_DEV) {
             if (idx++ == menuSelection) { devRiskAccepted = !devRiskAccepted; return; }
             if (devRiskAccepted) {
                 if (idx++ == menuSelection) { motionCompEnabled = !motionCompEnabled; return; }
                 if (idx++ == menuSelection) { passthroughMode = !passthroughMode; return; }
+                if (idx++ == menuSelection) { broadcastModeEnabled = !broadcastModeEnabled; return; }
+                if (idx++ == menuSelection) {
+                    int m = (int)apNameMode + dir;
+                    if (m > 3) m = 0; if (m < 0) m = 3;
+                    apNameMode = (ApNameMode)m;
+                    if (apNameMode == AP_NAME_RANDOM) randomApName = ""; // Regenerate on selection
+                    return;
+                }
                 if (idx++ == menuSelection) {
                     sprite.fillSprite(themeDanger);
                     sprite.setTextColor(TFT_WHITE);
