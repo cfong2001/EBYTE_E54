@@ -38,3 +38,7 @@
 ## 2026-05-02 - Visualizing UI Edits
 **What:** Added visual previews of radar zones during creation in the settings menu.
 **Why:** To reduce user uncertainty, any visual parameters edited via a rotary UI should be previewed live on the screen behind the menu overlay. Alpha-blending the previews clarifies that they are placeholders and not live active targets.
+
+## 2026-05-20 - Contextual Empty States & Dynamic Hints
+**Learning:** Hardcoded "VIEW [MENU]" hints create friction when a user is in an edit state (like `STATE_MENU_EDIT`), leading to errors or confusion about what pushing the button does. Furthermore, an entirely blank radar screen when no targets are active can cause a user to question if the device is functioning or frozen.
+**Action:** When working on hardware interfaces, implement pulsing empty states (e.g., "NO CONTACTS") using smooth `sinf` blending to reassure users the system is actively scanning but finding nothing. Simultaneously, ensure hardware button label prompts on the screen dynamically update their text (e.g., "EDIT [SAVE]") to precisely match the context of the user's current interaction mode.

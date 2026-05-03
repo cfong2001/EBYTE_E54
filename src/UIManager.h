@@ -406,8 +406,21 @@ public:
         drawZones();
         drawSweepLine();
 
+        bool anyActive = false;
         for (int i = 0; i < 3; i++) {
+            if (targetActive[i] && simAlpha[i] > 0.01f) {
+                anyActive = true;
+            }
             drawTarget(i);
+        }
+
+        if (!anyActive) {
+            float pulse = (sinf(millis() / 800.0f) + 1.0f) * 0.5f;
+            uint16_t emptyColor = sprite.alphaBlend((uint8_t)(pulse * 150.0f) + 50, themePrimary, themeBg);
+            sprite.setTextColor(emptyColor, themeBg);
+            sprite.setTextSize(1);
+            sprite.setCursor(85, 116);
+            sprite.print("NO CONTACTS");
         }
 
         drawHUD();
@@ -660,6 +673,8 @@ public:
         sprite.setCursor(5, 228);
         if (state == STATE_RADAR_VIEW) {
             sprite.print("[VIEW]  MENU");
+        } else if (state == STATE_MENU_EDIT) {
+            sprite.print(" EDIT  [SAVE]");
         } else {
             sprite.print(" VIEW  [MENU]");
         }
