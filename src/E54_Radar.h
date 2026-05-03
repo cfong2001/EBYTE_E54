@@ -13,6 +13,7 @@ struct RadarTarget {
 
 class E54_Radar {
 public:
+    bool passthroughMode = false;
     E54_Radar(HardwareSerial& serial) : radarSerial(serial) {}
 
     void begin(uint8_t rxPin, uint8_t txPin, long baudRate = 256000) {
@@ -23,6 +24,9 @@ public:
         bool updated = false;
         while (radarSerial.available()) {
             uint8_t b = radarSerial.read();
+            if (passthroughMode && Serial) {
+                Serial.write(b);
+            }
             if (processByte(b)) {
                 updated = true;
             }
