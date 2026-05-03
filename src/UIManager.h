@@ -58,6 +58,7 @@ public:
     Preferences preferences;
     bool devRiskAccepted = false;
     bool motionCompEnabled = true;
+    bool broadcastModeEnabled = false;
 
     UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
         state = STATE_BOOT;
@@ -114,6 +115,7 @@ public:
         gridEnabled = preferences.getBool("grid", true);
         startupAnimEnabled = preferences.getBool("startup", true);
         simulatedSweep = preferences.getBool("simSwp", false);
+        broadcastModeEnabled = preferences.getBool("bcast", false);
 
         telemetryMode = (TelemetryMode)preferences.getInt("tData", TELEMETRY_OFF);
         sensitivity = preferences.getInt("sens", 5);
@@ -131,6 +133,7 @@ public:
         preferences.putBool("grid", gridEnabled);
         preferences.putBool("startup", startupAnimEnabled);
         preferences.putBool("simSwp", simulatedSweep);
+        preferences.putBool("bcast", broadcastModeEnabled);
 
         preferences.putInt("tData", telemetryMode);
         preferences.putInt("sens", sensitivity);
@@ -883,6 +886,7 @@ private:
         items[numItems++] = "Accept Risk? " + String(devRiskAccepted ? "YES" : "NO");
         if (devRiskAccepted) {
             items[numItems++] = "Motion Comp: " + String(motionCompEnabled ? "ON" : "OFF");
+            items[numItems++] = "Broadcast AP: " + String(broadcastModeEnabled ? "ON" : "OFF");
             items[numItems++] = "[ FACTORY RESET ]";
         }
     }
@@ -1068,6 +1072,7 @@ private:
             if (idx++ == menuSelection) { devRiskAccepted = !devRiskAccepted; return; }
             if (devRiskAccepted) {
                 if (idx++ == menuSelection) { motionCompEnabled = !motionCompEnabled; return; }
+                if (idx++ == menuSelection) { broadcastModeEnabled = !broadcastModeEnabled; return; }
                 if (idx++ == menuSelection) {
                     sprite.fillSprite(themeDanger);
                     sprite.setTextColor(TFT_WHITE);
