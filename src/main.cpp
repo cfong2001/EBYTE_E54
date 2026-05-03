@@ -90,6 +90,7 @@ void radarTask(void *pvParameters) {
                     }
                 }
                 ui.updateRadarData(compensatedTargets, motionComp.isAnchorValid(), motionComp.getAnchorX(), motionComp.getAnchorY());
+                bcastServer.updateZones(ui.zoneManager.getActiveWarnZone(), ui.zoneManager.getActiveDeadZone());
                 bcastServer.updateData(compensatedTargets);
 
                 for (int i = 0; i < 3; i++) {
@@ -123,7 +124,7 @@ void setup() {
 
     // Initialize Broadcast AP if enabled
     if (ui.broadcastModeEnabled) {
-        bcastServer.begin(ui.getApNameStr());
+        bcastServer.begin();
     }
 
     // Initialize inputs
@@ -170,15 +171,10 @@ void loop() {
 
     // Handle Broadcast AP Toggles
     static bool lastBroadcastMode = ui.broadcastModeEnabled;
-    static ApNameMode lastApNameMode = ui.apNameMode;
-    if (ui.broadcastModeEnabled != lastBroadcastMode || ui.apNameMode != lastApNameMode) {
-        if (ui.broadcastModeEnabled && lastBroadcastMode && ui.apNameMode != lastApNameMode) {
-            bcastServer.stop();
-        }
+    if (ui.broadcastModeEnabled != lastBroadcastMode) {
         lastBroadcastMode = ui.broadcastModeEnabled;
-        lastApNameMode = ui.apNameMode;
         if (ui.broadcastModeEnabled) {
-            bcastServer.begin(ui.getApNameStr());
+            bcastServer.begin();
         } else {
             bcastServer.stop();
         }

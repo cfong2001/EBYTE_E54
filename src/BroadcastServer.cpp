@@ -2,6 +2,8 @@
 
 BroadcastServer::BroadcastServer() : server(80), isRunning(false) {
     bcastMutex = xSemaphoreCreateMutex();
+    currentWarnZone = {0,0,0,0};
+    currentDeadZone = {0,0,0,0};
     for (int i = 0; i < 3; i++) {
         currentTargets[i].active = false;
         currentTargets[i].x = 0;
@@ -11,10 +13,10 @@ BroadcastServer::BroadcastServer() : server(80), isRunning(false) {
     }
 }
 
-void BroadcastServer::begin(String apName) {
+void BroadcastServer::begin() {
     if (isRunning) return;
 
-    WiFi.softAP(apName.c_str(), ""); // Open AP
+    WiFi.softAP("ESP32-Radar-Tracker", ""); // Open AP
     IPAddress IP = WiFi.softAPIP();
     Serial.print("AP IP address: ");
     Serial.println(IP);
@@ -36,6 +38,14 @@ void BroadcastServer::updateData(const RadarTarget targets[3]) {
         for (int i = 0; i < 3; i++) {
             currentTargets[i] = targets[i];
         }
+        xSemaphoreGive(bcastMutex);
+    }
+}
+
+void BroadcastServer::updateZones(RadialZone warn, RadialZone dead) {
+    if (xSemaphoreTake(bcastMutex, pdMS_TO_TICKS(10))) {
+        currentWarnZone = warn;
+        currentDeadZone = dead;
         xSemaphoreGive(bcastMutex);
     }
 }
@@ -66,9 +76,6 @@ void BroadcastServer::setupRoutes() {
         .grid-circle-2 { position: absolute; inset: 25%; border: 1px solid rgba(0, 219, 233, 0.15); border-radius: 50%; pointer-events: none; }
 
         .dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
             position: absolute;
             width: 12px; height: 12px;
             border-radius: 50%;
@@ -120,14 +127,6 @@ void BroadcastServer::setupRoutes() {
             <div id="dot-1" class="dot" style="display:none;"></div>
             <div id="dot-2" class="dot" style="display:none;"></div>
         </div>
-    <h1>Radar Tracker</h1>
-
-    <div id="radar-container">
-        <div class="grid-y"></div>
-        <div class="grid-x"></div>
-        <div id="dot-0" class="dot" style="display:none; background-color: #ffb4ab;"></div>
-        <div id="dot-1" class="dot" style="display:none; background-color: #2ae500;"></div>
-        <div id="dot-2" class="dot" style="display:none; background-color: #ffb950;"></div>
     </div>
 
     <div class="info-panel" id="data">Loading feed...</div>
@@ -137,14 +136,68 @@ void BroadcastServer::setupRoutes() {
         const COLORS = ['#ff3e3e', '#00dbe9', '#facc15'];
         const IDS = ['TRK_01', 'TRK_02', 'TRK_03'];
 
+        function drawZone(svg, zone, color, opacity) {
+            if (zone.minDist === 0 && zone.maxDist === 0) return;
+            const cx = 150;
+            const cy = 300;
+            const r1 = (zone.minDist / MAX_RANGE) * 300;
+            const r2 = (zone.maxDist / MAX_RANGE) * 300;
+            const a1 = (zone.minAngle - 90) * Math.PI / 180;
+            const a2 = (zone.maxAngle - 90) * Math.PI / 180;
+
+            const x11 = cx + r1 * Math.cos(a1);
+            const y11 = cy + r1 * Math.sin(a1);
+            const x12 = cx + r2 * Math.cos(a1);
+            const y12 = cy + r2 * Math.sin(a1);
+
+            const x21 = cx + r1 * Math.cos(a2);
+            const y21 = cy + r1 * Math.sin(a2);
+            const x22 = cx + r2 * Math.cos(a2);
+            const y22 = cy + r2 * Math.sin(a2);
+
+            const largeArcFlag = (zone.maxAngle - zone.minAngle) > 180 ? 1 : 0;
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            let d = `M ${x11} ${y11} L ${x12} ${y12} A ${r2} ${r2} 0 ${largeArcFlag} 1 ${x22} ${y22} L ${x21} ${y21} A ${r1} ${r1} 0 ${largeArcFlag} 0 ${x11} ${y11} Z`;
+            if (r1 === 0) {
+                 d = `M ${cx} ${cy} L ${x12} ${y12} A ${r2} ${r2} 0 ${largeArcFlag} 1 ${x22} ${y22} Z`;
+            }
+
+            path.setAttribute("d", d);
+            path.setAttribute("fill", color);
+            path.setAttribute("fill-opacity", opacity);
+            path.setAttribute("stroke", color);
+            path.setAttribute("stroke-width", "1");
+            svg.appendChild(path);
+        }
+
         function updateData() {
             fetch('/api/data')
                 .then(response => response.json())
                 .then(data => {
+                    let svg = document.getElementById('zone-svg');
+                    if (!svg) {
+                        svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                        svg.setAttribute("id", "zone-svg");
+                        svg.setAttribute("viewBox", "0 0 300 300");
+                        svg.style.position = "absolute";
+                        svg.style.inset = "0";
+                        svg.style.width = "100%";
+                        svg.style.height = "100%";
+                        svg.style.pointerEvents = "none";
+                        svg.style.zIndex = "1";
+                        document.getElementById('radar-container').prepend(svg);
+                    }
+                    svg.innerHTML = '';
+
+                    if (data.warnZone) drawZone(svg, data.warnZone, '#ff3e3e', '0.2');
+                    if (data.deadZone) drawZone(svg, data.deadZone, '#3f444d', '0.5');
+
                     let html = '';
                     for (let i = 0; i < data.targets.length; i++) {
                         let t = data.targets[i];
                         let dot = document.getElementById('dot-' + i);
+                        dot.style.zIndex = "10";
 
                         if (t.active) {
                             let xPct = 50 + ((t.x / (MAX_RANGE/2)) * 50);
@@ -204,6 +257,18 @@ void BroadcastServer::setupRoutes() {
                 tObj["speed"] = currentTargets[i].speed;
                 tObj["resolution"] = currentTargets[i].resolution;
             }
+            JsonObject wObj = doc["warnZone"].to<JsonObject>();
+            wObj["minDist"] = currentWarnZone.minDist;
+            wObj["maxDist"] = currentWarnZone.maxDist;
+            wObj["minAngle"] = currentWarnZone.minAngle;
+            wObj["maxAngle"] = currentWarnZone.maxAngle;
+
+            JsonObject dObj = doc["deadZone"].to<JsonObject>();
+            dObj["minDist"] = currentDeadZone.minDist;
+            dObj["maxDist"] = currentDeadZone.maxDist;
+            dObj["minAngle"] = currentDeadZone.minAngle;
+            dObj["maxAngle"] = currentDeadZone.maxAngle;
+
             xSemaphoreGive(bcastMutex);
         } else {
             request->send(503, "application/json", "{\"error\":\"Server busy\"}");

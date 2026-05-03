@@ -1,4 +1,10 @@
+import re
 
+# Update BroadcastServer.h
+with open('src/BroadcastServer.h', 'r') as f:
+    h_content = f.read()
+
+h_patch = """
 #ifndef BROADCAST_SERVER_H
 #define BROADCAST_SERVER_H
 
@@ -29,3 +35,16 @@ private:
 };
 
 #endif
+"""
+
+with open('src/BroadcastServer.h', 'w') as f:
+    f.write(h_patch)
+
+# Fix BroadcastServer.cpp else error
+with open('src/BroadcastServer.cpp', 'r') as f:
+    cpp_content = f.read()
+
+# remove extra 'else {' that was injected
+cpp_content = cpp_content.replace('else { else {', 'else {')
+with open('src/BroadcastServer.cpp', 'w') as f:
+    f.write(cpp_content)
