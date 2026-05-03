@@ -66,3 +66,6 @@
 ## 2024-05-18 - SVG Canvas for Dynamic IoT Visualization
 **Learning:** For rendering complex dynamic data (such as radar exclusion zones or target velocity vectors) on a microcontroller web interface, embedding a raw SVG canvas directly into the HTML string and manipulating its DOM via vanilla JavaScript is vastly superior to importing heavy charting libraries or using Canvas API. SVGs scale perfectly without pixelation and do not bloat the initial payload size.
 **Action:** Default to raw SVG manipulation via `document.createElementNS` in lightweight embedded web servers when visual aids like lines, arcs, or shapes are necessary.
+## 2026-05-20 - [Menu Categorization & Intuitive Flow]
+**Learning:** Having excessive top-level menu categories (like splitting "VISUALS" and "DISPLAY POS") increases cognitive load and navigation time.
+**Action:** Consolidate related settings under logical groups (e.g. merging Display Orientation and Menu Position under the existing Visual Settings page). When reorganizing C++ array-based menus, ensure index mappings across population functions (`populateMainMenu`), click handlers (`handleMenuClick`), and edit functions (`executeMenuEdit`) are perfectly synchronized to avoid inaccessible options.

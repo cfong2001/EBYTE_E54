@@ -28,7 +28,6 @@ enum MenuPage {
     PAGE_VISUALS,
     PAGE_ZONES,
     PAGE_DATA,
-    PAGE_DISPLAY,
     PAGE_DEV
 };
 
@@ -874,8 +873,6 @@ private:
         items[numItems++] = "  [BOUNDARIES]";
         items[numItems++] = "TARGET DATA";
         items[numItems++] = "  [GAIN/FILTER]";
-        items[numItems++] = "DISPLAY POS";
-        items[numItems++] = "  [ROTATION]";
         items[numItems++] = "DEV OPTIONS";
         items[numItems++] = "USER GUIDE";
         items[numItems++] = "[ Exit Menu ]";
@@ -898,6 +895,16 @@ private:
         items[numItems++] = "Trails: " + String(trailLength);
         items[numItems++] = "Grid: " + String(gridEnabled ? "ON" : "OFF");
         items[numItems++] = "Boot Anim: " + String(startupAnimEnabled ? "ON" : "OFF");
+        String rotStr = (displayRotation == ROTATION_UP) ? "UP" :
+                        (displayRotation == ROTATION_LEFT) ? "LEFT" :
+                        (displayRotation == ROTATION_DOWN) ? "DOWN" : "RIGHT";
+        String posStr = (menuPosition == MENU_POS_TOP) ? "TOP" :
+                        (menuPosition == MENU_POS_BOTTOM) ? "BOTTOM" :
+                        (menuPosition == MENU_POS_LEFT) ? "LEFT" :
+                        (menuPosition == MENU_POS_RIGHT) ? "RIGHT" : "CENTER";
+
+        items[numItems++] = "Orientation: " + rotStr;
+        items[numItems++] = "Menu Pos: " + posStr;
     }
 
     void populateZonesMenu(String* items, int& numItems) {
@@ -934,22 +941,6 @@ private:
             items[numItems++] = " D-MinA: " + String(zoneManager.getDeadCustom().minAngle);
             items[numItems++] = " D-MaxA: " + String(zoneManager.getDeadCustom().maxAngle);
         }
-    }
-
-    void populateDisplayMenu(String* items, int& numItems) {
-        sprite.setTextColor(themePrimary, themeBg);
-        sprite.setCursor(15, 5); sprite.print("--- DISPLAY ---");
-
-        String rotStr = (displayRotation == ROTATION_UP) ? "UP" :
-                        (displayRotation == ROTATION_LEFT) ? "LEFT" :
-                        (displayRotation == ROTATION_DOWN) ? "DOWN" : "RIGHT";
-        String posStr = (menuPosition == MENU_POS_TOP) ? "TOP" :
-                        (menuPosition == MENU_POS_BOTTOM) ? "BOTTOM" :
-                        (menuPosition == MENU_POS_LEFT) ? "LEFT" :
-                        (menuPosition == MENU_POS_RIGHT) ? "RIGHT" : "CENTER";
-        items[numItems++] = "<- Back";
-        items[numItems++] = "Orientation: " + rotStr;
-        items[numItems++] = "Menu Pos: " + posStr;
     }
 
     void populateDataMenu(String* items, int& numItems) {
@@ -993,8 +984,6 @@ private:
             populateZonesMenu(items, numItems);
         } else if (activePage == PAGE_DATA) {
             populateDataMenu(items, numItems);
-        } else if (activePage == PAGE_DISPLAY) {
-            populateDisplayMenu(items, numItems);
         } else if (activePage == PAGE_DEV) {
             populateDevMenu(items, numItems);
         }
@@ -1050,8 +1039,8 @@ private:
                 else if (menuSelection == 3) sprite.print("dead zones.");
                 else if (menuSelection == 4) sprite.print("Adjust raw telemetry");
                 else if (menuSelection == 5) sprite.print("filtering options.");
-                else if (menuSelection == 6) sprite.print("Adjust menu");
-                else if (menuSelection == 7) sprite.print("rotation.");
+                else if (menuSelection == 6) sprite.print("Advanced device config.");
+                else if (menuSelection == 7) sprite.print("Open user manual.");
                 else if (menuSelection == 8) sprite.print("Return to radar view.");
                 else sprite.print("Select an option.");
             } else {
@@ -1120,10 +1109,9 @@ private:
             if (menuSelection == 0 || menuSelection == 1) { activePage = PAGE_VISUALS; menuSelection = 0; }
             else if (menuSelection == 2 || menuSelection == 3) { activePage = PAGE_ZONES; menuSelection = 0; }
             else if (menuSelection == 4 || menuSelection == 5) { activePage = PAGE_DATA; menuSelection = 0; }
-            else if (menuSelection == 6 || menuSelection == 7) { activePage = PAGE_DISPLAY; menuSelection = 0; }
-            else if (menuSelection == 8) { activePage = PAGE_DEV; menuSelection = 0; }
-            else if (menuSelection == 9) { state = STATE_GUIDE; guidePage = 0; }
-            else if (menuSelection == 10) { state = STATE_RADAR_VIEW; }
+            else if (menuSelection == 6) { activePage = PAGE_DEV; menuSelection = 0; }
+            else if (menuSelection == 7) { state = STATE_GUIDE; guidePage = 0; }
+            else if (menuSelection == 8) { state = STATE_RADAR_VIEW; }
         }
         else if (activePage == PAGE_VISUALS) {
             if (menuSelection == 0) { activePage = PAGE_MAIN; menuSelection = 0; }
@@ -1134,10 +1122,6 @@ private:
             else { state = STATE_MENU_EDIT; }
         }
         else if (activePage == PAGE_DEV) {
-            if (menuSelection == 0) { activePage = PAGE_MAIN; menuSelection = 0; }
-            else { state = STATE_MENU_EDIT; }
-        }
-        else if (activePage == PAGE_DISPLAY) {
             if (menuSelection == 0) { activePage = PAGE_MAIN; menuSelection = 0; }
             else { state = STATE_MENU_EDIT; }
         }
@@ -1173,6 +1157,19 @@ private:
             if (idx++ == menuSelection) { trailLength += dir; if (trailLength < 0) trailLength = 0; if (trailLength > 10) trailLength = 10; return; }
             if (idx++ == menuSelection) { gridEnabled = !gridEnabled; return; }
             if (idx++ == menuSelection) { startupAnimEnabled = !startupAnimEnabled; return; }
+            if (idx++ == menuSelection) {
+                int r = (int)displayRotation + dir;
+                if (r > 3) r = 0; if (r < 0) r = 3;
+                displayRotation = (DisplayRotation)r;
+                tft.setRotation(displayRotation);
+                return;
+            }
+            if (idx++ == menuSelection) {
+                int m = (int)menuPosition + dir;
+                if (m > 4) m = 0; if (m < 0) m = 4;
+                menuPosition = (MenuPosition)m;
+                return;
+            }
         }
         else if (activePage == PAGE_ZONES) {
             if (idx++ == menuSelection) {
@@ -1214,15 +1211,7 @@ private:
                 if (idx++ == menuSelection) { z.maxAngle += dir * 5; if(z.maxAngle > 90) z.maxAngle=90; zoneManager.setDeadCustom(z); return; }
             }
         }
-        else if (activePage == PAGE_DISPLAY) {
-            if (idx++ == menuSelection) {
-                int r = (int)displayRotation + dir;
-                if (r > 3) r = 0; if (r < 0) r = 3;
-                displayRotation = (DisplayRotation)r;
-                tft.setRotation(displayRotation);
-                return;
-            }
-        }
+
         else if (activePage == PAGE_DEV) {
             if (idx++ == menuSelection) { devRiskAccepted = !devRiskAccepted; return; }
             if (devRiskAccepted) {
