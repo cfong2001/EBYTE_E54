@@ -74,6 +74,10 @@ public:
     Preferences preferences;
     bool devRiskAccepted = false;
     bool motionCompEnabled = true;
+    bool passthroughMode = false;
+    int uiTextSize = 1;
+    DisplayRotation displayRotation = ROTATION_UP;
+    MenuPosition menuPosition = MENU_POS_CENTER;
     bool broadcastModeEnabled = false;
 
     UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
@@ -134,9 +138,9 @@ public:
         gridEnabled = preferences.getBool("grid", true);
         startupAnimEnabled = preferences.getBool("startup", true);
         simulatedSweep = preferences.getBool("simSwp", false);
-        broadcastModeEnabled = preferences.getBool("bcast", false);
         displayRotation = (DisplayRotation)preferences.getInt("rot", ROTATION_UP);
         menuPosition = (MenuPosition)preferences.getInt("menuP", MENU_POS_CENTER);
+        broadcastModeEnabled = preferences.getBool("bcast", false);
 
         telemetryMode = (TelemetryMode)preferences.getInt("tData", TELEMETRY_OFF);
         uiTextSize = preferences.getInt("textSize", 1);
@@ -155,9 +159,9 @@ public:
         preferences.putBool("grid", gridEnabled);
         preferences.putBool("startup", startupAnimEnabled);
         preferences.putBool("simSwp", simulatedSweep);
-        preferences.putBool("bcast", broadcastModeEnabled);
         preferences.putInt("rot", displayRotation);
         preferences.putInt("menuP", menuPosition);
+        preferences.putBool("bcast", broadcastModeEnabled);
 
         preferences.putInt("tData", telemetryMode);
         preferences.putInt("textSize", uiTextSize);
@@ -205,12 +209,12 @@ public:
 
     void handleButtonLongPress() {
         if (state == STATE_MENU) {
-            showTooltip = true;
+            showTooltip = !showTooltip;
         }
     }
 
     void handleButton() {
-
+        showTooltip = false; // Reset tooltip on any interaction
         if (state == STATE_RADAR_VIEW) {
             state = STATE_MENU;
             activePage = PAGE_MAIN;
@@ -652,11 +656,11 @@ public:
 
         sprite.setCursor(5, h - 12);
         if (state == STATE_RADAR_VIEW) {
-            sprite.print("[VIEW]  MENU");
+            sprite.print("RADAR [MENU]");
         } else if (state == STATE_MENU_EDIT) {
-            sprite.print(" EDIT  [SAVE]");
+            sprite.print("EDIT [SAVE]");
         } else {
-            sprite.print(" VIEW  [MENU]");
+            sprite.print("MENU [SELECT] (HOLD: INFO)");
         }
 
         if (theme != THEME_MINIMAL) {
@@ -953,8 +957,8 @@ private:
         items[numItems++] = "Accept Risk? " + String(devRiskAccepted ? "YES" : "NO");
         if (devRiskAccepted) {
             items[numItems++] = "Motion Comp: " + String(motionCompEnabled ? "ON" : "OFF");
-            items[numItems++] = "Broadcast AP: " + String(broadcastModeEnabled ? "ON" : "OFF");
             items[numItems++] = "Passthrough: " + String(passthroughMode ? "ON" : "OFF");
+            items[numItems++] = "Broadcast AP: " + String(broadcastModeEnabled ? "ON" : "OFF");
             items[numItems++] = "[ FACTORY RESET ]";
         }
     }
@@ -1202,8 +1206,8 @@ private:
             if (idx++ == menuSelection) { devRiskAccepted = !devRiskAccepted; return; }
             if (devRiskAccepted) {
                 if (idx++ == menuSelection) { motionCompEnabled = !motionCompEnabled; return; }
-                if (idx++ == menuSelection) { broadcastModeEnabled = !broadcastModeEnabled; return; }
                 if (idx++ == menuSelection) { passthroughMode = !passthroughMode; return; }
+                if (idx++ == menuSelection) { broadcastModeEnabled = !broadcastModeEnabled; return; }
                 if (idx++ == menuSelection) {
                     sprite.fillSprite(themeDanger);
                     sprite.setTextColor(TFT_WHITE);
