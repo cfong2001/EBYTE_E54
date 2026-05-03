@@ -6,6 +6,7 @@
 #include <RotaryEncoder.h>
 #include <OneButton.h>
 #include <Preferences.h>
+#include <esp_random.h>
 #include "E54_Radar.h"
 #include "ZoneManager.h"
 
@@ -61,6 +62,13 @@ enum MenuPosition {
     MENU_POS_CENTER
 };
 
+enum ApNameMode {
+    AP_NAME_ESP32,
+    AP_NAME_E54,
+    AP_NAME_RADAR,
+    AP_NAME_RANDOM
+};
+
 enum DisplayRotation {
     ROTATION_UP = 1,
     ROTATION_LEFT = 2,
@@ -79,6 +87,18 @@ public:
     DisplayRotation displayRotation = ROTATION_UP;
     MenuPosition menuPosition = MENU_POS_CENTER;
     bool broadcastModeEnabled = false;
+    ApNameMode apNameMode = AP_NAME_ESP32;
+    String randomApName;
+
+    String getApNameStr() {
+        if (apNameMode == AP_NAME_ESP32) return "ESP32-Radar-Tracker";
+        if (apNameMode == AP_NAME_E54) return "E54-Tracker";
+        if (apNameMode == AP_NAME_RADAR) return "Radar";
+        if (randomApName == "") {
+            randomApName = "AP-" + String(esp_random() % 10000);
+        }
+        return randomApName;
+    }
 
     UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
         state = STATE_BOOT;
@@ -141,6 +161,7 @@ public:
         displayRotation = (DisplayRotation)preferences.getInt("rot", ROTATION_UP);
         menuPosition = (MenuPosition)preferences.getInt("menuP", MENU_POS_CENTER);
         broadcastModeEnabled = preferences.getBool("bcast", false);
+        apNameMode = (ApNameMode)preferences.getInt("apName", AP_NAME_ESP32);
 
         telemetryMode = (TelemetryMode)preferences.getInt("tData", TELEMETRY_OFF);
         uiTextSize = preferences.getInt("textSize", 1);
@@ -162,6 +183,7 @@ public:
         preferences.putInt("rot", displayRotation);
         preferences.putInt("menuP", menuPosition);
         preferences.putBool("bcast", broadcastModeEnabled);
+        preferences.putInt("apName", apNameMode);
 
         preferences.putInt("tData", telemetryMode);
         preferences.putInt("textSize", uiTextSize);
@@ -959,6 +981,7 @@ private:
             items[numItems++] = "Motion Comp: " + String(motionCompEnabled ? "ON" : "OFF");
             items[numItems++] = "Passthrough: " + String(passthroughMode ? "ON" : "OFF");
             items[numItems++] = "Broadcast AP: " + String(broadcastModeEnabled ? "ON" : "OFF");
+            items[numItems++] = "AP Name: " + getApNameStr();
             items[numItems++] = "[ FACTORY RESET ]";
         }
     }
@@ -1208,6 +1231,13 @@ private:
                 if (idx++ == menuSelection) { motionCompEnabled = !motionCompEnabled; return; }
                 if (idx++ == menuSelection) { passthroughMode = !passthroughMode; return; }
                 if (idx++ == menuSelection) { broadcastModeEnabled = !broadcastModeEnabled; return; }
+                if (idx++ == menuSelection) {
+                    int m = (int)apNameMode + dir;
+                    if (m > 3) m = 0; if (m < 0) m = 3;
+                    apNameMode = (ApNameMode)m;
+                    if (apNameMode == AP_NAME_RANDOM) randomApName = ""; // Regenerate on selection
+                    return;
+                }
                 if (idx++ == menuSelection) {
                     sprite.fillSprite(themeDanger);
                     sprite.setTextColor(TFT_WHITE);
