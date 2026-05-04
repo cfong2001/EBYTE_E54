@@ -29,13 +29,30 @@ public:
         float velY;
         float accX;
         float accY;
+
+        // Drop-out resilience
+        uint8_t framesLost;
+
+        // Historical trajectory buffer for MeshFlow-inspired optimization
+        static const int HISTORY_SIZE = 15;
+        float historyX[HISTORY_SIZE];
+        float historyY[HISTORY_SIZE];
+        int historyHead;
+        int historyCount;
     };
 
     MotionCompensation() {}
 
     void init() {
         for (int i = 0; i < 3; i++) {
-            state[i] = {false, false, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+            state[i].active = false;
+            state[i].isAnchor = false;
+            state[i].x = 0; state[i].y = 0;
+            state[i].velX = 0; state[i].velY = 0;
+            state[i].accX = 0; state[i].accY = 0;
+            state[i].framesLost = 0;
+            state[i].historyHead = 0;
+            state[i].historyCount = 0;
         }
         frameCount = 0;
         baseSmoothingAlpha = 0.3; // Default
@@ -281,6 +298,9 @@ private:
                     float dy = stab_y - state[i].y;
                     float distMovedSq = dx*dx + dy*dy;
 
+                    // If target dropped out briefly but reappears within gating distance, reset drop counter
+                    state[i].framesLost = 0;
+
                     if (distMovedSq > maxAllowedDist * maxAllowedDist) {
                         // Reject this target frame (likely a teleporting ghost)
                         // Hold position using predicted coordinates
@@ -291,11 +311,34 @@ private:
 
                 compensated[i].x = (int16_t)stab_x;
                 compensated[i].y = (int16_t)stab_y;
+                compensated[i].active = true;
 
                 updateFilterState(i, dt, stab_x, stab_y, P_x[i], P_y[i], targets[i]);
             } else {
-                state[i].active = false;
-                state[i].isAnchor = false;
+                // Drop-out resilience logic
+                const uint8_t maxFramesLost = 5;
+                if (state[i].active && state[i].framesLost < maxFramesLost) {
+                    state[i].framesLost++;
+                    // Predict forward using last known velocity
+                    float px = P_x[i];
+                    float py = P_y[i];
+
+                    // Update state to use predicted coordinates to coast through dropouts
+                    state[i].x = px;
+                    state[i].y = py;
+
+                    // Provide a synthetic compensated target to UI
+                    compensated[i].x = (int16_t)px;
+                    compensated[i].y = (int16_t)py;
+                    compensated[i].speed = (int16_t)sqrtf(state[i].velX*state[i].velX + state[i].velY*state[i].velY);
+                    compensated[i].active = true;
+                    compensated[i].resolution = 0; // indicates interpolated frame
+                } else {
+                    // Permanently drop after grace period
+                    state[i].active = false;
+                    state[i].isAnchor = false;
+                    compensated[i].active = false;
+                }
             }
         }
     }
@@ -309,13 +352,47 @@ private:
             state[i].accX = 0;
             state[i].accY = 0;
             state[i].active = true;
+            state[i].framesLost = 0;
+            state[i].historyCount = 0;
+            state[i].historyHead = 0;
         } else {
+            // Apply MeshFlow-inspired Gaussian window smoothing using historical data
+            float smoothX = stab_x;
+            float smoothY = stab_y;
+
+            if (state[i].historyCount > 0) {
+                float totalWeight = 1.0f; // Weight for the new coordinate
+                float sumX = stab_x * 1.0f;
+                float sumY = stab_y * 1.0f;
+
+                // Window size dictates the spread of the Gaussian.
+                // Larger history window = wider spread. We use historyCount.
+                float window_size = (float)state[i].historyCount;
+                if (window_size > 1.0f) {
+                    for (int j = 0; j < state[i].historyCount; j++) {
+                        // Calculate index in circular buffer
+                        int histIdx = (state[i].historyHead - 1 - j + TargetState::HISTORY_SIZE) % TargetState::HISTORY_SIZE;
+
+                        // Time delta `r-t` corresponds to `j + 1` (how many frames ago)
+                        float r_t = (float)(j + 1);
+                        float weight = expf((-9.0f * (r_t * r_t)) / (window_size * window_size));
+
+                        sumX += state[i].historyX[histIdx] * weight;
+                        sumY += state[i].historyY[histIdx] * weight;
+                        totalWeight += weight;
+                    }
+                    smoothX = sumX / totalWeight;
+                    smoothY = sumY / totalWeight;
+                }
+            }
+
             float alpha = baseSmoothingAlpha;
             float beta = baseSmoothingBeta;
             float gamma = baseSmoothingGamma;
 
-            float residualX = stab_x - px;
-            float residualY = stab_y - py;
+            // Residual is calculated against the smoothed objective, not the raw stabilized point
+            float residualX = smoothX - px;
+            float residualY = smoothY - py;
             float distSq = residualX * residualX + residualY * residualY;
 
             // Adaptive Gain Selection
@@ -366,6 +443,14 @@ private:
             if (state[i].accX < -maxAcc) state[i].accX = -maxAcc;
             if (state[i].accY > maxAcc) state[i].accY = maxAcc;
             if (state[i].accY < -maxAcc) state[i].accY = -maxAcc;
+
+            // Update circular history buffer with final determined state
+            state[i].historyX[state[i].historyHead] = state[i].x;
+            state[i].historyY[state[i].historyHead] = state[i].y;
+            state[i].historyHead = (state[i].historyHead + 1) % TargetState::HISTORY_SIZE;
+            if (state[i].historyCount < TargetState::HISTORY_SIZE) {
+                state[i].historyCount++;
+            }
         }
     }
 
