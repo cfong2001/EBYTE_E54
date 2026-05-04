@@ -7,14 +7,15 @@
 #include "MotionCompensation.h"
 #include "UIManager.h"
 #include "PerformanceMonitor.h"
-#include "BroadcastServer.h"
+#include "ConfigManager.h"
+
+ConfigManager configManager;
 
 // Hardware instances
 HardwareSerial radarUART(1);
 E54_Radar radar(radarUART);
 MotionCompensation motionComp;
 PerformanceMonitor perfMonitor;
-BroadcastServer bcastServer;
 
 TFT_eSPI tft = TFT_eSPI();
 UIManager ui(tft);
@@ -31,11 +32,7 @@ SemaphoreHandle_t dataMutex;
 #endif
 
 #ifndef PIN_BUTTON
-#define PIN_BUTTON    32
-#endif
-
-#ifndef PIN_KEY0
-#define PIN_KEY0      33
+#define PIN_BUTTON    27
 #endif
 
 #ifndef RADAR_RX_PIN
@@ -47,7 +44,6 @@ SemaphoreHandle_t dataMutex;
 
 RotaryEncoder encoder(PIN_ENCODER_A, PIN_ENCODER_B, RotaryEncoder::LatchMode::TWO03);
 OneButton button(PIN_BUTTON, true, true);
-OneButton key0(PIN_KEY0, true, true);
 
 // Interrupt routine for rotary encoder
 void IRAM_ATTR checkPosition() {
@@ -60,10 +56,6 @@ void handleButtonPress() {
 
 void handleButtonLongPressStart() {
     ui.handleButtonLongPress();
-}
-
-void handleKey0Press() {
-    ui.handleExtraButton();
 }
 
 void radarTask(void *pvParameters) {
@@ -90,7 +82,6 @@ void radarTask(void *pvParameters) {
                     }
                 }
                 ui.updateRadarData(compensatedTargets, motionComp.isAnchorValid(), motionComp.getAnchorX(), motionComp.getAnchorY());
-                bcastServer.updateData(compensatedTargets);
 
                 for (int i = 0; i < 3; i++) {
                     ui.setTargetMotion(i, motionComp.getTargetVelX(i), motionComp.getTargetVelY(i),
@@ -103,15 +94,19 @@ void radarTask(void *pvParameters) {
     }
 }
 
+unsigned long fallbackStart = 0;
+String serialBuffer = "";
+
 void setup() {
     dataMutex = xSemaphoreCreateMutex();
     Serial.begin(115200);
     Serial.println("System starting...");
 
-#ifdef TFT_BLK
-    pinMode(TFT_BLK, OUTPUT);
-    digitalWrite(TFT_BLK, HIGH);
-#endif
+    // Fallback logic
+    if (configManager.checkFallback()) {
+        ui.state = STATE_FALLBACK;
+        fallbackStart = millis();
+    }
 
     // Initialize radar
     radar.begin(RADAR_RX_PIN, RADAR_TX_PIN);
@@ -121,17 +116,11 @@ void setup() {
     // Initialize UI
     ui.init();
 
-    // Initialize Broadcast AP if enabled
-    if (ui.broadcastModeEnabled) {
-        bcastServer.begin(ui.getApNameStr());
-    }
-
     // Initialize inputs
     attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_A), checkPosition, CHANGE);
     attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_B), checkPosition, CHANGE);
-button.attachClick(handleButtonPress);
+    button.attachClick(handleButtonPress);
     button.attachLongPressStart(handleButtonLongPressStart);
-    key0.attachClick(handleKey0Press);
 
     xTaskCreatePinnedToCore(
         radarTask,   /* Task function. */
@@ -149,7 +138,6 @@ unsigned long lastRender = 0;
 void loop() {
     // Process button
     button.tick();
-    key0.tick();
 
     // Process encoder
     encoder.tick();
@@ -166,21 +154,28 @@ void loop() {
     if (act == 1) { // Reset Tracking
         motionComp.forceReset();
         Serial.println("Motion Compensation Tracking Reset.");
+    } else if (act == 2) {
+        configManager.exportConfig(ui);
+    } else if (act == 3) {
+        // Confirmed fallback
+        Serial.println("New config confirmed.");
     }
 
-    // Handle Broadcast AP Toggles
-    static bool lastBroadcastMode = ui.broadcastModeEnabled;
-    static ApNameMode lastApNameMode = ui.apNameMode;
-    if (ui.broadcastModeEnabled != lastBroadcastMode || ui.apNameMode != lastApNameMode) {
-        if (ui.broadcastModeEnabled && lastBroadcastMode && ui.apNameMode != lastApNameMode) {
-            bcastServer.stop();
+    if (ui.state == STATE_IMPORTING) {
+        while (Serial.available()) {
+            char c = Serial.read();
+            serialBuffer += c;
+            if (serialBuffer.endsWith("}")) {
+                configManager.importConfig(serialBuffer);
+                serialBuffer = "";
+            }
         }
-        lastBroadcastMode = ui.broadcastModeEnabled;
-        lastApNameMode = ui.apNameMode;
-        if (ui.broadcastModeEnabled) {
-            bcastServer.begin(ui.getApNameStr());
-        } else {
-            bcastServer.stop();
+    } else if (ui.state == STATE_FALLBACK) {
+        if (millis() - fallbackStart > 15000) { // 15s timeout
+            Serial.println("Fallback timeout. Reverting...");
+            configManager.restoreFromFallback();
+            delay(1000);
+            ESP.restart();
         }
     }
 
