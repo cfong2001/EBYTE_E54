@@ -60,7 +60,7 @@ public:
     Preferences preferences;
     bool devRiskAccepted = false;
     bool motionCompEnabled = true;
-    bool passthroughMode = false;
+    bool passthroughMode = true;
     int uiTextSize = 1;
 
     UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
@@ -150,10 +150,35 @@ public:
         zoneManager.loadSettings();
         loadSettings();
 
+        Serial.println("[UI] tft.init() start");
         tft.init();
-        tft.setRotation(1);
-        tft.initDMA();
-        sprite.createSprite(240, 240);
+        Serial.println("[UI] tft.init() done");
+
+        // ST7789 boots in sleep mode — must explicitly wake it.
+        // tft.init() sends the init sequence but RST timing variance can
+        // leave the display in sleep. Force the wake sequence here.
+        tft.writecommand(0x11); // SLPOUT - exit sleep mode
+        delay(150);             // ST7789 datasheet: min 120ms after SLPOUT
+        tft.writecommand(0x29); // DISPON - turn display on
+        delay(10);
+
+        tft.setRotation(0);  // portrait 240x320, matches sprite dimensions
+        tft.fillScreen(TFT_BLACK); // Clear screen
+        Serial.println("[UI] Screen filled BLACK");
+
+#ifdef TFT_BL
+        Serial.printf("[UI] Backlight pin %d -> %s\n", TFT_BL,
+                      TFT_BACKLIGHT_ON == HIGH ? "HIGH" : "LOW");
+        pinMode(TFT_BL, OUTPUT);
+        digitalWrite(TFT_BL, TFT_BACKLIGHT_ON);
+        Serial.println("[UI] Backlight set");
+#else
+        Serial.println("[UI] WARNING: TFT_BL not defined");
+#endif
+
+        bool spriteOk = sprite.createSprite(240, 320);
+        Serial.printf("[UI] createSprite(240,320): %s  ptr=%p\n",
+                      spriteOk ? "OK" : "FAILED", sprite.getPointer());
         sprite.setSwapBytes(true);
 
         if (startupAnimEnabled) {
@@ -162,6 +187,7 @@ public:
         } else {
             state = STATE_RADAR_VIEW;
         }
+        Serial.println("[UI] init() complete");
     }
 
     void handleEncoder(int dir) {
@@ -235,13 +261,13 @@ public:
                     targetActive[i] = false;
                 } else {
                     targetGoalX[i] = 120 + (targets[i].x * 120 / 5000);
-                    targetGoalY[i] = 240 - (targets[i].y * 240 / 5000);
+                    targetGoalY[i] = 320 - (targets[i].y * 320 / 5000);
 
                     rawTargetX[i] = targets[i].x;
                     rawTargetY[i] = targets[i].y;
                     rawTargetSpeed[i] = targets[i].speed;
 
-                    if (targetGoalX[i] < 0 || targetGoalX[i] >= 240 || targetGoalY[i] < 0 || targetGoalY[i] >= 240) {
+                    if (targetGoalX[i] < 0 || targetGoalX[i] >= 240 || targetGoalY[i] < 0 || targetGoalY[i] >= 320) {
                         targetActive[i] = false;
                     }
                 }
@@ -385,11 +411,9 @@ public:
         }
 
         tft.startWrite();
-        tft.pushImageDMA(0, 0, 240, 240, (uint16_t*)sprite.getPointer());
-        tft.dmaWait();
+        sprite.pushSprite(0, 0);  // PSRAM-safe: no DMA required
         tft.endWrite();
     }
-
     int getSensitivity() { return sensitivity; }
     int getLocationAveraging() { return locationAveraging; }
 
@@ -475,10 +499,10 @@ public:
             for (int a = 0; a < 30; a += 2) {
                 float tr = (sweepAngle - a - 180) * 0.0174533f;
                 int tx = 120 + 180 * cosf(tr);
-                int ty = 240 + 180 * sinf(tr);
+                int ty = 320 + 180 * sinf(tr);
                 uint8_t alpha = 255 - ((a * 255) / 30);
                 uint16_t trailCol = sprite.alphaBlend(alpha, sweepColor, themeBg);
-                sprite.drawLine(120, 240, tx, ty, trailCol);
+                sprite.drawLine(120, 320, tx, ty, trailCol);
             }
         }
     }
@@ -618,10 +642,10 @@ public:
 
     void drawHUD() {
         sprite.fillRect(0, 0, 240, 16, themeBg);
-        sprite.fillRect(0, 224, 240, 16, themeBg);
+        sprite.fillRect(0, 304, 240, 16, themeBg);
 
         sprite.drawLine(0, 16, 240, 16, sprite.alphaBlend(100, themePrimary, themeBg));
-        sprite.drawLine(0, 224, 240, 224, sprite.alphaBlend(100, themePrimary, themeBg));
+        sprite.drawLine(0, 304, 240, 304, sprite.alphaBlend(100, themePrimary, themeBg));
 
         sprite.setTextColor(themePrimary, themeBg);
         sprite.setTextSize(uiTextSize);
@@ -631,7 +655,7 @@ public:
         sprite.setCursor(215, 4);
         sprite.print("BAT");
 
-        sprite.setCursor(5, 228);
+        sprite.setCursor(5, 308);
         if (state == STATE_RADAR_VIEW) {
             sprite.print("[VIEW]  MENU");
         } else if (state == STATE_MENU_EDIT) {
@@ -745,7 +769,7 @@ public:
         else if (elapsed < 600) sprite.setCursor(90, 120), sprite.print("CALIBRATING");
         else if (elapsed < 1000) sprite.setCursor(95, 120), sprite.print("SCANNING...");
 
-        tft.startWrite(); tft.pushImageDMA(0, 0, 240, 240, (uint16_t*)sprite.getPointer()); tft.endWrite();
+        tft.startWrite(); sprite.pushSprite(0, 0); tft.endWrite();  // PSRAM-safe push, full 240x320
 
         if (elapsed > 1200) {
             state = STATE_RADAR_VIEW;
@@ -789,7 +813,7 @@ public:
         if (gridEnabled) {
             // Tactical crosshair
             sprite.drawLine(0, 120, 240, 120, gridColor);
-            sprite.drawLine(120, 16, 120, 224, gridColor); // Avoid drawing over top/bottom bars
+            sprite.drawLine(120, 16, 120, 304, gridColor); // Avoid drawing over top/bottom bars
 
             // Faint concentric circles
             for (int r = 40; r <= 100; r += 30) {
