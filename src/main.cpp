@@ -136,7 +136,7 @@ void radarTask(void *pvParameters) {
 
                 for (int i = 0; i < 3; i++) {
                     ui.setTargetMotion(i, motionComp.getTargetVelX(i), motionComp.getTargetVelY(i),
-                                          motionComp.getTargetAccX(i), motionComp.getTargetAccY(i));
+                                          motionComp.getTargetAccX(i), motionComp.getTargetAccY(i), motionComp.getTargetStdDev(i));
                 }
                 xSemaphoreGive(dataMutex);
             }

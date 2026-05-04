@@ -34,11 +34,12 @@ public:
         uint8_t framesLost;
 
         // Historical trajectory buffer for MeshFlow-inspired optimization
-        static const int HISTORY_SIZE = 15;
+        static const int HISTORY_SIZE = 30;
         float historyX[HISTORY_SIZE];
         float historyY[HISTORY_SIZE];
         int historyHead;
         int historyCount;
+        float stdDev;
     };
 
     MotionCompensation() {}
@@ -53,6 +54,7 @@ public:
             state[i].framesLost = 0;
             state[i].historyHead = 0;
             state[i].historyCount = 0;
+            state[i].stdDev = 0.0f;
         }
         frameCount = 0;
         baseSmoothingAlpha = 0.3; // Default
@@ -135,6 +137,7 @@ public:
     float getTargetVelY(int i) const { return state[i].velY; }
     float getTargetAccX(int i) const { return state[i].accX; }
     float getTargetAccY(int i) const { return state[i].accY; }
+    float getTargetStdDev(int i) const { return state[i].stdDev; }
 
     void forceReset() { init(); }
 
@@ -316,7 +319,7 @@ private:
                 updateFilterState(i, dt, stab_x, stab_y, P_x[i], P_y[i], targets[i]);
             } else {
                 // Drop-out resilience logic
-                const uint8_t maxFramesLost = 5;
+                const uint8_t maxFramesLost = 10;
                 if (state[i].active && state[i].framesLost < maxFramesLost) {
                     state[i].framesLost++;
                     // Predict forward using last known velocity
@@ -354,6 +357,7 @@ private:
             state[i].active = true;
             state[i].framesLost = 0;
             state[i].historyCount = 0;
+            state[i].stdDev = 0.0f;
             state[i].historyHead = 0;
         } else {
             // Apply MeshFlow-inspired Gaussian window smoothing using historical data
@@ -365,24 +369,64 @@ private:
                 float sumX = stab_x * 1.0f;
                 float sumY = stab_y * 1.0f;
 
-                // Window size dictates the spread of the Gaussian.
-                // Larger history window = wider spread. We use historyCount.
+                // Velocity-Adaptive Gaussian Window Size
+                // As per literature on temporal video stabilization (MeshFlow real-time adaptation),
+                // using a wide smoothing window induces heavy lag on moving objects.
+                // We dynamically scale the window size based on current velocity.
+                // The sensor natively outputs speed in cm/s. We convert to mm/s for scaling logic.
+                float currentSpeed = fabsf((float)rawTarget.speed * 10.0f);
+                float maxSpeed = 3000.0f; // 3 m/s (3000 mm/s) as upper bound for fast motion
+
+                // If stationary, use full history. If moving fast, collapse to very small window.
                 float window_size = (float)state[i].historyCount;
+                if (currentSpeed > 50.0f) { // Only shrink if moving more than noise floor
+                    float speedFactor = 1.0f - (currentSpeed / maxSpeed);
+                    if (speedFactor < 0.1f) speedFactor = 0.1f;
+                    window_size = window_size * speedFactor;
+                }
+
                 if (window_size > 1.0f) {
+                    float meanX = 0;
+                    float meanY = 0;
+
                     for (int j = 0; j < state[i].historyCount; j++) {
                         // Calculate index in circular buffer
                         int histIdx = (state[i].historyHead - 1 - j + TargetState::HISTORY_SIZE) % TargetState::HISTORY_SIZE;
 
+                        float hX = state[i].historyX[histIdx];
+                        float hY = state[i].historyY[histIdx];
+
+                        meanX += hX;
+                        meanY += hY;
+
                         // Time delta `r-t` corresponds to `j + 1` (how many frames ago)
                         float r_t = (float)(j + 1);
+
+                        // To heavily weight recent frames when the window is small (moving target),
+                        // we also apply a baseline exponential time decay factor.
                         float weight = expf((-9.0f * (r_t * r_t)) / (window_size * window_size));
 
-                        sumX += state[i].historyX[histIdx] * weight;
-                        sumY += state[i].historyY[histIdx] * weight;
-                        totalWeight += weight;
+                        // Only add weight if it is statistically significant (speeds up loop and rejects stale data for fast targets)
+                        if (weight > 0.05f) {
+                            sumX += hX * weight;
+                            sumY += hY * weight;
+                            totalWeight += weight;
+                        }
                     }
                     smoothX = sumX / totalWeight;
                     smoothY = sumY / totalWeight;
+
+                    // Calculate unweighted Standard Deviation (Variance spread) of the coordinate history buffer for UI
+                    meanX /= (float)state[i].historyCount;
+                    meanY /= (float)state[i].historyCount;
+                    float varSum = 0;
+                    for (int j = 0; j < state[i].historyCount; j++) {
+                         int histIdx = (state[i].historyHead - 1 - j + TargetState::HISTORY_SIZE) % TargetState::HISTORY_SIZE;
+                         float dx = state[i].historyX[histIdx] - meanX;
+                         float dy = state[i].historyY[histIdx] - meanY;
+                         varSum += (dx*dx + dy*dy);
+                    }
+                    state[i].stdDev = sqrtf(varSum / (float)state[i].historyCount);
                 }
             }
 

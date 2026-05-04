@@ -61,6 +61,7 @@ public:
     bool devRiskAccepted = false;
     bool motionCompEnabled = true;
     bool passthroughMode = true;
+    bool showStdDev = false;
     int uiTextSize = 1;
 
     UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
@@ -101,6 +102,7 @@ public:
             smoothVecX[i] = 0.0f;
             smoothVecY[i] = 0.0f;
             smoothSpeed[i] = 0.0f;
+            targetStdDev[i] = 0.0f;
 
             for (int h=0; h<10; h++) {
                 targetHistoryX[i][h] = 120.0f;
@@ -118,6 +120,7 @@ public:
         gridEnabled = preferences.getBool("grid", true);
         startupAnimEnabled = preferences.getBool("startup", true);
         simulatedSweep = preferences.getBool("simSwp", false);
+        showStdDev = preferences.getBool("showStd", false);
 
         telemetryMode = (TelemetryMode)preferences.getInt("tData", TELEMETRY_OFF);
         uiTextSize = preferences.getInt("textSize", 1);
@@ -136,6 +139,7 @@ public:
         preferences.putBool("grid", gridEnabled);
         preferences.putBool("startup", startupAnimEnabled);
         preferences.putBool("simSwp", simulatedSweep);
+        preferences.putBool("showStd", showStdDev);
 
         preferences.putInt("tData", telemetryMode);
         preferences.putInt("textSize", uiTextSize);
@@ -235,7 +239,7 @@ public:
 
 
 
-    void setTargetMotion(int index, float vx, float vy, float ax, float ay) {
+    void setTargetMotion(int index, float vx, float vy, float ax, float ay, float stdDev = 0.0f) {
         if (index >= 0 && index < 3) {
             // Convert mm/s to screen pixels
             targetVelX[index] = vx * 120 / 5000;
@@ -539,6 +543,16 @@ public:
                 }
             }
 
+            // Draw StdDev Visualization Circle
+            if (showStdDev && targetStdDev[i] > 1.0f) {
+                // Convert millimeter stdDev to screen pixels (approx 120 pixels per 5000 mm)
+                float screenRadius = targetStdDev[i] * (120.0f / 5000.0f);
+                if (screenRadius < 2.0f) screenRadius = 2.0f;
+                if (screenRadius > 120.0f) screenRadius = 120.0f;
+                uint16_t devColor = sprite.alphaBlend(100, baseColor, themeBg); // subtle wireframe
+                sprite.drawCircle(cx, cy, (int)screenRadius, devColor);
+            }
+
             if (zoneManager.isWarning(i)) {
                 float pulse = (sinf(millis() / 150.0f) + 1.0f) * 0.5f;
                 uint8_t blendRatio = (uint8_t)(pulse * 255.0f);
@@ -732,6 +746,7 @@ public:
     float smoothVecX[3];
     float smoothVecY[3];
     float smoothSpeed[3];
+    float targetStdDev[3];
 
     bool lastTargetActive[3];
     int lastDrawnX[3];
@@ -938,6 +953,7 @@ public:
         if (devRiskAccepted) {
             items[numItems++] = "Motion Comp: " + String(motionCompEnabled ? "ON" : "OFF");
             items[numItems++] = "Passthrough: " + String(passthroughMode ? "ON" : "OFF");
+            items[numItems++] = "Show StdDev: " + String(showStdDev ? "ON" : "OFF");
             items[numItems++] = "[ FACTORY RESET ]";
             items[numItems++] = "[ EXPORT CONFIG ]";
             items[numItems++] = "[ IMPORT CONFIG ]";
@@ -1129,6 +1145,7 @@ public:
             if (devRiskAccepted) {
                 if (idx++ == menuSelection) { motionCompEnabled = !motionCompEnabled; return; }
                 if (idx++ == menuSelection) { passthroughMode = !passthroughMode; return; }
+                if (idx++ == menuSelection) { showStdDev = !showStdDev; return; }
                 if (idx++ == menuSelection) {
                     sprite.fillSprite(themeDanger);
                     sprite.setTextColor(TFT_WHITE);
