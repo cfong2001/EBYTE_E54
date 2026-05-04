@@ -83,36 +83,33 @@ void handleKey0LongPress() {
 void radarTask(void *pvParameters) {
     static uint32_t lastHeartbeat = 0;
     static uint32_t totalFrames = 0;
-    static bool hexDumpDone = false;
 
     while (1) {
         // NOTE: hex dump is captured inside radar.update() via rawLogBuf[]
         // so the parser always sees every byte first.
-        if (!hexDumpDone && radar.rawLogReady) {
-            Serial.print("[RADAR RAW 60 bytes]: ");
-            for (int i = 0; i < 60; i++) {
-                Serial.printf("%02X ", radar.rawLogBuf[i]);
-            }
-            Serial.println();
-            hexDumpDone = true;
-        }
-
         if (radar.update()) {
             totalFrames++;
 
-            // --- RADAR DIAGNOSTIC: print every valid frame ---
-            Serial.printf("[RADAR] Frame #%lu |", totalFrames);
+            int activeCount = 0;
             for (int i = 0; i < 3; i++) {
-                if (radar.targets[i].active) {
-                    Serial.printf(" T%d(x=%d y=%d spd=%d)", i+1,
-                        radar.targets[i].x,
-                        radar.targets[i].y,
-                        radar.targets[i].speed);
-                } else {
-                    Serial.printf(" T%d(--)", i+1);
-                }
+                if (radar.targets[i].active) activeCount++;
             }
-            Serial.println();
+
+            // --- RADAR REPORTING ---
+            if (activeCount > 0) {
+                Serial.printf("[RADAR] Frame #%lu | %d Active |", totalFrames, activeCount);
+                for (int i = 0; i < 3; i++) {
+                    if (radar.targets[i].active) {
+                        Serial.printf(" T%d(X:%dmm Y:%dmm Spd:%dcm/s)", i+1,
+                            radar.targets[i].x,
+                            radar.targets[i].y,
+                            radar.targets[i].speed);
+                    }
+                }
+                Serial.println();
+            } else if (totalFrames % 100 == 0) {
+                Serial.printf("[RADAR] Frame #%lu | No targets detected\n", totalFrames);
+            }
 
             if (xSemaphoreTake(dataMutex, portMAX_DELAY)) {
                 bool activeArr[3] = {radar.targets[0].active, radar.targets[1].active, radar.targets[2].active};
