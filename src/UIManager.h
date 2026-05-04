@@ -165,6 +165,8 @@ public:
     }
 
     void handleEncoder(int dir) {
+        showTooltip = false;
+
         if (state == STATE_GUIDE) {
             guidePage += dir;
             if (guidePage < 0) guidePage = 0;
@@ -183,11 +185,12 @@ public:
 
     void handleButtonLongPress() {
         if (state == STATE_MENU) {
-            showTooltip = true;
+            showTooltip = !showTooltip;
         }
     }
 
     void handleButton() {
+        showTooltip = false;
 
         if (state == STATE_IMPORTING) {
             state = STATE_MENU; // Cancel import

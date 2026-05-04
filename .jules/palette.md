@@ -48,3 +48,7 @@
 ## 2026-05-03 - [Soft Lockout Prevention via Fallback UI]
 **Learning:** Modifying core settings via JSON injections could render the system inoperable if the new settings conflict with hardware (like changing UI sizes or themes uncontrollably). Implementing a `STATE_FALLBACK` UI that temporarily applies settings and requires physical button confirmation to persist them prevents headless lockouts.
 **Action:** Always implement a physical timeout/confirmation layer for remote configuration changes to prevent "bricking" headless devices.
+
+## 2026-05-20 - Auto-Dismiss Contextual Tooltips
+**Learning:** Tooltips or temporary overlay hints that require a specific action to trigger (e.g., long pressing a button) should automatically dismiss when the user takes another active navigation action (like turning an encoder or clicking a regular button). Hardcoding an overlay state to "true" without a dismissal condition causes "sticky" UI traps.
+**Action:** When implementing hint overlays in C++ interfaces, always ensure state variables like `showTooltip` act as toggles (`!showTooltip`) on their trigger and are explicitly reset to `false` at the beginning of other navigation handlers to keep the interface fluid.
