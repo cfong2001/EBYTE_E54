@@ -67,7 +67,23 @@ public:
         float cosT = 1.0f, sinT = 0.0f;
         calculateTransform(targets, P_x, P_y, anchorIndices, numAnchors, Cp_x, Cp_y, Cq_x, Cq_y, cosT, sinT);
 
-        stabilizeAndUpdate(dt, targets, P_x, P_y, numAnchors, Cp_x, Cp_y, Cq_x, Cq_y, cosT, sinT, compensated);
+        // 2D Parametric Filtering: Apply Exponential Moving Average (EMA) to global rotational motion vectors.
+        // This separates active camera panning from high-frequency shakes as described in Section 2.1.2 of video stabilization literature.
+        float filterGain = 0.3f; // Lower = smoother, higher = more responsive to active movement
+        emaCosT = (1.0f - filterGain) * emaCosT + filterGain * cosT;
+        emaSinT = (1.0f - filterGain) * emaSinT + filterGain * sinT;
+
+        // Re-normalize the filtered quaternion/vector to prevent shrinking
+        float mag = sqrtf(emaCosT * emaCosT + emaSinT * emaSinT);
+        if (mag > 0.01f) {
+            emaCosT /= mag;
+            emaSinT /= mag;
+        } else {
+            emaCosT = 1.0f;
+            emaSinT = 0.0f;
+        }
+
+        stabilizeAndUpdate(dt, targets, P_x, P_y, numAnchors, Cp_x, Cp_y, Cq_x, Cq_y, emaCosT, emaSinT, compensated);
 
         frameCount++;
     }
@@ -255,6 +271,11 @@ private:
                     // We gate at 1.5 * max theoretical speed distance for the given dt
                     float maxSpeedAllowed = 15000.0f; // mm/s
                     maxAllowedDist = maxSpeedAllowed * dt;
+                    // Add a base noise floor to prevent over-gating when dt is extremely small (e.g. fast consecutive frames)
+                    float baseNoiseFloor = 200.0f; // mm (20cm minimum gate radius)
+                    if (maxAllowedDist < baseNoiseFloor) {
+                        maxAllowedDist = baseNoiseFloor;
+                    }
 
                     float dx = stab_x - state[i].x;
                     float dy = stab_y - state[i].y;
@@ -354,6 +375,10 @@ private:
     float baseSmoothingAlpha;
     float baseSmoothingBeta;
     float baseSmoothingGamma;
+
+    // Exponential Moving Average state for global motion vectors
+    float emaCosT = 1.0f;
+    float emaSinT = 0.0f;
 
     const int16_t STATIC_SPEED_INITIAL_THRESHOLD = 15; // cm/s
 };
