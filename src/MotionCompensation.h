@@ -51,8 +51,7 @@ public:
         baseSmoothingGamma = baseSmoothingBeta * 0.1;
     }
 
-    void process(RadarTarget targets[3], RadarTarget compensated[3]) {
-        float dt = 0.1f; // Assuming ~10Hz update rate
+    void process(float dt, const RadarTarget targets[3], RadarTarget compensated[3]) {
 
         float P_x[3], P_y[3];
         predictStates(dt, targets, P_x, P_y);
@@ -249,10 +248,30 @@ private:
                     stab_y = Cp_y + vQy_rot;
                 }
 
+                // Mahalanobis Gating (Handheld Ghost Rejection)
+                if (state[i].active) {
+                    float maxAllowedDist = 3000.0f; // 3 meters fallback
+                    // A person running at 10m/s (olympic sprinter) could cover 1m in 0.1s.
+                    // We gate at 1.5 * max theoretical speed distance for the given dt
+                    float maxSpeedAllowed = 15000.0f; // mm/s
+                    maxAllowedDist = maxSpeedAllowed * dt;
+
+                    float dx = stab_x - state[i].x;
+                    float dy = stab_y - state[i].y;
+                    float distMovedSq = dx*dx + dy*dy;
+
+                    if (distMovedSq > maxAllowedDist * maxAllowedDist) {
+                        // Reject this target frame (likely a teleporting ghost)
+                        // Hold position using predicted coordinates
+                        stab_x = P_x[i];
+                        stab_y = P_y[i];
+                    }
+                }
+
                 compensated[i].x = (int16_t)stab_x;
                 compensated[i].y = (int16_t)stab_y;
 
-                updateFilterState(i, dt, stab_x, stab_y, P_x[i], P_y[i]);
+                updateFilterState(i, dt, stab_x, stab_y, P_x[i], P_y[i], targets[i]);
             } else {
                 state[i].active = false;
                 state[i].isAnchor = false;
@@ -260,7 +279,7 @@ private:
         }
     }
 
-    void updateFilterState(int i, float dt, float stab_x, float stab_y, float px, float py) {
+    void updateFilterState(int i, float dt, float stab_x, float stab_y, float px, float py, const RadarTarget& rawTarget) {
         if (!state[i].active) {
             state[i].x = stab_x;
             state[i].y = stab_y;
@@ -278,7 +297,17 @@ private:
             float residualY = stab_y - py;
             float distSq = residualX * residualX + residualY * residualY;
 
-            if (state[i].isAnchor) {
+            // Adaptive Gain Selection
+            float accMagnitudeSq = state[i].accX * state[i].accX + state[i].accY * state[i].accY;
+            float accThresholdSq = 4000000.0f; // e.g., 2000 mm/s^2 squared
+
+            if (accMagnitudeSq > accThresholdSq) {
+                // High acceleration -> prioritize Real-Time Tracking
+                alpha = min(1.0f, alpha * 2.5f);
+                beta = alpha * 0.4f;
+                gamma = alpha * 0.1f;
+            } else if (state[i].isAnchor) {
+                // Stable/Anchor -> Lock In position
                 if (distSq > 10000.0f) {
                     alpha *= 0.2f; beta *= 0.1f; gamma *= 0.1f;
                 } else if (distSq < 400.0f) {
@@ -287,9 +316,20 @@ private:
                     gamma *= 1.5f;
                 }
             } else {
-                alpha = min(1.0f, alpha * 2.0f);
+                alpha = min(1.0f, alpha * 1.5f);
                 beta = alpha * 0.2f;
                 gamma = alpha * 0.05f;
+            }
+
+            // Resolution weighting
+            // High resolution (low value) = high confidence = high gain
+            if (rawTarget.resolution > 0) {
+                 float resWeight = 250.0f / (float)rawTarget.resolution;
+                 if (resWeight > 2.0f) resWeight = 2.0f;
+                 if (resWeight < 0.5f) resWeight = 0.5f;
+                 alpha = min(1.0f, alpha * resWeight);
+                 beta *= resWeight;
+                 gamma *= resWeight;
             }
 
             state[i].x = px + alpha * residualX;
