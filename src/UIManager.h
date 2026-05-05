@@ -662,10 +662,18 @@ public:
         sprite.print("BAT");
 
         sprite.setCursor(5, 308);
-        if (state == STATE_RADAR_VIEW) {
+        if (showTooltip) {
+            sprite.print(" INFO  [CLOSE]");
+        } else if (state == STATE_RADAR_VIEW) {
             sprite.print("[VIEW]  MENU");
         } else if (state == STATE_MENU_EDIT) {
             sprite.print(" EDIT  [SAVE]");
+        } else if (state == STATE_MENU) {
+            sprite.print("[MENU]  SELECT");
+        } else if (state == STATE_IMPORTING) {
+            sprite.print(" IMPORT [CANCEL]");
+        } else if (state == STATE_FALLBACK) {
+            sprite.print(" TEST   [KEEP]");
         } else {
             sprite.print(" VIEW  [MENU]");
         }
