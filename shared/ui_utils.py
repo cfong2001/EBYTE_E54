@@ -1,6 +1,5 @@
 import math
 
-# Precalculate trigonometric values to avoid expensive math.sin and math.cos in hot loops
 COS_TABLE = tuple(math.cos(math.radians(i)) for i in range(360))
 SIN_TABLE = tuple(math.sin(math.radians(i)) for i in range(360))
 
@@ -33,17 +32,16 @@ def draw_dotted_circle(display, cx, cy, r, start_angle_deg=0, end_angle_deg=360,
             step_deg = 4
 
     for angle_deg in range(start_angle_deg, end_angle_deg + 1, step_deg):
-        # Use lookup tables with modulo for speed. Ensure integer index for tuple lookup.
-        lookup_angle = int(round(angle_deg + offset_deg)) % 360
-        x = int(cx + r * COS_TABLE[lookup_angle])
-
+        # Use pre-calculated lookup tables to avoid repetitive and expensive math.cos and math.sin calls
+        idx = int(round(angle_deg + offset_deg)) % 360
+        x = int(cx + r * COS_TABLE[idx])
         # Note: In standard CircuitPython display coordinate systems, y increases downwards.
         # However, some math implementations use standard Cartesian where y increases upwards,
         # hence they use cy - r * sin(a) or cy + r * sin(a) depending on if they added negative offsets.
         # We use cy + r * math.sin(rad) which matches standard Cartesian angle rotation if y goes down.
         # If a specific script needs inverted y, they can pass negative offset or flip signs,
         # but the existing scripts predominantly use `cy + r * math.sin(a)`.
-        y = int(cy + r * SIN_TABLE[lookup_angle])
+        y = int(cy + r * SIN_TABLE[idx])
 
         if 0 <= x < display.width and 0 <= y < display.height:
             # Most simple displays use 1 for white/on, TFTs might use color values.

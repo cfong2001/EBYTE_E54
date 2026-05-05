@@ -45,6 +45,7 @@
 ## 2024-05-03 - Menu Back button and Customizable UI Text Size
 **Learning:** Raw string manipulation (e.g., using just `<` for a back arrow) isn't as polished or readable on tiny screens as explicitly forming an arrow `<-`, and hardcoding standard text sizes prevents users with varying setups from properly reading UI menus. TFT fonts lack standard Unicode glyphs without extra heavy library dependencies, so ASCII composite arrows are best for compatibility.
 **Action:** Always offer custom scaling (`uiTextSize` parameter bounded to practical limits like 1-2) mapped directly to hardware rendering functions, while saving preferences dynamically. Use `<-` for backward arrows when Unicode coverage on TFTs isn't guaranteed.
+<<<<<<< HEAD
 ## 2026-05-03 - Added display rotation and positioning
 **Learning:** Hardcoded coordinates (like 120 and 240) in UI drawing code break when switching orientations or moving between square and rectangular screen profiles.
 **Action:** Replaced hardcoded boundaries and center points with dynamic math relying on `getScreenDimensions()` (e.g. `w/2`, `h`). Implemented flexible offset logic based on enum settings.
@@ -69,3 +70,8 @@
 ## 2026-05-20 - [Menu Categorization & Intuitive Flow]
 **Learning:** Having excessive top-level menu categories (like splitting "VISUALS" and "DISPLAY POS") increases cognitive load and navigation time.
 **Action:** Consolidate related settings under logical groups (e.g. merging Display Orientation and Menu Position under the existing Visual Settings page). When reorganizing C++ array-based menus, ensure index mappings across population functions (`populateMainMenu`), click handlers (`handleMenuClick`), and edit functions (`executeMenuEdit`) are perfectly synchronized to avoid inaccessible options.
+=======
+## 2026-05-03 - [Soft Lockout Prevention via Fallback UI]
+**Learning:** Modifying core settings via JSON injections could render the system inoperable if the new settings conflict with hardware (like changing UI sizes or themes uncontrollably). Implementing a `STATE_FALLBACK` UI that temporarily applies settings and requires physical button confirmation to persist them prevents headless lockouts.
+**Action:** Always implement a physical timeout/confirmation layer for remote configuration changes to prevent "bricking" headless devices.
+>>>>>>> origin/master

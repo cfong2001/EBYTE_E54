@@ -11,7 +11,7 @@ import logging
 # Ensure our local path is at front for testing modules without collision
 sys.path.insert(0, ".")
 from utils import s16_le, ld2450_s16
-from shared.ui_utils import map_xy, draw_dotted_circle
+from shared.ui_utils import map_xy
 
 # Configure standard logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -206,6 +206,35 @@ def test_multi_anchor_stabilization():
     logger.info("  ✓ multi_anchor_stabilization tests passed!")
 
 
+def test_ui_draw_functions():
+    """Test UI drawing functions like draw_dotted_circle"""
+    from shared.ui_utils import draw_dotted_circle
+
+    class MockDisplay:
+        def __init__(self, width=128, height=64):
+            self.width = width
+            self.height = height
+            self.pixels = []
+
+        def pixel(self, x, y, color):
+            self.pixels.append((x, y, color))
+
+    logger.info("Running test_ui_draw_functions tests...")
+
+    # Test drawing a basic circle
+    display = MockDisplay()
+    draw_dotted_circle(display, 64, 32, 10, start_angle_deg=0, end_angle_deg=359, step_deg=45)
+
+    # A circle with step 45 should have 8 points
+    assert len(display.pixels) == 8, f"Expected 8 pixels, got {len(display.pixels)}"
+
+    # Verify bounds checking
+    display = MockDisplay()
+    draw_dotted_circle(display, 120, 32, 20, start_angle_deg=0, end_angle_deg=0, step_deg=10) # Draws out of bounds on right
+    assert len(display.pixels) == 0, f"Expected 0 pixels for out of bounds draw, got {len(display.pixels)}"
+
+    logger.info("  ✓ ui_draw_functions tests passed!")
+
 def test_sweep_draw_targets():
     """Test that drawing an empty target list in code_realtime_sweep doesn't raise errors"""
     import sys
@@ -239,12 +268,13 @@ def main():
     parser.add_argument("--map", action="store_true", help="Run only map_xy tests")
     parser.add_argument("--multi", action="store_true", help="Run only multi_anchor tests")
     parser.add_argument("--sweep", action="store_true", help="Run only sweep script tests")
+    parser.add_argument("--draw", action="store_true", help="Run only ui drawing function tests")
     parser.add_argument("--all", action="store_true", help="Run all tests")
 
     args = parser.parse_args()
 
     # Default to all if nothing selected
-    if not any([args.s16, args.ld2450, args.map, args.multi, args.sweep, args.all]):
+    if not any([args.s16, args.ld2450, args.map, args.multi, args.sweep, args.draw, args.all]):
         args.all = True
 
     try:
@@ -262,6 +292,9 @@ def main():
 
         if args.all or args.sweep:
             test_sweep_draw_targets()
+
+        if args.all or args.draw:
+            test_ui_draw_functions()
 
         logger.info("\nAll selected tests executed successfully.")
 
