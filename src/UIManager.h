@@ -348,6 +348,15 @@ public:
             sprite.print("[Turn] Next  [Press] Exit");
         }
 
+        for (int i = 0; i < 3; i++) {
+            int dotX = 100 + i * 20;
+            if (i == guidePage) {
+                sprite.fillCircle(dotX, 230, 4, themePrimary);
+            } else {
+                sprite.drawCircle(dotX, 230, 4, themePrimary);
+            }
+        }
+
         sprite.pushSprite(0, 0);
     }
 
@@ -978,8 +987,10 @@ public:
 
             if (idx == menuSelection) {
                 if (state == STATE_MENU_EDIT) {
-                    sprite.fillRect(5, yPos - 4, 230, 24, themeWarning);
-                    sprite.setTextColor(themeBg, themeWarning);
+                    float pulse = (sinf(millis() / 150.0f) + 1.0f) * 0.5f;
+                    uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 255.0f), themeWarning, themeBg);
+                    sprite.fillRect(5, yPos - 4, 230, 24, pulseColor);
+                    sprite.setTextColor(themeBg, pulseColor);
                 } else {
                     sprite.fillRect(5, yPos - 4, 230, 24, themePrimary);
                     sprite.setTextColor(themeBg, themePrimary);
@@ -990,6 +1001,15 @@ public:
 
             sprite.setCursor(15, yPos);
             sprite.print(items[idx]);
+        }
+
+        if (numItems > 4) {
+            int scrollTrackH = 4 * 25 - 4;
+            int scrollTrackY = 35 - 4;
+            sprite.drawLine(235, scrollTrackY, 235, scrollTrackY + scrollTrackH, sprite.alphaBlend(100, themePrimary, themeBg));
+            int thumbH = max(4, (scrollTrackH * 4) / numItems);
+            int thumbY = scrollTrackY + (startIdx * scrollTrackH) / numItems;
+            sprite.fillRect(233, thumbY, 5, thumbH, themePrimary);
         }
 
         if (showTooltip) {
