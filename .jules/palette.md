@@ -52,3 +52,6 @@
 ## 2026-06-25 - [Long List Navigation & Progress Indication]
 **Learning:** Users can easily lose context in long, paginated menus on small screens without visual anchors, and multi-step guide screens without progress indicators leave users uncertain of the total length.
 **Action:** When creating rotary encoder menus where `numItems` exceeds the screen's vertical capacity, always implement a visual scrollbar mapping the `startIdx` to the total length. For multi-screen modal guides, implement a simple multi-dot progress indicator (filled/unfilled circles) tied to the active page index to provide clear spatial context.
+## 2024-05-24 - Dynamic Theming and Hardcoded Colors
+**Learning:** Hardcoding standard display colors (like `TFT_BLACK` or `TFT_RED`) inside drawing routines breaks dynamic theming and custom color palettes, leading to unstyled bounding boxes or illegible text on non-standard backgrounds.
+**Action:** Always utilize the active design system's variables (e.g., `themeBg`, `themeDanger`, `themePrimary`) for both foregrounds and backgrounds, ensuring UI elements inherit colors contextually rather than forcing absolute values.
