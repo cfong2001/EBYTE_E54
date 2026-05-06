@@ -259,6 +259,12 @@ void loop() {
             if (serialBuffer.endsWith("}")) {
                 configManager.importConfig(serialBuffer);
                 serialBuffer = "";
+            } else if (serialBuffer.length() > 2048) {
+                // Prevent buffer overflow DoS attacks
+                Serial.println("Error: Import buffer overflow. Aborting.");
+                serialBuffer = "";
+                ui.state = STATE_MENU;
+                break;
             }
         }
     } else if (ui.state == STATE_FALLBACK) {
