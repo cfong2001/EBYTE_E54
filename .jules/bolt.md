@@ -42,3 +42,10 @@
 ## 2026-05-04 - [UI Visualization for Tracker Debugging]
 **Learning:** Understanding whether the internal filter state has "locked in" (tight tracking window) or is spreading out due to noise or rapid movement is difficult when observing just a single computed coordinate dot.
 **Action:** When developing complex trajectory optimization logic, calculate and expose the mathematical Standard Deviation (or variance) of the tracking buffer. Pass this variable to the UI to render an alpha-blended confidence circle (or bounding box) around the entity, allowing developers to visually confirm exactly how the temporal smoothing buffers are reacting to input stimuli.
+
+## 2024-05-19 - Pre-computing Trigonometric Tables for UI Rendering in Python
+**Learning:** Found a performance bottleneck where `math.cos()` and `math.sin()` were being called repeatedly inside UI rendering loops (e.g., drawing dotted circles). In constrained embedded environments like CircuitPython, evaluating trigonometric functions dynamically is computationally expensive.
+**Action:** Created static, module-level lookup tables (`COS_TABLE` and `SIN_TABLE`) mapping 0-359 degrees to their pre-computed sine and cosine values. Replaced dynamic calls with integer modulo arithmetic (e.g., `int(round(angle)) % 360`) to index the tables, resulting in significant performance gains for UI drawing.
+## 2026-05-04 - Set HardwareSerial RX Buffer Size before initialization
+**Learning:** Found an issue where the `HardwareSerial` RX buffer size (`setRxBufferSize`) needs to be set properly before the `begin()` call. Otherwise it might not apply, failing to prevent buffer overflow problems at high UART speeds (e.g., 256000 bps for E54 radars).
+**Action:** When increasing the RX buffer size (e.g. `setRxBufferSize(1024)`), always ensure it is called prior to `begin()` to properly allocate the buffer before UART initialization.

@@ -195,6 +195,8 @@ public:
     }
 
     void handleEncoder(int dir) {
+        showTooltip = false;
+
         if (state == STATE_GUIDE) {
             guidePage += dir;
             if (guidePage < 0) guidePage = 0;
@@ -213,11 +215,15 @@ public:
 
     void handleButtonLongPress() {
         if (state == STATE_MENU) {
-            showTooltip = true;
+            showTooltip = !showTooltip;
         }
     }
 
     void handleButton() {
+        if (showTooltip) {
+            showTooltip = false;
+            return;
+        }
 
         if (state == STATE_IMPORTING) {
             state = STATE_MENU; // Cancel import
@@ -344,6 +350,15 @@ public:
             sprite.setCursor(10, 200);
             sprite.setTextColor(themeWarning, themeBg);
             sprite.print("[Turn] Next  [Press] Exit");
+        }
+
+        for (int i = 0; i < 3; i++) {
+            int dotX = 100 + i * 20;
+            if (i == guidePage) {
+                sprite.fillCircle(dotX, 230, 4, themePrimary);
+            } else {
+                sprite.drawCircle(dotX, 230, 4, themePrimary);
+            }
         }
 
         sprite.pushSprite(0, 0);
@@ -670,10 +685,18 @@ public:
         sprite.print("BAT");
 
         sprite.setCursor(5, 308);
-        if (state == STATE_RADAR_VIEW) {
+        if (showTooltip) {
+            sprite.print(" INFO  [CLOSE]");
+        } else if (state == STATE_RADAR_VIEW) {
             sprite.print("[VIEW]  MENU");
         } else if (state == STATE_MENU_EDIT) {
             sprite.print(" EDIT  [SAVE]");
+        } else if (state == STATE_MENU) {
+            sprite.print("[MENU]  SELECT");
+        } else if (state == STATE_IMPORTING) {
+            sprite.print(" IMPORT [CANCEL]");
+        } else if (state == STATE_FALLBACK) {
+            sprite.print(" TEST   [KEEP]");
         } else {
             sprite.print(" VIEW  [MENU]");
         }
@@ -988,8 +1011,10 @@ public:
 
             if (idx == menuSelection) {
                 if (state == STATE_MENU_EDIT) {
-                    sprite.fillRect(5, yPos - 4, 230, 24, themeWarning);
-                    sprite.setTextColor(themeBg, themeWarning);
+                    float pulse = (sinf(millis() / 150.0f) + 1.0f) * 0.5f;
+                    uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 255.0f), themeWarning, themeBg);
+                    sprite.fillRect(5, yPos - 4, 230, 24, pulseColor);
+                    sprite.setTextColor(themeBg, pulseColor);
                 } else {
                     sprite.fillRect(5, yPos - 4, 230, 24, themePrimary);
                     sprite.setTextColor(themeBg, themePrimary);
@@ -1000,6 +1025,15 @@ public:
 
             sprite.setCursor(15, yPos);
             sprite.print(items[idx]);
+        }
+
+        if (numItems > 4) {
+            int scrollTrackH = 4 * 25 - 4;
+            int scrollTrackY = 35 - 4;
+            sprite.drawLine(235, scrollTrackY, 235, scrollTrackY + scrollTrackH, sprite.alphaBlend(100, themePrimary, themeBg));
+            int thumbH = max(4, (scrollTrackH * 4) / numItems);
+            int thumbY = scrollTrackY + (startIdx * scrollTrackH) / numItems;
+            sprite.fillRect(233, thumbY, 5, thumbH, themePrimary);
         }
 
         if (showTooltip) {
