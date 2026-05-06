@@ -310,9 +310,7 @@ public:
             sprite.fillTriangle(30, 140, 22, 156, 38, 156, themeSuccess);
             sprite.setCursor(50, 145); sprite.print("Selected target");
 
-            sprite.setCursor(10, 200);
-            sprite.setTextColor(themeWarning, themeBg);
-            sprite.print("[Turn] Next  [Press] Exit");
+
 
         } else if (guidePage == 1) {
             sprite.print("GUIDE 2/3: CONTROLS");
@@ -324,9 +322,7 @@ public:
             sprite.setCursor(20, 110); sprite.print("- PRESS: Select/Enter");
             sprite.setCursor(20, 140); sprite.print("- HOLD: Info Tooltips");
 
-            sprite.setCursor(10, 200);
-            sprite.setTextColor(themeWarning, themeBg);
-            sprite.print("[Turn] Next  [Press] Exit");
+
 
         } else if (guidePage == 2) {
             sprite.print("GUIDE 3/3: ZONES");
@@ -343,9 +339,20 @@ public:
             sprite.setCursor(10, 100); sprite.setTextColor(themeDanger, themeBg);
             sprite.print("Dead Zone (Hidden)");
 
-            sprite.setCursor(10, 200);
-            sprite.setTextColor(themeWarning, themeBg);
-            sprite.print("[Turn] Next  [Press] Exit");
+
+        }
+
+        sprite.setCursor(10, 200);
+        sprite.setTextColor(themeWarning, themeBg);
+        sprite.print("[Turn] Next  [Press] Exit");
+
+        int dotStartX = 110;
+        for (int i = 0; i < 3; i++) {
+            if (i == guidePage) {
+                sprite.fillCircle(dotStartX + i * 10, 225, 3, themePrimary);
+            } else {
+                sprite.drawCircle(dotStartX + i * 10, 225, 3, sprite.alphaBlend(100, themePrimary, themeBg));
+            }
         }
 
         sprite.pushSprite(0, 0);
@@ -990,6 +997,16 @@ public:
 
             sprite.setCursor(15, yPos);
             sprite.print(items[idx]);
+        }
+
+        if (numItems > 4) {
+            int sbX = 236;
+            int sbY = 35;
+            int sbH = 96;
+            sprite.drawRect(sbX, sbY, 2, sbH, sprite.alphaBlend(100, themePrimary, themeBg));
+            int handleH = max(10, (sbH * 4) / numItems);
+            int handleY = sbY + (int)(((float)menuSelection / (numItems - 1)) * (sbH - handleH));
+            sprite.fillRect(sbX, handleY, 2, handleH, themePrimary);
         }
 
         if (showTooltip) {

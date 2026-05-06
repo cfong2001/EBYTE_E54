@@ -48,3 +48,7 @@
 ## 2026-05-03 - [Soft Lockout Prevention via Fallback UI]
 **Learning:** Modifying core settings via JSON injections could render the system inoperable if the new settings conflict with hardware (like changing UI sizes or themes uncontrollably). Implementing a `STATE_FALLBACK` UI that temporarily applies settings and requires physical button confirmation to persist them prevents headless lockouts.
 **Action:** Always implement a physical timeout/confirmation layer for remote configuration changes to prevent "bricking" headless devices.
+
+## 2026-05-21 - [List Context & Multistep Indicators]
+**Learning:** Menus exceeding the vertical space of hardware displays without any context indicators can lead to users feeling lost. Similarly, using repetitive raw text like "GUIDE 1/3", "GUIDE 2/3" accompanied by duplicate "Press next" instructions creates visual clutter.
+**Action:** For rotary encoder menus on small screens where items exceed vertical capacity, implement a visual scrollbar mapping the selection index to the total length. For multi-step modal guides, abstract repetitive text navigation and replace page counters with multi-dot progress indicators rendered natively via `drawCircle` and `fillCircle`.
