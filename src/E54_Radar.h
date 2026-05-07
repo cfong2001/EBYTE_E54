@@ -9,6 +9,7 @@ struct RadarTarget {
     int16_t y;          // mm
     int16_t speed;      // cm/s
     uint16_t resolution; // mm
+    bool isCoasting;    // flag indicating the target is a predicted coasting frame during dropout
 };
 
 class E54_Radar {
@@ -128,10 +129,12 @@ private:
 
             if (xRaw == 0 && yRaw == 0 && sRaw == 0 && rRaw == 0) {
                 targets[i].active = false;
+                targets[i].isCoasting = false;
                 continue;
             }
 
             targets[i].active = true;
+            targets[i].isCoasting = false; // Fresh data from hardware is never coasting
             targets[i].x = decodeValue(xRaw);
             targets[i].y = decodeValue(yRaw);
             targets[i].speed = decodeValue(sRaw);

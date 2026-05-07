@@ -195,8 +195,6 @@ public:
     }
 
     void handleEncoder(int dir) {
-        showTooltip = false;
-
         if (state == STATE_GUIDE) {
             guidePage += dir;
             if (guidePage < 0) guidePage = 0;
@@ -215,15 +213,11 @@ public:
 
     void handleButtonLongPress() {
         if (state == STATE_MENU) {
-            showTooltip = !showTooltip;
+            showTooltip = true;
         }
     }
 
     void handleButton() {
-        if (showTooltip) {
-            showTooltip = false;
-            return;
-        }
 
         if (state == STATE_IMPORTING) {
             state = STATE_MENU; // Cancel import
@@ -264,6 +258,7 @@ public:
 
         for (int i = 0; i < 3; i++) {
             targetActive[i] = targets[i].active;
+            targetCoasting[i] = targets[i].isCoasting;
 
             if (targets[i].active) {
                 int16_t absSpeed = abs(targets[i].speed);
@@ -350,15 +345,6 @@ public:
             sprite.setCursor(10, 200);
             sprite.setTextColor(themeWarning, themeBg);
             sprite.print("[Turn] Next  [Press] Exit");
-        }
-
-        for (int i = 0; i < 3; i++) {
-            int dotX = 100 + i * 20;
-            if (i == guidePage) {
-                sprite.fillCircle(dotX, 230, 4, themePrimary);
-            } else {
-                sprite.drawCircle(dotX, 230, 4, themePrimary);
-            }
         }
 
         sprite.pushSprite(0, 0);
@@ -465,21 +451,32 @@ public:
                     targetHistoryY[i][0] = targetCurrentY[i];
                 }
 
-                float diffX = (float)targetGoalX[i] - targetCurrentX[i];
-                float diffY = (float)targetGoalY[i] - targetCurrentY[i];
+                float t = 0.03f; // DT ~30ms render loop
+                float t_sq_half = (t * t) * 0.5f;
 
-                if (fabsf(diffX) < 0.5f && fabsf(diffY) < 0.5f) {
-                    targetCurrentX[i] = (float)targetGoalX[i];
-                    targetCurrentY[i] = (float)targetGoalY[i];
+                float curveForwardX = (targetVelX[i] * t) + (targetAccX[i] * t_sq_half);
+                float curveForwardY = (targetVelY[i] * t) + (targetAccY[i] * t_sq_half);
+
+                if (targetCoasting[i]) {
+                    // Seamless Coasting: Do not interpolate towards the static 'targetGoal' from the dropped packet.
+                    // Just push the sub-frame curve forward identically to the backend tracker.
+                    targetCurrentX[i] += curveForwardX;
+                    targetCurrentY[i] += curveForwardY;
+
+                    // Keep targetGoal updated so when sensor regains lock, the visual diffX isn't huge.
+                    targetGoalX[i] = (int)targetCurrentX[i];
+                    targetGoalY[i] = (int)targetCurrentY[i];
                 } else {
-                    float t = 0.03f; // DT ~30ms render loop
-                    float t_sq_half = (t * t) * 0.5f;
+                    float diffX = (float)targetGoalX[i] - targetCurrentX[i];
+                    float diffY = (float)targetGoalY[i] - targetCurrentY[i];
 
-                    float curveForwardX = (targetVelX[i] * t) + (targetAccX[i] * t_sq_half);
-                    float curveForwardY = (targetVelY[i] * t) + (targetAccY[i] * t_sq_half);
-
-                    targetCurrentX[i] += (diffX * interpolationAmount) + curveForwardX;
-                    targetCurrentY[i] += (diffY * interpolationAmount) + curveForwardY;
+                    if (fabsf(diffX) < 0.5f && fabsf(diffY) < 0.5f) {
+                        targetCurrentX[i] = (float)targetGoalX[i];
+                        targetCurrentY[i] = (float)targetGoalY[i];
+                    } else {
+                        targetCurrentX[i] += (diffX * interpolationAmount) + curveForwardX;
+                        targetCurrentY[i] += (diffY * interpolationAmount) + curveForwardY;
+                    }
                 }
 
                 if (simulatedSweep) {
@@ -592,15 +589,19 @@ public:
 
             if (targetIcon == ICON_CIRCLE) {
                 sprite.fillCircle(cx, cy, 4, color);
+                if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 5, TFT_WHITE);
             }
             else if (targetIcon == ICON_SQUARE) {
                 sprite.fillRect(cx - 3, cy - 3, 7, 7, color);
+                if (!targetCoasting[i]) sprite.drawRect(cx - 4, cy - 4, 9, 9, TFT_WHITE);
             }
             else if (targetIcon == ICON_TRIANGLE) {
                 sprite.fillTriangle(cx, cy - 5, cx - 4, cy + 3, cx + 4, cy + 3, color);
+                if (!targetCoasting[i]) sprite.drawTriangle(cx, cy - 6, cx - 5, cy + 4, cx + 5, cy + 4, TFT_WHITE);
             }
             else if (targetIcon == ICON_SMART) {
                 sprite.drawCircle(cx, cy, 3, color);
+                if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 4, TFT_WHITE);
 
                 int absSpd = abs(rawTargetSpeed[i]);
                 float rawDx = targetCurrentX[i] - targetHistoryX[i][2];
@@ -685,18 +686,10 @@ public:
         sprite.print("BAT");
 
         sprite.setCursor(5, 308);
-        if (showTooltip) {
-            sprite.print(" INFO  [CLOSE]");
-        } else if (state == STATE_RADAR_VIEW) {
+        if (state == STATE_RADAR_VIEW) {
             sprite.print("[VIEW]  MENU");
         } else if (state == STATE_MENU_EDIT) {
             sprite.print(" EDIT  [SAVE]");
-        } else if (state == STATE_MENU) {
-            sprite.print("[MENU]  SELECT");
-        } else if (state == STATE_IMPORTING) {
-            sprite.print(" IMPORT [CANCEL]");
-        } else if (state == STATE_FALLBACK) {
-            sprite.print(" TEST   [KEEP]");
         } else {
             sprite.print(" VIEW  [MENU]");
         }
@@ -749,6 +742,7 @@ public:
     int16_t anchorY;
 
     bool targetActive[3];
+    bool targetCoasting[3];
     int targetGoalX[3];
     int targetGoalY[3];
 
@@ -1011,10 +1005,8 @@ public:
 
             if (idx == menuSelection) {
                 if (state == STATE_MENU_EDIT) {
-                    float pulse = (sinf(millis() / 150.0f) + 1.0f) * 0.5f;
-                    uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 255.0f), themeWarning, themeBg);
-                    sprite.fillRect(5, yPos - 4, 230, 24, pulseColor);
-                    sprite.setTextColor(themeBg, pulseColor);
+                    sprite.fillRect(5, yPos - 4, 230, 24, themeWarning);
+                    sprite.setTextColor(themeBg, themeWarning);
                 } else {
                     sprite.fillRect(5, yPos - 4, 230, 24, themePrimary);
                     sprite.setTextColor(themeBg, themePrimary);
@@ -1025,15 +1017,6 @@ public:
 
             sprite.setCursor(15, yPos);
             sprite.print(items[idx]);
-        }
-
-        if (numItems > 4) {
-            int scrollTrackH = 4 * 25 - 4;
-            int scrollTrackY = 35 - 4;
-            sprite.drawLine(235, scrollTrackY, 235, scrollTrackY + scrollTrackH, sprite.alphaBlend(100, themePrimary, themeBg));
-            int thumbH = max(4, (scrollTrackH * 4) / numItems);
-            int thumbY = scrollTrackY + (startIdx * scrollTrackH) / numItems;
-            sprite.fillRect(233, thumbY, 5, thumbH, themePrimary);
         }
 
         if (showTooltip) {

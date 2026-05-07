@@ -315,6 +315,7 @@ private:
                 compensated[i].x = (int16_t)stab_x;
                 compensated[i].y = (int16_t)stab_y;
                 compensated[i].active = true;
+                compensated[i].isCoasting = false;
 
                 updateFilterState(i, dt, stab_x, stab_y, P_x[i], P_y[i], targets[i]);
             } else {
@@ -336,11 +337,13 @@ private:
                     compensated[i].speed = (int16_t)sqrtf(state[i].velX*state[i].velX + state[i].velY*state[i].velY);
                     compensated[i].active = true;
                     compensated[i].resolution = 0; // indicates interpolated frame
+                    compensated[i].isCoasting = true;
                 } else {
                     // Permanently drop after grace period
                     state[i].active = false;
                     state[i].isAnchor = false;
                     compensated[i].active = false;
+                    compensated[i].isCoasting = false;
                 }
             }
         }
