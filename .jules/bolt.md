@@ -31,3 +31,6 @@
 ## 2026-05-04 - Set HardwareSerial RX Buffer Size before initialization
 **Learning:** Found an issue where the `HardwareSerial` RX buffer size (`setRxBufferSize`) needs to be set properly before the `begin()` call. Otherwise it might not apply, failing to prevent buffer overflow problems at high UART speeds (e.g., 256000 bps for E54 radars).
 **Action:** When increasing the RX buffer size (e.g. `setRxBufferSize(1024)`), always ensure it is called prior to `begin()` to properly allocate the buffer before UART initialization.
+## 2025-05-18 - [Defer expensive math in UI telemetry]
+**Learning:** In UI rendering loops, calculating `sqrtf` and `atan2f` for all targets on every frame wastes CPU cycles when the active telemetry mode doesn't display that specific data.
+**Action:** Defer expensive math operations (like distance and angle calculations) strictly into the conditional branches that actually require and display those values.
