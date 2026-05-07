@@ -52,3 +52,6 @@
 ## 2026-06-25 - [Long List Navigation & Progress Indication]
 **Learning:** Users can easily lose context in long, paginated menus on small screens without visual anchors, and multi-step guide screens without progress indicators leave users uncertain of the total length.
 **Action:** When creating rotary encoder menus where `numItems` exceeds the screen's vertical capacity, always implement a visual scrollbar mapping the `startIdx` to the total length. For multi-screen modal guides, implement a simple multi-dot progress indicator (filled/unfilled circles) tied to the active page index to provide clear spatial context.
+## 2026-06-25 - Contextual Units for Hardware Menus
+**Learning:** Raw numerical values in custom parameter menus (like `1000` or `45`) force the user to recall whether the hardware uses millimeters, centimeters, radians, or degrees. Adding explicit contextual units prevents misconfiguration, especially in systems dealing with physical space and angles.
+**Action:** When designing data output formatting or configuration menus for spatial/hardware tools, always append context strings (e.g. `mm`, `deg`) directly to the numerical UI labels and telemetry readouts.

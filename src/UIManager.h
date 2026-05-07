@@ -637,13 +637,13 @@ public:
                 sprite.setCursor(cx + 8, cy - 12);
 
                 if (telemetryMode == TELEMETRY_DIST_ANG) {
-                    sprite.printf("%.1fm %d", dist_m, angle);
+                    sprite.printf("%.1fm %ddeg", dist_m, angle);
                 } else if (telemetryMode == TELEMETRY_VELOCITY) {
                     sprite.printf("%.1fm/s", speed_ms);
                 } else if (telemetryMode == TELEMETRY_RAW) {
                     sprite.printf("%d,%d", rawTargetX[i], rawTargetY[i]);
                 } else if (telemetryMode == TELEMETRY_ALL) {
-                    sprite.printf("T%d %.1fm %d", i+1, dist_m, angle);
+                    sprite.printf("T%d %.1fm %ddeg", i+1, dist_m, angle);
                     sprite.setCursor(cx + 8, cy - 2);
                     sprite.printf("%.1fm/s", speed_ms);
                 }
@@ -915,10 +915,10 @@ public:
         items[numItems++] = "<- Back";
         items[numItems++] = "Warn Zone: " + warnStr;
         if (zoneManager.getWarnPreset() == ZONE_CUSTOM) {
-            items[numItems++] = " W-MinD: " + String(zoneManager.getWarnCustom().minDist);
-            items[numItems++] = " W-MaxD: " + String(zoneManager.getWarnCustom().maxDist);
-            items[numItems++] = " W-MinA: " + String(zoneManager.getWarnCustom().minAngle);
-            items[numItems++] = " W-MaxA: " + String(zoneManager.getWarnCustom().maxAngle);
+            items[numItems++] = " W-MinD: " + String(zoneManager.getWarnCustom().minDist) + "mm";
+            items[numItems++] = " W-MaxD: " + String(zoneManager.getWarnCustom().maxDist) + "mm";
+            items[numItems++] = " W-MinA: " + String(zoneManager.getWarnCustom().minAngle) + "deg";
+            items[numItems++] = " W-MaxA: " + String(zoneManager.getWarnCustom().maxAngle) + "deg";
         }
         if (zoneManager.getWarnPreset() != ZONE_OFF) {
             items[numItems++] = "Warn Fuzz: " + String(zoneManager.getFuzzingThreshold()) + "%";
@@ -927,10 +927,10 @@ public:
 
         items[numItems++] = "Dead Zone: " + deadStr;
         if (zoneManager.getDeadPreset() == ZONE_CUSTOM) {
-            items[numItems++] = " D-MinD: " + String(zoneManager.getDeadCustom().minDist);
-            items[numItems++] = " D-MaxD: " + String(zoneManager.getDeadCustom().maxDist);
-            items[numItems++] = " D-MinA: " + String(zoneManager.getDeadCustom().minAngle);
-            items[numItems++] = " D-MaxA: " + String(zoneManager.getDeadCustom().maxAngle);
+            items[numItems++] = " D-MinD: " + String(zoneManager.getDeadCustom().minDist) + "mm";
+            items[numItems++] = " D-MaxD: " + String(zoneManager.getDeadCustom().maxDist) + "mm";
+            items[numItems++] = " D-MinA: " + String(zoneManager.getDeadCustom().minAngle) + "deg";
+            items[numItems++] = " D-MaxA: " + String(zoneManager.getDeadCustom().maxAngle) + "deg";
         }
     }
 

@@ -1,3 +1,5 @@
 .pio
 __pycache__/
 *.py[cod]
+*.o
+test/run_tests
