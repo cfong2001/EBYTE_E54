@@ -31,3 +31,6 @@
 ## 2026-05-04 - Set HardwareSerial RX Buffer Size before initialization
 **Learning:** Found an issue where the `HardwareSerial` RX buffer size (`setRxBufferSize`) needs to be set properly before the `begin()` call. Otherwise it might not apply, failing to prevent buffer overflow problems at high UART speeds (e.g., 256000 bps for E54 radars).
 **Action:** When increasing the RX buffer size (e.g. `setRxBufferSize(1024)`), always ensure it is called prior to `begin()` to properly allocate the buffer before UART initialization.
+## 2026-05-07 - Deferring Expensive Math Operations in Hot Loops
+**Learning:** In UI rendering loops (like `drawTarget`), calculating expensive math operations such as `sqrtf()` and `atan2f()` upfront causes significant performance overhead, especially when those calculations are only required for specific conditional states (e.g., specific telemetry modes).
+**Action:** Always move expensive operations directly into the lowest possible execution branches (e.g., specific `if/else if` blocks) rather than executing them unconditionally at the top of the function. This preserves CPU cycles and significantly reduces execution time in tight loops.
