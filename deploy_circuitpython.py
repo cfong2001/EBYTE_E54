@@ -60,7 +60,7 @@ def find_serial_port():
             action = input("Enter 'r' to retry, or 'q' to quit: ").strip().lower()
             if action == 'q':
                 sys.exit(0)
-            if action == 'r':
+            elif action == 'r':
                 break
 
 def list_circuitpython_files(base_dir):
