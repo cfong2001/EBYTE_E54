@@ -111,44 +111,100 @@ public:
         }
     }
 
+
+
+
+    // Structure to map preferences strings to integer values
+    struct IntPrefMapping {
+        const char* key;
+        int* valuePtr;
+        int defaultVal;
+    };
+
+    // Structure to map preferences strings to boolean values
+    struct BoolPrefMapping {
+        const char* key;
+        bool* valuePtr;
+        bool defaultVal;
+    };
+
     void loadSettings() {
         preferences.begin("radar_ui", false);
-        theme = (ThemeStyle)preferences.getInt("theme", THEME_ALIEN);
-        targetIcon = (TargetIcon)preferences.getInt("icon", ICON_SMART);
-        sweepLineEnabled = preferences.getBool("sweep", true);
-        trailLength = preferences.getInt("trails", 5);
-        gridEnabled = preferences.getBool("grid", true);
-        startupAnimEnabled = preferences.getBool("startup", true);
-        simulatedSweep = preferences.getBool("simSwp", false);
-        showStdDev = preferences.getBool("showStd", false);
 
-        telemetryMode = (TelemetryMode)preferences.getInt("tData", TELEMETRY_OFF);
-        uiTextSize = preferences.getInt("textSize", 1);
-        sensitivity = preferences.getInt("sens", 5);
-        locationAveraging = preferences.getInt("locAvg", 5);
-        interpolationAmount = (float)preferences.getInt("interp", 5) / 10.0f;
+        int tempTheme, tempIcon, tempTelemetryMode, tempInterp;
+        IntPrefMapping intMappings[] = {
+            {"theme", &tempTheme, THEME_ALIEN},
+            {"icon", &tempIcon, ICON_SMART},
+            {"trails", &trailLength, 5},
+            {"tData", &tempTelemetryMode, TELEMETRY_OFF},
+            {"textSize", &uiTextSize, 1},
+            {"sens", &sensitivity, 5},
+            {"locAvg", &locationAveraging, 5},
+            {"interp", &tempInterp, 5}
+        };
+
+        BoolPrefMapping boolMappings[] = {
+            {"sweep", &sweepLineEnabled, true},
+            {"grid", &gridEnabled, true},
+            {"startup", &startupAnimEnabled, true},
+            {"simSwp", &simulatedSweep, false},
+            {"showStd", &showStdDev, false}
+        };
+
+        for (const auto& mapping : intMappings) {
+            *(mapping.valuePtr) = preferences.getInt(mapping.key, mapping.defaultVal);
+        }
+
+        for (const auto& mapping : boolMappings) {
+            *(mapping.valuePtr) = preferences.getBool(mapping.key, mapping.defaultVal);
+        }
+
+        theme = (ThemeStyle)tempTheme;
+        targetIcon = (TargetIcon)tempIcon;
+        telemetryMode = (TelemetryMode)tempTelemetryMode;
+        interpolationAmount = (float)tempInterp / 10.0f;
+
         preferences.end();
     }
 
     void saveSettings() {
         preferences.begin("radar_ui", false);
-        preferences.putInt("theme", theme);
-        preferences.putInt("icon", targetIcon);
-        preferences.putBool("sweep", sweepLineEnabled);
-        preferences.putInt("trails", trailLength);
-        preferences.putBool("grid", gridEnabled);
-        preferences.putBool("startup", startupAnimEnabled);
-        preferences.putBool("simSwp", simulatedSweep);
-        preferences.putBool("showStd", showStdDev);
 
-        preferences.putInt("tData", telemetryMode);
-        preferences.putInt("textSize", uiTextSize);
-        preferences.putInt("sens", sensitivity);
-        preferences.putInt("locAvg", locationAveraging);
-        int interDisp = (int)(interpolationAmount * 10.0f + 0.5f);
-        preferences.putInt("interp", interDisp);
+        int tempTheme = theme;
+        int tempIcon = targetIcon;
+        int tempTelemetryMode = telemetryMode;
+        int tempInterp = (int)(interpolationAmount * 10.0f + 0.5f);
+
+        IntPrefMapping intMappings[] = {
+            {"theme", &tempTheme, 0},
+            {"icon", &tempIcon, 0},
+            {"trails", &trailLength, 0},
+            {"tData", &tempTelemetryMode, 0},
+            {"textSize", &uiTextSize, 0},
+            {"sens", &sensitivity, 0},
+            {"locAvg", &locationAveraging, 0},
+            {"interp", &tempInterp, 0}
+        };
+
+        BoolPrefMapping boolMappings[] = {
+            {"sweep", &sweepLineEnabled, false},
+            {"grid", &gridEnabled, false},
+            {"startup", &startupAnimEnabled, false},
+            {"simSwp", &simulatedSweep, false},
+            {"showStd", &showStdDev, false}
+        };
+
+        for (const auto& mapping : intMappings) {
+            preferences.putInt(mapping.key, *(mapping.valuePtr));
+        }
+
+        for (const auto& mapping : boolMappings) {
+            preferences.putBool(mapping.key, *(mapping.valuePtr));
+        }
+
         preferences.end();
     }
+
 
     void init() {
         zoneManager.loadSettings();

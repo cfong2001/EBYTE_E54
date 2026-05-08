@@ -40,39 +40,72 @@ public:
         }
     }
 
+
+
+
+    struct IntPrefMapping {
+        const char* key;
+        int* valuePtr;
+        int defaultVal;
+    };
+
     void loadSettings() {
         preferences.begin("radar_zones", false);
-        warnPreset = (ZonePreset)preferences.getInt("warnP", ZONE_OFF);
-        deadPreset = (ZonePreset)preferences.getInt("deadP", ZONE_OFF);
-        warnCustom.minDist = preferences.getInt("wC_minD", 1000);
-        warnCustom.maxDist = preferences.getInt("wC_maxD", 3000);
-        warnCustom.minAngle = preferences.getInt("wC_minA", -30);
-        warnCustom.maxAngle = preferences.getInt("wC_maxA", 30);
-        deadCustom.minDist = preferences.getInt("dC_minD", 0);
-        deadCustom.maxDist = preferences.getInt("dC_maxD", 1000);
-        deadCustom.minAngle = preferences.getInt("dC_minA", -90);
-        deadCustom.maxAngle = preferences.getInt("dC_maxA", 90);
-        fuzzingThreshold = preferences.getInt("fuzzT", 50);
-        historyWindow = preferences.getInt("histW", 10);
+
+        int tempWarnP, tempDeadP;
+        IntPrefMapping intMappings[] = {
+            {"warnP", &tempWarnP, ZONE_OFF},
+            {"deadP", &tempDeadP, ZONE_OFF},
+            {"wC_minD", &warnCustom.minDist, 1000},
+            {"wC_maxD", &warnCustom.maxDist, 3000},
+            {"wC_minA", &warnCustom.minAngle, -30},
+            {"wC_maxA", &warnCustom.maxAngle, 30},
+            {"dC_minD", &deadCustom.minDist, 0},
+            {"dC_maxD", &deadCustom.maxDist, 1000},
+            {"dC_minA", &deadCustom.minAngle, -90},
+            {"dC_maxA", &deadCustom.maxAngle, 90},
+            {"fuzzT", &fuzzingThreshold, 50},
+            {"histW", &historyWindow, 10}
+        };
+
+        for (const auto& mapping : intMappings) {
+            *(mapping.valuePtr) = preferences.getInt(mapping.key, mapping.defaultVal);
+        }
+
+        warnPreset = (ZonePreset)tempWarnP;
+        deadPreset = (ZonePreset)tempDeadP;
+
         preferences.end();
     }
 
     void saveSettings() {
         preferences.begin("radar_zones", false);
-        preferences.putInt("warnP", warnPreset);
-        preferences.putInt("deadP", deadPreset);
-        preferences.putInt("wC_minD", warnCustom.minDist);
-        preferences.putInt("wC_maxD", warnCustom.maxDist);
-        preferences.putInt("wC_minA", warnCustom.minAngle);
-        preferences.putInt("wC_maxA", warnCustom.maxAngle);
-        preferences.putInt("dC_minD", deadCustom.minDist);
-        preferences.putInt("dC_maxD", deadCustom.maxDist);
-        preferences.putInt("dC_minA", deadCustom.minAngle);
-        preferences.putInt("dC_maxA", deadCustom.maxAngle);
-        preferences.putInt("fuzzT", fuzzingThreshold);
-        preferences.putInt("histW", historyWindow);
+
+        int tempWarnP = warnPreset;
+        int tempDeadP = deadPreset;
+
+        IntPrefMapping intMappings[] = {
+            {"warnP", &tempWarnP, 0},
+            {"deadP", &tempDeadP, 0},
+            {"wC_minD", &warnCustom.minDist, 0},
+            {"wC_maxD", &warnCustom.maxDist, 0},
+            {"wC_minA", &warnCustom.minAngle, 0},
+            {"wC_maxA", &warnCustom.maxAngle, 0},
+            {"dC_minD", &deadCustom.minDist, 0},
+            {"dC_maxD", &deadCustom.maxDist, 0},
+            {"dC_minA", &deadCustom.minAngle, 0},
+            {"dC_maxA", &deadCustom.maxAngle, 0},
+            {"fuzzT", &fuzzingThreshold, 0},
+            {"histW", &historyWindow, 0}
+        };
+
+        for (const auto& mapping : intMappings) {
+            preferences.putInt(mapping.key, *(mapping.valuePtr));
+        }
+
         preferences.end();
     }
+
 
     void setWarnPreset(ZonePreset p) { warnPreset = p; saveSettings(); }
     void setDeadPreset(ZonePreset p) { deadPreset = p; saveSettings(); }
