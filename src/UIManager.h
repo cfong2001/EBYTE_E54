@@ -1,3 +1,5 @@
+#ifndef UIMANAGER_H
+#define UIMANAGER_H
 #ifndef UI_MANAGER_H
 #define UI_MANAGER_H
 
@@ -54,8 +56,62 @@ enum TargetIcon {
     ICON_SMART
 };
 
+
+class UIManager;
+
+class IView {
+public:
+    virtual ~IView() {}
+    virtual void handleMenuClick(UIManager* ui) = 0;
+    virtual void executeMenuEdit(UIManager* ui, int dir) = 0;
+    virtual void populateMenuPage(UIManager* ui, char items[][32], int& numItems) = 0;
+};
+
+
+class MainMenuView : public IView {
+public:
+    void handleMenuClick(UIManager* ui) override;
+    void executeMenuEdit(UIManager* ui, int dir) override;
+    void populateMenuPage(UIManager* ui, char items[][32], int& numItems) override;
+};
+
+class VisualsMenuView : public IView {
+public:
+    void handleMenuClick(UIManager* ui) override;
+    void executeMenuEdit(UIManager* ui, int dir) override;
+    void populateMenuPage(UIManager* ui, char items[][32], int& numItems) override;
+};
+
+class ZonesMenuView : public IView {
+public:
+    void handleMenuClick(UIManager* ui) override;
+    void executeMenuEdit(UIManager* ui, int dir) override;
+    void populateMenuPage(UIManager* ui, char items[][32], int& numItems) override;
+};
+
+class DataMenuView : public IView {
+public:
+    void handleMenuClick(UIManager* ui) override;
+    void executeMenuEdit(UIManager* ui, int dir) override;
+    void populateMenuPage(UIManager* ui, char items[][32], int& numItems) override;
+};
+
+class DevMenuView : public IView {
+public:
+    void handleMenuClick(UIManager* ui) override;
+    void executeMenuEdit(UIManager* ui, int dir) override;
+    void populateMenuPage(UIManager* ui, char items[][32], int& numItems) override;
+};
+
 class UIManager {
 public:
+    IView* mainMenuView;
+    IView* visualsMenuView;
+    IView* zonesMenuView;
+    IView* dataMenuView;
+    IView* devMenuView;
+    IView* activeView;
+
     ZoneManager zoneManager;
     Preferences preferences;
     bool devRiskAccepted = false;
@@ -65,6 +121,13 @@ public:
     int uiTextSize = 1;
 
     UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
+        mainMenuView = new MainMenuView();
+        visualsMenuView = new VisualsMenuView();
+        zonesMenuView = new ZonesMenuView();
+        dataMenuView = new DataMenuView();
+        devMenuView = new DevMenuView();
+        activeView = mainMenuView;
+
         state = STATE_BOOT;
         activePage = PAGE_MAIN;
         menuSelection = 0;
@@ -90,9 +153,9 @@ public:
 
         for (int i=0; i<3; i++) {
             lastTargetActive[i] = false;
-            targetCurrentX[i] = 120.0f;
+            targetCurrentX[i] = tft.width() / 2.0f;
             targetCurrentY[i] = 240.0f;
-            lastDrawnX[i] = 120;
+            lastDrawnX[i] = tft.width() / 2;
             lastDrawnY[i] = 240;
 
             rawTargetX[i] = 0;
@@ -105,7 +168,7 @@ public:
             targetStdDev[i] = 0.0f;
 
             for (int h=0; h<10; h++) {
-                targetHistoryX[i][h] = 120.0f;
+                targetHistoryX[i][h] = tft.width() / 2.0f;
                 targetHistoryY[i][h] = 240.0f;
             }
         }
@@ -126,7 +189,7 @@ public:
         uiTextSize = preferences.getInt("textSize", 1);
         sensitivity = preferences.getInt("sens", 5);
         locationAveraging = preferences.getInt("locAvg", 5);
-        interpolationAmount = (float)preferences.getInt("interp", 5) / 10.0f;
+        interpolationAmount = (float)preferences.getInt("interp", 5) * 0.1f;
         preferences.end();
     }
 
@@ -242,10 +305,10 @@ public:
     void setTargetMotion(int index, float vx, float vy, float ax, float ay, float stdDev = 0.0f) {
         if (index >= 0 && index < 3) {
             // Convert mm/s to screen pixels
-            targetVelX[index] = vx * 120 / 5000;
-            targetVelY[index] = -vy * 240 / 5000; // Y is inverted on screen
-            targetAccX[index] = ax * 120 / 5000;
-            targetAccY[index] = -ay * 240 / 5000;
+            targetVelX[index] = vx * (tft.width() / 2) / 5000;
+            targetVelY[index] = -vy * tft.width() / 5000; // Y is inverted on screen
+            targetAccX[index] = ax * (tft.width() / 2) / 5000;
+            targetAccY[index] = -ay * tft.width() / 5000;
         }
     }
 
@@ -265,8 +328,8 @@ public:
                 if (absSpeed < sensitivity && sensitivity > 1) {
                     targetActive[i] = false;
                 } else {
-                    targetGoalX[i] = 120 + (targets[i].x * 120 / 5000);
-                    targetGoalY[i] = 320 - (targets[i].y * 320 / 5000);
+                    targetGoalX[i] = (tft.width() / 2) + (targets[i].x * (tft.width() / 2) / 5000);
+                    targetGoalY[i] = tft.height() - (targets[i].y * tft.height() / 5000);
 
                     rawTargetX[i] = targets[i].x;
                     rawTargetY[i] = targets[i].y;
@@ -330,11 +393,11 @@ public:
             sprite.print("Zones highlight targets.");
 
             // Draw a mini radar zone
-            sprite.drawCircle(120, 160, 40, themeWarning);
+            sprite.drawCircle(tft.width() / 2, tft.height() / 2, 40, themeWarning);
             sprite.setCursor(10, 80); sprite.setTextColor(themeWarning, themeBg);
             sprite.print("Warning Zone (Amber)");
 
-            sprite.drawCircle(120, 160, 20, themeDanger);
+            sprite.drawCircle(tft.width() / 2, tft.height() / 2, 20, themeDanger);
             sprite.setCursor(10, 100); sprite.setTextColor(themeDanger, themeBg);
             sprite.print("Dead Zone (Hidden)");
 
@@ -373,8 +436,8 @@ public:
 
         if (theme == THEME_MINIMAL) {
             if (gridEnabled) {
-                sprite.drawCircle(120, 240, 180, 0x18E3);
-                sprite.fillCircle(120, 240, 4, 0x18E3);
+                sprite.drawCircle(tft.width() / 2, tft.width(), 180, 0x18E3);
+                sprite.fillCircle(tft.width() / 2, tft.width(), 4, 0x18E3);
             }
         } else {
             drawRadarBackground();
@@ -392,7 +455,7 @@ public:
         }
 
         if (!anyActive) {
-            float pulse = (sinf(millis() / 800.0f) + 1.0f) * 0.5f;
+            float pulse = (sinf(millis() * 0.00125f) + 1.0f) * 0.5f;
             uint16_t emptyColor = sprite.alphaBlend((uint8_t)(pulse * 150.0f) + 50, themePrimary, themeBg);
             sprite.setTextColor(emptyColor, themeBg);
             sprite.setTextSize(uiTextSize);
@@ -521,11 +584,11 @@ public:
             uint16_t sweepColor = (theme == THEME_ALIEN) ? themePrimary : TFT_DARKGREY;
             for (int a = 0; a < 30; a += 2) {
                 float tr = (sweepAngle - a - 180) * 0.0174533f;
-                int tx = 120 + 180 * cosf(tr);
-                int ty = 320 + 180 * sinf(tr);
+                int tx = (tft.width() / 2) + 180 * cosf(tr);
+                int ty = tft.height() + 180 * sinf(tr);
                 uint8_t alpha = 255 - ((a * 255) / 30);
                 uint16_t trailCol = sprite.alphaBlend(alpha, sweepColor, themeBg);
-                sprite.drawLine(120, 320, tx, ty, trailCol);
+                sprite.drawLine(tft.width() / 2, tft.height(), tx, ty, trailCol);
             }
         }
     }
@@ -565,15 +628,15 @@ public:
             // Draw StdDev Visualization Circle
             if (showStdDev && targetStdDev[i] > 1.0f) {
                 // Convert millimeter stdDev to screen pixels (approx 120 pixels per 5000 mm)
-                float screenRadius = targetStdDev[i] * (120.0f / 5000.0f);
+                float screenRadius = targetStdDev[i] * (120.0f * 0.0002f);
                 if (screenRadius < 2.0f) screenRadius = 2.0f;
-                if (screenRadius > 120.0f) screenRadius = 120.0f;
+                if (screenRadius > 120.0f) screenRadius = tft.width() / 2.0f;
                 uint16_t devColor = sprite.alphaBlend(100, baseColor, themeBg); // subtle wireframe
                 sprite.drawCircle(cx, cy, (int)screenRadius, devColor);
             }
 
             if (zoneManager.isWarning(i)) {
-                float pulse = (sinf(millis() / 150.0f) + 1.0f) * 0.5f;
+                float pulse = (sinf(millis() * 0.0066667f) + 1.0f) * 0.5f;
                 uint8_t blendRatio = (uint8_t)(pulse * 255.0f);
                 uint16_t blendColor = sprite.alphaBlend(blendRatio, themeDanger, themeWarning);
                 uint16_t wCol = sprite.alphaBlend(currentAlpha, blendColor, themeBg);
@@ -626,7 +689,7 @@ public:
                 }
 
                 if (smoothSpeed[i] > 5.0f) {
-                    float stickLen = 5.0f + (smoothSpeed[i] / 10.0f);
+                    float stickLen = 5.0f + (smoothSpeed[i] * 0.1f);
                     if (stickLen > 25.0f) stickLen = 25.0f;
                     float sLen = sqrtf(smoothVecX[i]*smoothVecX[i] + smoothVecY[i]*smoothVecY[i]);
                     if (sLen > 0.01f) {
@@ -655,19 +718,19 @@ public:
                 sprite.setCursor(cx + 8, cy - 12);
 
                 if (telemetryMode == TELEMETRY_DIST_ANG) {
-                    float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) / 1000.0f;
+                    float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) * 0.001f;
                     int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 180.0f / PI);
                     sprite.printf("%.1fm %d", dist_m, angle);
                     sprite.printf("%.1fm %ddeg", dist_m, angle);
                 } else if (telemetryMode == TELEMETRY_VELOCITY) {
-                    float speed_ms = (float)rawTargetSpeed[i] / 10.0f;
+                    float speed_ms = (float)rawTargetSpeed[i] * 0.1f;
                     sprite.printf("%.1fm/s", speed_ms);
                 } else if (telemetryMode == TELEMETRY_RAW) {
                     sprite.printf("%dmm,%dmm", rawTargetX[i], rawTargetY[i]);
                 } else if (telemetryMode == TELEMETRY_ALL) {
-                    float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) / 1000.0f;
+                    float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) * 0.001f;
                     int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 180.0f / PI);
-                    float speed_ms = (float)rawTargetSpeed[i] / 10.0f;
+                    float speed_ms = (float)rawTargetSpeed[i] * 0.1f;
                     sprite.printf("T%d %.1fm %d", i+1, dist_m, angle);
                     sprite.printf("T%d %.1fm %ddeg", i+1, dist_m, angle);
                     sprite.setCursor(cx + 8, cy - 2);
@@ -720,6 +783,7 @@ public:
 
 private:
     TFT_eSPI& tft;
+public:
     TFT_eSprite sprite;
 public:
 public:
@@ -795,15 +859,15 @@ public:
                 if (sweepDeg > 360) sweepDeg = 360;
                 for (int a = -180; a < -180 + sweepDeg; a += 5) {
                     float rad = a * 0.0174533f;
-                    sprite.drawPixel(120 + r * cosf(rad), 240 + r * sinf(rad), gridColor);
+                    sprite.drawPixel((tft.width() / 2) + r * cosf(rad), tft.width() + r * sinf(rad), gridColor);
                 }
             }
         }
 
         if (maxR > 0) {
-            sprite.drawLine(120, 240, 120, 240 - maxR, gridColor);
-            sprite.drawLine(120, 240, 120 - maxR, 240, gridColor);
-            sprite.drawLine(120, 240, 120 + maxR, 240, gridColor);
+            sprite.drawLine(tft.width() / 2, tft.width(), tft.width() / 2, tft.width() - maxR, gridColor);
+            sprite.drawLine(tft.width() / 2, tft.width(), (tft.width() / 2) - maxR, tft.width(), gridColor);
+            sprite.drawLine(tft.width() / 2, tft.width(), (tft.width() / 2) + maxR, tft.width(), gridColor);
         }
 
         sprite.setTextColor(themePrimary, themeBg);
@@ -828,7 +892,7 @@ public:
             float rad = (a - 90) * 0.0174533f;
             float cosA = cosf(rad);
             float sinA = sinf(rad);
-            sprite.drawLine(120 + minR*cosA, 240 + minR*sinA, 120 + maxR*cosA, 240 + maxR*sinA, color);
+            sprite.drawLine((tft.width() / 2) + minR*cosA, tft.width() + minR*sinA, (tft.width() / 2) + maxR*cosA, tft.width() + maxR*sinA, color);
         }
     }
 
@@ -855,154 +919,143 @@ public:
         gridColor = sprite.alphaBlend(80, gridColor, themeBg); // Dimmer lines
         if (gridEnabled) {
             // Tactical crosshair
-            sprite.drawLine(0, 120, 240, 120, gridColor);
-            sprite.drawLine(120, 16, 120, 304, gridColor); // Avoid drawing over top/bottom bars
+            sprite.drawLine(0, tft.width() / 2, tft.width(), tft.width() / 2, gridColor);
+            sprite.drawLine(tft.width() / 2, 16, tft.width() / 2, tft.height() - 16, gridColor); // Avoid drawing over top/bottom bars
 
             // Faint concentric circles
             for (int r = 40; r <= 100; r += 30) {
-                sprite.drawRect(120 - r, 120 - r, r * 2, r * 2, sprite.alphaBlend(50, themePrimary, themeBg));
+                sprite.drawRect((tft.width() / 2) - r, (tft.width() / 2) - r, r * 2, r * 2, sprite.alphaBlend(50, themePrimary, themeBg));
             }
             if (theme == THEME_ALIEN) {
                 for (int r=60; r<=180; r+=60) {
                     for (int a=0; a<=180; a+=5) {
                         float rad = (a - 180) * 0.0174533f;
-                        sprite.drawPixel(120 + r * cosf(rad), 240 + r * sinf(rad), gridColor);
+                        sprite.drawPixel((tft.width() / 2) + r * cosf(rad), tft.width() + r * sinf(rad), gridColor);
                     }
                 }
             } else {
-                sprite.drawRect(60, 180, 120, 120, gridColor);
-                sprite.drawRect(0, 120, 240, 240, gridColor);
+                sprite.drawRect(60, 180, tft.width() / 2, tft.width() / 2, gridColor);
+                sprite.drawRect(0, tft.width() / 2, tft.width(), tft.width(), gridColor);
             }
 
             // Ticks along axes
             for (int r = 30; r <= 90; r += 30) {
-                sprite.drawLine(120 - 3, 120 - r, 120 + 3, 120 - r, gridColor); // Vertical axis ticks
-                sprite.drawLine(120 - r, 120 - 3, 120 - r, 120 + 3, gridColor); // Horizontal axis ticks
-                sprite.drawLine(120 + r, 120 - 3, 120 + r, 120 + 3, gridColor);
+                sprite.drawLine((tft.width() / 2) - 3, (tft.width() / 2) - r, (tft.width() / 2) + 3, (tft.width() / 2) - r, gridColor); // Vertical axis ticks
+                sprite.drawLine((tft.width() / 2) - r, (tft.width() / 2) - 3, (tft.width() / 2) - r, (tft.width() / 2) + 3, gridColor); // Horizontal axis ticks
+                sprite.drawLine((tft.width() / 2) + r, (tft.width() / 2) - 3, (tft.width() / 2) + r, (tft.width() / 2) + 3, gridColor);
             }
         }
     }
 
 
-    void populateMainMenu(String* items, int& numItems) {
+    void populateMainMenu(char items[][32], int& numItems) {
         sprite.setTextColor(themePrimary, themeBg);
         sprite.setCursor(15, 5); sprite.print("CONFIG MENU");
 
-        items[numItems++] = "VISUAL SETTINGS";
-        items[numItems++] = "  [DISPLAY/HUD]";
-        items[numItems++] = "ZONE CONFIG";
-        items[numItems++] = "  [BOUNDARIES]";
-        items[numItems++] = "TARGET DATA";
-        items[numItems++] = "  [GAIN/FILTER]";
-        items[numItems++] = "DEV OPTIONS";
-        items[numItems++] = "USER GUIDE";
-        items[numItems++] = "[ Exit Menu ]";
+        snprintf(items[numItems++], 32, "%s", "VISUAL SETTINGS");
+        snprintf(items[numItems++], 32, "%s", "  [DISPLAY/HUD]");
+        snprintf(items[numItems++], 32, "%s", "ZONE CONFIG");
+        snprintf(items[numItems++], 32, "%s", "  [BOUNDARIES]");
+        snprintf(items[numItems++], 32, "%s", "TARGET DATA");
+        snprintf(items[numItems++], 32, "%s", "  [GAIN/FILTER]");
+        snprintf(items[numItems++], 32, "%s", "DEV OPTIONS");
+        snprintf(items[numItems++], 32, "%s", "USER GUIDE");
+        snprintf(items[numItems++], 32, "%s", "[ Exit Menu ]");
     }
 
-    void populateVisualsMenu(String* items, int& numItems) {
+    void populateVisualsMenu(char items[][32], int& numItems) {
         sprite.setTextColor(themePrimary, themeBg);
         sprite.setCursor(15, 5); sprite.print("--- VISUAL SETTINGS ---");
 
-        String themeStr = (theme == THEME_STANDARD) ? "Standard" : (theme == THEME_ALIEN ? "Alien" : "Minimal");
-        String iconStr = (targetIcon == ICON_CIRCLE) ? "CIRCLE" :
+        const char* themeStr = (theme == THEME_STANDARD) ? "Standard" : (theme == THEME_ALIEN ? "Alien" : "Minimal");
+        const char* iconStr = (targetIcon == ICON_CIRCLE) ? "CIRCLE" :
                          (targetIcon == ICON_SQUARE) ? "SQUARE" :
                          (targetIcon == ICON_TRIANGLE) ? "TRIANGLE" : "SMART";
-        items[numItems++] = "<- Back";
-        items[numItems++] = "Theme: " + themeStr;
-        items[numItems++] = "Icon: " + iconStr;
-        items[numItems++] = "Text Size: " + String(uiTextSize);
-        items[numItems++] = "Sweep Line: " + String(sweepLineEnabled ? "ON" : "OFF");
-        items[numItems++] = "Sweep Mode: " + String(simulatedSweep ? "SIMULATED" : "VISUAL");
-        items[numItems++] = "Trails: " + String(trailLength);
-        items[numItems++] = "Grid: " + String(gridEnabled ? "ON" : "OFF");
-        items[numItems++] = "Boot Anim: " + String(startupAnimEnabled ? "ON" : "OFF");
+        snprintf(items[numItems++], 32, "%s", "<- Back");
+        snprintf(items[numItems++], 32, "Theme: %s", themeStr);
+        snprintf(items[numItems++], 32, "Icon: %s", iconStr);
+        snprintf(items[numItems++], 32, "Text Size: %d", uiTextSize);
+        snprintf(items[numItems++], 32, "Sweep Line: %s", sweepLineEnabled ? "ON" : "OFF");
+        snprintf(items[numItems++], 32, "Sweep Mode: %s", simulatedSweep ? "SIMULATED" : "VISUAL");
+        snprintf(items[numItems++], 32, "Trails: %d", trailLength);
+        snprintf(items[numItems++], 32, "Grid: %s", gridEnabled ? "ON" : "OFF");
+        snprintf(items[numItems++], 32, "Boot Anim: %s", startupAnimEnabled ? "ON" : "OFF");
     }
 
-    void populateZonesMenu(String* items, int& numItems) {
+    void populateZonesMenu(char items[][32], int& numItems) {
         sprite.setTextColor(themePrimary, themeBg);
         sprite.setCursor(15, 5); sprite.print("--- ZONE CONFIG ---");
 
-        String warnStr = (zoneManager.getWarnPreset() == ZONE_OFF) ? "OFF" :
+        const char* warnStr = (zoneManager.getWarnPreset() == ZONE_OFF) ? "OFF" :
                          (zoneManager.getWarnPreset() == ZONE_CLOSE) ? "CLOSE" :
                          (zoneManager.getWarnPreset() == ZONE_MEDIUM) ? "MED" :
                          (zoneManager.getWarnPreset() == ZONE_FAR) ? "FAR" : "CUSTOM";
 
-        String deadStr = (zoneManager.getDeadPreset() == ZONE_OFF) ? "OFF" :
+        const char* deadStr = (zoneManager.getDeadPreset() == ZONE_OFF) ? "OFF" :
                          (zoneManager.getDeadPreset() == ZONE_CLOSE) ? "CLOSE" :
                          (zoneManager.getDeadPreset() == ZONE_MEDIUM) ? "MED" :
                          (zoneManager.getDeadPreset() == ZONE_FAR) ? "FAR" : "CUSTOM";
 
-        items[numItems++] = "<- Back";
-        items[numItems++] = "Warn Zone: " + warnStr;
+        snprintf(items[numItems++], 32, "%s", "<- Back");
+        snprintf(items[numItems++], 32, "Warn Zone: %s", warnStr);
         if (zoneManager.getWarnPreset() == ZONE_CUSTOM) {
-            items[numItems++] = " W-MinD: " + String(zoneManager.getWarnCustom().minDist) + "mm";
-            items[numItems++] = " W-MaxD: " + String(zoneManager.getWarnCustom().maxDist) + "mm";
-            items[numItems++] = " W-MinA: " + String(zoneManager.getWarnCustom().minAngle) + "deg";
-            items[numItems++] = " W-MaxA: " + String(zoneManager.getWarnCustom().maxAngle) + "deg";
+            snprintf(items[numItems++], 32, " W-MinD: %dmm", zoneManager.getWarnCustom().minDist);
+            snprintf(items[numItems++], 32, " W-MaxD: %dmm", zoneManager.getWarnCustom().maxDist);
+            snprintf(items[numItems++], 32, " W-MinA: %ddeg", zoneManager.getWarnCustom().minAngle);
+            snprintf(items[numItems++], 32, " W-MaxA: %ddeg", zoneManager.getWarnCustom().maxAngle);
         }
         if (zoneManager.getWarnPreset() != ZONE_OFF) {
-            items[numItems++] = "Warn Fuzz: " + String(zoneManager.getFuzzingThreshold()) + "%";
-            items[numItems++] = "Warn Time: " + String(zoneManager.getHistoryWindow() * 100) + "ms";
+            snprintf(items[numItems++], 32, "Warn Fuzz: %d%%", zoneManager.getFuzzingThreshold());
+            snprintf(items[numItems++], 32, "Warn Time: %dms", zoneManager.getHistoryWindow() * 100);
         }
 
-        items[numItems++] = "Dead Zone: " + deadStr;
+        snprintf(items[numItems++], 32, "Dead Zone: %s", deadStr);
         if (zoneManager.getDeadPreset() == ZONE_CUSTOM) {
-            items[numItems++] = " D-MinD: " + String(zoneManager.getDeadCustom().minDist) + "mm";
-            items[numItems++] = " D-MaxD: " + String(zoneManager.getDeadCustom().maxDist) + "mm";
-            items[numItems++] = " D-MinA: " + String(zoneManager.getDeadCustom().minAngle) + "deg";
-            items[numItems++] = " D-MaxA: " + String(zoneManager.getDeadCustom().maxAngle) + "deg";
+            snprintf(items[numItems++], 32, " D-MinD: %dmm", zoneManager.getDeadCustom().minDist);
+            snprintf(items[numItems++], 32, " D-MaxD: %dmm", zoneManager.getDeadCustom().maxDist);
+            snprintf(items[numItems++], 32, " D-MinA: %ddeg", zoneManager.getDeadCustom().minAngle);
+            snprintf(items[numItems++], 32, " D-MaxA: %ddeg", zoneManager.getDeadCustom().maxAngle);
         }
     }
 
-    void populateDataMenu(String* items, int& numItems) {
+    void populateDataMenu(char items[][32], int& numItems) {
         sprite.setTextColor(themePrimary, themeBg);
         sprite.setCursor(15, 5); sprite.print("--- TARGET DATA ---");
 
-        String tDataStr = (telemetryMode == TELEMETRY_OFF) ? "OFF" :
+        const char* tDataStr = (telemetryMode == TELEMETRY_OFF) ? "OFF" :
                           (telemetryMode == TELEMETRY_DIST_ANG) ? "DIST/ANG" :
                           (telemetryMode == TELEMETRY_VELOCITY) ? "SPEED" :
                           (telemetryMode == TELEMETRY_RAW) ? "RAW X/Y" : "ALL";
         int interDisp = (int)(interpolationAmount * 10.0f + 0.5f);
 
-        items[numItems++] = "<- Back";
-        items[numItems++] = "Telemetry: " + tDataStr;
-        items[numItems++] = "Sensitivity: " + String(sensitivity) + " cm/s";
-        items[numItems++] = "Loc Avg: " + String(locationAveraging);
-        items[numItems++] = "Smoothing: " + String(interDisp);
-        items[numItems++] = "[ Reset Tracking ]";
+        snprintf(items[numItems++], 32, "%s", "<- Back");
+        snprintf(items[numItems++], 32, "Telemetry: %s", tDataStr);
+        snprintf(items[numItems++], 32, "Sensitivity: %d cm/s", sensitivity);
+        snprintf(items[numItems++], 32, "Loc Avg: %d", locationAveraging);
+        snprintf(items[numItems++], 32, "Smoothing: %d", interDisp);
+        snprintf(items[numItems++], 32, "%s", "[ Reset Tracking ]");
     }
 
-    void populateDevMenu(String* items, int& numItems) {
+    void populateDevMenu(char items[][32], int& numItems) {
         sprite.setTextColor(themeDanger, themeBg);
         sprite.setCursor(15, 5); sprite.print("--- DEV OPTIONS ---");
 
-        items[numItems++] = "<- Back";
-        items[numItems++] = "Accept Risk? " + String(devRiskAccepted ? "YES" : "NO");
+        snprintf(items[numItems++], 32, "%s", "<- Back");
+        snprintf(items[numItems++], 32, "Accept Risk? %s", devRiskAccepted ? "YES" : "NO");
         if (devRiskAccepted) {
-            items[numItems++] = "Motion Comp: " + String(motionCompEnabled ? "ON" : "OFF");
-            items[numItems++] = "Passthrough: " + String(passthroughMode ? "ON" : "OFF");
-            items[numItems++] = "Show StdDev: " + String(showStdDev ? "ON" : "OFF");
-            items[numItems++] = "[ FACTORY RESET ]";
-            items[numItems++] = "[ EXPORT CONFIG ]";
-            items[numItems++] = "[ IMPORT CONFIG ]";
+            snprintf(items[numItems++], 32, "Motion Comp: %s", motionCompEnabled ? "ON" : "OFF");
+            snprintf(items[numItems++], 32, "Passthrough: %s", passthroughMode ? "ON" : "OFF");
+            snprintf(items[numItems++], 32, "Show StdDev: %s", showStdDev ? "ON" : "OFF");
+            snprintf(items[numItems++], 32, "%s", "[ FACTORY RESET ]");
+            snprintf(items[numItems++], 32, "%s", "[ EXPORT CONFIG ]");
+            snprintf(items[numItems++], 32, "%s", "[ IMPORT CONFIG ]");
         }
     }
 
-    void populateMenuPage(String* items, int& numItems) {
-        if (activePage == PAGE_MAIN) {
-            populateMainMenu(items, numItems);
-        } else if (activePage == PAGE_VISUALS) {
-            populateVisualsMenu(items, numItems);
-        } else if (activePage == PAGE_ZONES) {
-            populateZonesMenu(items, numItems);
-        } else if (activePage == PAGE_DATA) {
-            populateDataMenu(items, numItems);
-        } else if (activePage == PAGE_DEV) {
-            populateDevMenu(items, numItems);
-        }
+    void populateMenuPage(char items[][32], int& numItems) {
+        if (activeView) activeView->populateMenuPage(this, items, numItems);
     }
-
-    void drawMenuItems(String* items, int numItems) {
+    void drawMenuItems(char items[][32], int numItems) {
         maxMenuSelection = numItems - 1;
 
         int startIdx = max(0, menuSelection - 2);
@@ -1081,7 +1134,7 @@ public:
         if (menuOverlayY < 200) return;
 
         sprite.setTextSize(uiTextSize);
-        static String items[24];
+        static char items[24][32];
         int numItems = 0;
 
         populateMenuPage(items, numItems);
@@ -1089,139 +1142,159 @@ public:
     }
 
     void handleMenuClick() {
-        if (activePage == PAGE_MAIN) {
-            if (menuSelection == 0 || menuSelection == 1) { activePage = PAGE_VISUALS; menuSelection = 0; }
-            else if (menuSelection == 2 || menuSelection == 3) { activePage = PAGE_ZONES; menuSelection = 0; }
-            else if (menuSelection == 4 || menuSelection == 5) { activePage = PAGE_DATA; menuSelection = 0; }
-            else if (menuSelection == 6) { activePage = PAGE_DEV; menuSelection = 0; }
-            else if (menuSelection == 7) { state = STATE_GUIDE; guidePage = 0; }
-            else if (menuSelection == 8) { state = STATE_RADAR_VIEW; }
-        }
-        else if (activePage == PAGE_VISUALS) {
-            if (menuSelection == 0) { activePage = PAGE_MAIN; menuSelection = 0; }
-            else { state = STATE_MENU_EDIT; }
-        }
-        else if (activePage == PAGE_ZONES) {
-            if (menuSelection == 0) { activePage = PAGE_MAIN; menuSelection = 0; }
-            else { state = STATE_MENU_EDIT; }
-        }
-        else if (activePage == PAGE_DEV) {
-            if (menuSelection == 0) { activePage = PAGE_MAIN; menuSelection = 0; }
-            else if (menuSelection == maxMenuSelection - 1 && devRiskAccepted) { actionRequested = 2; state = STATE_RADAR_VIEW; }
-            else if (menuSelection == maxMenuSelection && devRiskAccepted) { state = STATE_IMPORTING; }
-            else { state = STATE_MENU_EDIT; }
-        }
-        else if (activePage == PAGE_DATA) {
-            if (menuSelection == 0) { activePage = PAGE_MAIN; menuSelection = 0; }
-            else if (menuSelection == maxMenuSelection) { actionRequested = 1; state = STATE_RADAR_VIEW; }
-            else { state = STATE_MENU_EDIT; }
-        }
+        if (activeView) activeView->handleMenuClick(this);
+        if (activePage == PAGE_MAIN) activeView = mainMenuView;
+        else if (activePage == PAGE_VISUALS) activeView = visualsMenuView;
+        else if (activePage == PAGE_ZONES) activeView = zonesMenuView;
+        else if (activePage == PAGE_DATA) activeView = dataMenuView;
+        else if (activePage == PAGE_DEV) activeView = devMenuView;
     }
-
     void executeMenuEdit(int dir) {
-        int idx = 1; // 0 is always <- Back
-
-        if (activePage == PAGE_VISUALS) {
-            if (idx++ == menuSelection) {
-                int t = (int)theme + dir;
-                if (t > 2) t = 0; if (t < 0) t = 2;
-                theme = (ThemeStyle)t;
-                if (theme == THEME_ALIEN) { sweepLineEnabled = true; trailLength = 8; gridEnabled = true; }
-                else if (theme == THEME_MINIMAL) { sweepLineEnabled = false; trailLength = 0; gridEnabled = true; }
-                else { sweepLineEnabled = true; trailLength = 3; gridEnabled = true; }
-                return;
-            }
-            if (idx++ == menuSelection) {
-                int ic = (int)targetIcon + dir;
-                if (ic > 3) ic = 0; if (ic < 0) ic = 3;
-                targetIcon = (TargetIcon)ic;
-                return;
-            }
-            if (idx++ == menuSelection) { uiTextSize += dir; if (uiTextSize < 1) uiTextSize = 1; if (uiTextSize > 2) uiTextSize = 2; return; }
-            if (idx++ == menuSelection) { sweepLineEnabled = !sweepLineEnabled; return; }
-            if (idx++ == menuSelection) { simulatedSweep = !simulatedSweep; return; }
-            if (idx++ == menuSelection) { trailLength += dir; if (trailLength < 0) trailLength = 0; if (trailLength > 10) trailLength = 10; return; }
-            if (idx++ == menuSelection) { gridEnabled = !gridEnabled; return; }
-            if (idx++ == menuSelection) { startupAnimEnabled = !startupAnimEnabled; return; }
-        }
-        else if (activePage == PAGE_ZONES) {
-            if (idx++ == menuSelection) {
-                int p = (int)zoneManager.getWarnPreset() + dir;
-                if (p > 4) p = 0; if (p < 0) p = 4;
-                zoneManager.setWarnPreset((ZonePreset)p);
-                return;
-            }
-            if (zoneManager.getWarnPreset() == ZONE_CUSTOM) {
-                RadialZone z = zoneManager.getWarnCustom();
-                if (idx++ == menuSelection) { z.minDist += dir * 100; if(z.minDist < 0) z.minDist=0; zoneManager.setWarnCustom(z); return; }
-                if (idx++ == menuSelection) { z.maxDist += dir * 100; if(z.maxDist < z.minDist) z.maxDist=z.minDist; zoneManager.setWarnCustom(z); return; }
-                if (idx++ == menuSelection) { z.minAngle += dir * 5; if(z.minAngle < -90) z.minAngle=-90; zoneManager.setWarnCustom(z); return; }
-                if (idx++ == menuSelection) { z.maxAngle += dir * 5; if(z.maxAngle > 90) z.maxAngle=90; zoneManager.setWarnCustom(z); return; }
-            }
-            if (zoneManager.getWarnPreset() != ZONE_OFF) {
-                if (idx++ == menuSelection) {
-                    int f = zoneManager.getFuzzingThreshold() + dir * 5;
-                    if (f < 0) f = 0; if (f > 100) f = 100;
-                    zoneManager.setFuzzingThreshold(f);
-                    return;
-                }
-                if (idx++ == menuSelection) {
-                    zoneManager.setHistoryWindow(zoneManager.getHistoryWindow() + dir);
-                    return;
-                }
-            }
-            if (idx++ == menuSelection) {
-                int p = (int)zoneManager.getDeadPreset() + dir;
-                if (p > 4) p = 0; if (p < 0) p = 4;
-                zoneManager.setDeadPreset((ZonePreset)p);
-                return;
-            }
-            if (zoneManager.getDeadPreset() == ZONE_CUSTOM) {
-                RadialZone z = zoneManager.getDeadCustom();
-                if (idx++ == menuSelection) { z.minDist += dir * 100; if(z.minDist < 0) z.minDist=0; zoneManager.setDeadCustom(z); return; }
-                if (idx++ == menuSelection) { z.maxDist += dir * 100; if(z.maxDist < z.minDist) z.maxDist=z.minDist; zoneManager.setDeadCustom(z); return; }
-                if (idx++ == menuSelection) { z.minAngle += dir * 5; if(z.minAngle < -90) z.minAngle=-90; zoneManager.setDeadCustom(z); return; }
-                if (idx++ == menuSelection) { z.maxAngle += dir * 5; if(z.maxAngle > 90) z.maxAngle=90; zoneManager.setDeadCustom(z); return; }
-            }
-        }
-        else if (activePage == PAGE_DEV) {
-            if (idx++ == menuSelection) { devRiskAccepted = !devRiskAccepted; return; }
-            if (devRiskAccepted) {
-                if (idx++ == menuSelection) { motionCompEnabled = !motionCompEnabled; return; }
-                if (idx++ == menuSelection) { passthroughMode = !passthroughMode; return; }
-                if (idx++ == menuSelection) { showStdDev = !showStdDev; return; }
-                if (idx++ == menuSelection) {
-                    sprite.fillSprite(themeDanger);
-                    sprite.setTextColor(TFT_WHITE);
-                    sprite.setCursor(10, 100);
-                    sprite.print("WIPING PREFERENCES...");
-                    sprite.pushSprite(0, 0);
-                    preferences.clear();
-                    delay(1000);
-                    ESP.restart();
-                    return;
-                }
-                idx++; // EXPORT
-                idx++; // IMPORT
-            }
-        }
-        else if (activePage == PAGE_DATA) {
-            if (idx++ == menuSelection) {
-                int tm = (int)telemetryMode + dir;
-                if (tm > 4) tm = 0; if (tm < 0) tm = 4;
-                telemetryMode = (TelemetryMode)tm;
-                return;
-            }
-            if (idx++ == menuSelection) { sensitivity += dir; if (sensitivity < 1) sensitivity = 10; if (sensitivity > 10) sensitivity = 10; return; }
-            if (idx++ == menuSelection) { locationAveraging += dir; if (locationAveraging < 1) locationAveraging = 1; if (locationAveraging > 10) locationAveraging = 10; return; }
-            if (idx++ == menuSelection) {
-                interpolationAmount += (dir * 0.1f);
-                if (interpolationAmount < 0.1f) interpolationAmount = 0.1f;
-                if (interpolationAmount > 1.05f) interpolationAmount = 1.0f;
-                return;
-            }
-        }
+        if (activeView) activeView->executeMenuEdit(this, dir);
     }
 };
+
+#endif
+
+
+inline void MainMenuView::handleMenuClick(UIManager* ui) {
+    if (ui->menuSelection == 0 || ui->menuSelection == 1) { ui->activePage = PAGE_VISUALS; ui->menuSelection = 0; }
+    else if (ui->menuSelection == 2 || ui->menuSelection == 3) { ui->activePage = PAGE_ZONES; ui->menuSelection = 0; }
+    else if (ui->menuSelection == 4 || ui->menuSelection == 5) { ui->activePage = PAGE_DATA; ui->menuSelection = 0; }
+    else if (ui->menuSelection == 6) { ui->activePage = PAGE_DEV; ui->menuSelection = 0; }
+    else if (ui->menuSelection == 7) { ui->state = STATE_GUIDE; ui->guidePage = 0; }
+    else if (ui->menuSelection == 8) { ui->state = STATE_RADAR_VIEW; }
+}
+inline void MainMenuView::executeMenuEdit(UIManager* ui, int dir) {}
+inline void MainMenuView::populateMenuPage(UIManager* ui, char items[][32], int& numItems) { ui->populateMainMenu(items, numItems); }
+
+inline void VisualsMenuView::handleMenuClick(UIManager* ui) {
+    if (ui->menuSelection == 0) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
+    else { ui->state = STATE_MENU_EDIT; }
+}
+inline void VisualsMenuView::executeMenuEdit(UIManager* ui, int dir) {
+    int idx = 1;
+    if (idx++ == ui->menuSelection) {
+        int t = (int)ui->theme + dir;
+        if (t > 2) t = 0; if (t < 0) t = 2;
+        ui->theme = (ThemeStyle)t;
+        if (ui->theme == THEME_ALIEN) { ui->sweepLineEnabled = true; ui->trailLength = 8; ui->gridEnabled = true; }
+        else if (ui->theme == THEME_MINIMAL) { ui->sweepLineEnabled = false; ui->trailLength = 0; ui->gridEnabled = true; }
+        else { ui->sweepLineEnabled = true; ui->trailLength = 3; ui->gridEnabled = true; }
+        return;
+    }
+    if (idx++ == ui->menuSelection) {
+        int ic = (int)ui->targetIcon + dir;
+        if (ic > 3) ic = 0; if (ic < 0) ic = 3;
+        ui->targetIcon = (TargetIcon)ic;
+        return;
+    }
+    if (idx++ == ui->menuSelection) { ui->uiTextSize += dir; if (ui->uiTextSize < 1) ui->uiTextSize = 1; if (ui->uiTextSize > 2) ui->uiTextSize = 2; return; }
+    if (idx++ == ui->menuSelection) { ui->sweepLineEnabled = !ui->sweepLineEnabled; return; }
+    if (idx++ == ui->menuSelection) { ui->simulatedSweep = !ui->simulatedSweep; return; }
+    if (idx++ == ui->menuSelection) { ui->trailLength += dir; if (ui->trailLength < 0) ui->trailLength = 0; if (ui->trailLength > 10) ui->trailLength = 10; return; }
+    if (idx++ == ui->menuSelection) { ui->gridEnabled = !ui->gridEnabled; return; }
+    if (idx++ == ui->menuSelection) { ui->startupAnimEnabled = !ui->startupAnimEnabled; return; }
+}
+inline void VisualsMenuView::populateMenuPage(UIManager* ui, char items[][32], int& numItems) { ui->populateVisualsMenu(items, numItems); }
+
+inline void ZonesMenuView::handleMenuClick(UIManager* ui) {
+    if (ui->menuSelection == 0) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
+    else { ui->state = STATE_MENU_EDIT; }
+}
+inline void ZonesMenuView::executeMenuEdit(UIManager* ui, int dir) {
+    int idx = 1;
+    if (idx++ == ui->menuSelection) {
+        int p = (int)ui->zoneManager.getWarnPreset() + dir;
+        if (p > 4) p = 0; if (p < 0) p = 4;
+        ui->zoneManager.setWarnPreset((ZonePreset)p);
+        return;
+    }
+    if (ui->zoneManager.getWarnPreset() == ZONE_CUSTOM) {
+        RadialZone z = ui->zoneManager.getWarnCustom();
+        if (idx++ == ui->menuSelection) { z.minDist += dir * 100; if(z.minDist < 0) z.minDist=0; ui->zoneManager.setWarnCustom(z); return; }
+        if (idx++ == ui->menuSelection) { z.maxDist += dir * 100; if(z.maxDist < z.minDist) z.maxDist=z.minDist; ui->zoneManager.setWarnCustom(z); return; }
+        if (idx++ == ui->menuSelection) { z.minAngle += dir * 5; if(z.minAngle < -90) z.minAngle=-90; ui->zoneManager.setWarnCustom(z); return; }
+        if (idx++ == ui->menuSelection) { z.maxAngle += dir * 5; if(z.maxAngle > 90) z.maxAngle=90; ui->zoneManager.setWarnCustom(z); return; }
+    }
+    if (ui->zoneManager.getWarnPreset() != ZONE_OFF) {
+        if (idx++ == ui->menuSelection) {
+            int f = ui->zoneManager.getFuzzingThreshold() + dir * 5;
+            if (f < 0) f = 0; if (f > 100) f = 100;
+            ui->zoneManager.setFuzzingThreshold(f);
+            return;
+        }
+        if (idx++ == ui->menuSelection) {
+            ui->zoneManager.setHistoryWindow(ui->zoneManager.getHistoryWindow() + dir);
+            return;
+        }
+    }
+    if (idx++ == ui->menuSelection) {
+        int p = (int)ui->zoneManager.getDeadPreset() + dir;
+        if (p > 4) p = 0; if (p < 0) p = 4;
+        ui->zoneManager.setDeadPreset((ZonePreset)p);
+        return;
+    }
+    if (ui->zoneManager.getDeadPreset() == ZONE_CUSTOM) {
+        RadialZone z = ui->zoneManager.getDeadCustom();
+        if (idx++ == ui->menuSelection) { z.minDist += dir * 100; if(z.minDist < 0) z.minDist=0; ui->zoneManager.setDeadCustom(z); return; }
+        if (idx++ == ui->menuSelection) { z.maxDist += dir * 100; if(z.maxDist < z.minDist) z.maxDist=z.minDist; ui->zoneManager.setDeadCustom(z); return; }
+        if (idx++ == ui->menuSelection) { z.minAngle += dir * 5; if(z.minAngle < -90) z.minAngle=-90; ui->zoneManager.setDeadCustom(z); return; }
+        if (idx++ == ui->menuSelection) { z.maxAngle += dir * 5; if(z.maxAngle > 90) z.maxAngle=90; ui->zoneManager.setDeadCustom(z); return; }
+    }
+}
+inline void ZonesMenuView::populateMenuPage(UIManager* ui, char items[][32], int& numItems) { ui->populateZonesMenu(items, numItems); }
+
+inline void DataMenuView::handleMenuClick(UIManager* ui) {
+    if (ui->menuSelection == 0) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
+    else if (ui->menuSelection == ui->maxMenuSelection) { ui->actionRequested = 1; ui->state = STATE_RADAR_VIEW; }
+    else { ui->state = STATE_MENU_EDIT; }
+}
+inline void DataMenuView::executeMenuEdit(UIManager* ui, int dir) {
+    int idx = 1;
+    if (idx++ == ui->menuSelection) {
+        int tm = (int)ui->telemetryMode + dir;
+        if (tm > 4) tm = 0; if (tm < 0) tm = 4;
+        ui->telemetryMode = (TelemetryMode)tm;
+        return;
+    }
+    if (idx++ == ui->menuSelection) { ui->sensitivity += dir; if (ui->sensitivity < 1) ui->sensitivity = 10; if (ui->sensitivity > 10) ui->sensitivity = 10; return; }
+    if (idx++ == ui->menuSelection) { ui->locationAveraging += dir; if (ui->locationAveraging < 1) ui->locationAveraging = 1; if (ui->locationAveraging > 10) ui->locationAveraging = 10; return; }
+    if (idx++ == ui->menuSelection) {
+        ui->interpolationAmount += (dir * 0.1f);
+        if (ui->interpolationAmount < 0.1f) ui->interpolationAmount = 0.1f;
+        if (ui->interpolationAmount > 1.05f) ui->interpolationAmount = 1.0f;
+        return;
+    }
+}
+inline void DataMenuView::populateMenuPage(UIManager* ui, char items[][32], int& numItems) { ui->populateDataMenu(items, numItems); }
+
+inline void DevMenuView::handleMenuClick(UIManager* ui) {
+    if (ui->menuSelection == 0) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
+    else if (ui->menuSelection == ui->maxMenuSelection - 1 && ui->devRiskAccepted) { ui->actionRequested = 2; ui->state = STATE_RADAR_VIEW; }
+    else if (ui->menuSelection == ui->maxMenuSelection && ui->devRiskAccepted) { ui->state = STATE_IMPORTING; }
+    else { ui->state = STATE_MENU_EDIT; }
+}
+inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
+    int idx = 1;
+    if (idx++ == ui->menuSelection) { ui->devRiskAccepted = !ui->devRiskAccepted; return; }
+    if (ui->devRiskAccepted) {
+        if (idx++ == ui->menuSelection) { ui->motionCompEnabled = !ui->motionCompEnabled; return; }
+        if (idx++ == ui->menuSelection) { ui->passthroughMode = !ui->passthroughMode; return; }
+        if (idx++ == ui->menuSelection) { ui->showStdDev = !ui->showStdDev; return; }
+        if (idx++ == ui->menuSelection) {
+            ui->sprite.fillSprite(0xFDB5); // themeDanger
+            ui->sprite.setTextColor(TFT_WHITE);
+            ui->sprite.setCursor(10, 100);
+            ui->sprite.print("WIPING PREFERENCES...");
+            ui->sprite.pushSprite(0, 0);
+            ui->preferences.clear();
+            delay(1000);
+            ESP.restart();
+            return;
+        }
+    }
+}
+inline void DevMenuView::populateMenuPage(UIManager* ui, char items[][32], int& numItems) { ui->populateDevMenu(items, numItems); }
 
 #endif

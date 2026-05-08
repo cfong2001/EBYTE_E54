@@ -1,4 +1,5 @@
 #ifndef MOTION_COMPENSATION_H
+#include <algorithm>
 #define MOTION_COMPENSATION_H
 
 #include <Arduino.h>
@@ -120,7 +121,7 @@ public:
         for (int i=0; i<3; i++) {
             if (state[i].active && state[i].isAnchor) { cx += state[i].x; count++; }
         }
-        return count > 0 ? (int16_t)(cx / count) : 0;
+        return count > 0 ? std::lround(cx / count) : 0;
     }
 
     int16_t getAnchorY() const {
@@ -128,7 +129,7 @@ public:
         for (int i=0; i<3; i++) {
             if (state[i].active && state[i].isAnchor) { cy += state[i].y; count++; }
         }
-        return count > 0 ? (int16_t)(cy / count) : 0;
+        return count > 0 ? std::lround(cy / count) : 0;
     }
 
     // Expose velocity and state data for advanced prediction UI interpolation
@@ -312,8 +313,8 @@ private:
                     }
                 }
 
-                compensated[i].x = (int16_t)stab_x;
-                compensated[i].y = (int16_t)stab_y;
+                compensated[i].x = std::lround(stab_x);
+                compensated[i].y = std::lround(stab_y);
                 compensated[i].active = true;
                 compensated[i].isCoasting = false;
 
@@ -332,9 +333,9 @@ private:
                     state[i].y = py;
 
                     // Provide a synthetic compensated target to UI
-                    compensated[i].x = (int16_t)px;
-                    compensated[i].y = (int16_t)py;
-                    compensated[i].speed = (int16_t)sqrtf(state[i].velX*state[i].velX + state[i].velY*state[i].velY);
+                    compensated[i].x = std::lround(px);
+                    compensated[i].y = std::lround(py);
+                    compensated[i].speed = std::lround(sqrtf(state[i].velX*state[i].velX + state[i].velY*state[i].velY));
                     compensated[i].active = true;
                     compensated[i].resolution = 0; // indicates interpolated frame
                     compensated[i].isCoasting = true;
@@ -470,8 +471,7 @@ private:
             // High resolution (low value) = high confidence = high gain
             if (rawTarget.resolution > 0) {
                  float resWeight = 250.0f / (float)rawTarget.resolution;
-                 if (resWeight > 2.0f) resWeight = 2.0f;
-                 if (resWeight < 0.5f) resWeight = 0.5f;
+                 resWeight = std::clamp(resWeight, 0.5f, 2.0f);
                  alpha = min(1.0f, alpha * resWeight);
                  beta *= resWeight;
                  gamma *= resWeight;
@@ -486,10 +486,8 @@ private:
             state[i].accY = state[i].accY + (gamma * residualY / dt_sq_half);
 
             float maxAcc = 5000.0f;
-            if (state[i].accX > maxAcc) state[i].accX = maxAcc;
-            if (state[i].accX < -maxAcc) state[i].accX = -maxAcc;
-            if (state[i].accY > maxAcc) state[i].accY = maxAcc;
-            if (state[i].accY < -maxAcc) state[i].accY = -maxAcc;
+            state[i].accX = std::clamp(state[i].accX, -maxAcc, maxAcc);
+            state[i].accY = std::clamp(state[i].accY, -maxAcc, maxAcc);
 
             // Update circular history buffer with final determined state
             state[i].historyX[state[i].historyHead] = state[i].x;

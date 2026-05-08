@@ -288,6 +288,7 @@ void loop() {
     unsigned long now = millis();
     if (now - lastRender >= 30) { // ~33Hz display rendering
         if (xSemaphoreTake(dataMutex, portMAX_DELAY)) {
+            ui.zoneManager.handleDeferredSave();
             ui.renderLoop();
             xSemaphoreGive(dataMutex);
         }
