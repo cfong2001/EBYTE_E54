@@ -59,7 +59,10 @@ def find_serial_port():
             return port
 
         print(f"Warning: {repr(port)} does not appear to be a valid or safe serial port path.")
-        action = input("Enter 'r' to retry, or 'q' to quit: ").strip().lower()
+        while True:
+            action = input("Enter 'r' to retry, or 'q' to quit: ").strip().lower()
+            if action in ['r', 'q']:
+                break
         if action == 'q':
             sys.exit(0)
 
