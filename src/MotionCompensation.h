@@ -264,6 +264,36 @@ private:
         }
     }
 
+    void applyMahalanobisGating(int i, float dt, float& stab_x, float& stab_y, float px, float py) {
+        // Mahalanobis Gating (Handheld Ghost Rejection)
+        if (state[i].active) {
+            float maxAllowedDist = 3000.0f; // 3 meters fallback
+            // A person running at 10m/s (olympic sprinter) could cover 1m in 0.1s.
+            // We gate at 1.5 * max theoretical speed distance for the given dt
+            float maxSpeedAllowed = 15000.0f; // mm/s
+            maxAllowedDist = maxSpeedAllowed * dt;
+            // Add a base noise floor to prevent over-gating when dt is extremely small (e.g. fast consecutive frames)
+            float baseNoiseFloor = 200.0f; // mm (20cm minimum gate radius)
+            if (maxAllowedDist < baseNoiseFloor) {
+                maxAllowedDist = baseNoiseFloor;
+            }
+
+            float dx = stab_x - state[i].x;
+            float dy = stab_y - state[i].y;
+            float distMovedSq = dx*dx + dy*dy;
+
+            // If target dropped out briefly but reappears within gating distance, reset drop counter
+            state[i].framesLost = 0;
+
+            if (distMovedSq > maxAllowedDist * maxAllowedDist) {
+                // Reject this target frame (likely a teleporting ghost)
+                // Hold position using predicted coordinates
+                stab_x = px;
+                stab_y = py;
+            }
+        }
+    }
+
     void stabilizeAndUpdate(float dt, const RadarTarget targets[3], const float P_x[3], const float P_y[3], int numAnchors, float Cp_x, float Cp_y, float Cq_x, float Cq_y, float cosT, float sinT, RadarTarget compensated[3]) {
         for (int i = 0; i < 3; i++) {
             compensated[i] = targets[i];
@@ -284,33 +314,7 @@ private:
                     stab_y = Cp_y + vQy_rot;
                 }
 
-                // Mahalanobis Gating (Handheld Ghost Rejection)
-                if (state[i].active) {
-                    float maxAllowedDist = 3000.0f; // 3 meters fallback
-                    // A person running at 10m/s (olympic sprinter) could cover 1m in 0.1s.
-                    // We gate at 1.5 * max theoretical speed distance for the given dt
-                    float maxSpeedAllowed = 15000.0f; // mm/s
-                    maxAllowedDist = maxSpeedAllowed * dt;
-                    // Add a base noise floor to prevent over-gating when dt is extremely small (e.g. fast consecutive frames)
-                    float baseNoiseFloor = 200.0f; // mm (20cm minimum gate radius)
-                    if (maxAllowedDist < baseNoiseFloor) {
-                        maxAllowedDist = baseNoiseFloor;
-                    }
-
-                    float dx = stab_x - state[i].x;
-                    float dy = stab_y - state[i].y;
-                    float distMovedSq = dx*dx + dy*dy;
-
-                    // If target dropped out briefly but reappears within gating distance, reset drop counter
-                    state[i].framesLost = 0;
-
-                    if (distMovedSq > maxAllowedDist * maxAllowedDist) {
-                        // Reject this target frame (likely a teleporting ghost)
-                        // Hold position using predicted coordinates
-                        stab_x = P_x[i];
-                        stab_y = P_y[i];
-                    }
-                }
+                applyMahalanobisGating(i, dt, stab_x, stab_y, P_x[i], P_y[i]);
 
                 compensated[i].x = (int16_t)stab_x;
                 compensated[i].y = (int16_t)stab_y;
