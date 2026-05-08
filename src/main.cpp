@@ -122,7 +122,8 @@ void radarTask(void *pvParameters) {
 
                 RadarTarget compensatedTargets[3];
                 if (ui.motionCompEnabled) {
-                    motionComp.process(radar.targets, compensatedTargets);
+                    float dt = radar.getDeltaTimeSec();
+                    motionComp.process(dt, radar.targets, compensatedTargets);
                 } else {
                     for(int i=0; i<3; i++) {
                         compensatedTargets[i] = radar.targets[i];
@@ -143,7 +144,7 @@ void radarTask(void *pvParameters) {
                     vX[i] = motionComp.getTargetVelX(i);
                     vY[i] = motionComp.getTargetVelY(i);
                     ui.setTargetMotion(i, vX[i], vY[i],
-                                          motionComp.getTargetAccX(i), motionComp.getTargetAccY(i));
+                                          motionComp.getTargetAccX(i), motionComp.getTargetAccY(i), motionComp.getTargetStdDev(i));
                 }
                 bcastServer.updateData(compensatedTargets, vX, vY);
                 xSemaphoreGive(dataMutex);
@@ -194,6 +195,8 @@ void setup() {
     uint8_t startCmd[] = {0xFD, 0xFC, 0xFB, 0xFA, 0x02, 0x00, 0x90, 0x00, 0x04, 0x03, 0x02, 0x01};
 
     Serial.println("Handshake Step 1: 115200 baud...");
+    // Optimization: Increase RX buffer size from default 256 to 1024 to prevent overflow and packet loss at high baud rates (115200+)
+    radarUART.setRxBufferSize(1024);
     radarUART.begin(115200, SERIAL_8N1, RADAR_RX_PIN, RADAR_TX_PIN);
     radarUART.write(startCmd, sizeof(startCmd));
     delay(200);
