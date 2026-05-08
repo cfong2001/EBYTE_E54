@@ -534,9 +534,9 @@ public:
             } else if (theme == THEME_ALIEN) {
                 baseColor = themePrimary;
             } else {
-                if (i == 0) baseColor = TFT_ORANGE;
-                else if (i == 1) baseColor = TFT_CYAN;
-                else baseColor = TFT_MAGENTA;
+                if (i == 0) baseColor = themeWarning;
+                else if (i == 1) baseColor = themePrimary;
+                else baseColor = themeDanger;
             }
 
             uint8_t currentAlpha = (uint8_t)(simAlpha[i] * 255.0f);
@@ -568,15 +568,15 @@ public:
             if (zoneManager.isWarning(i)) {
                 float pulse = (sinf(millis() / 150.0f) + 1.0f) * 0.5f;
                 uint8_t blendRatio = (uint8_t)(pulse * 255.0f);
-                uint16_t blendColor = sprite.alphaBlend(blendRatio, themeDanger, TFT_YELLOW);
+                uint16_t blendColor = sprite.alphaBlend(blendRatio, themeDanger, themeWarning);
                 uint16_t wCol = sprite.alphaBlend(currentAlpha, blendColor, themeBg);
                 int pr = 8 + (int)(pulse * 2.0f);
                 sprite.drawCircle(cx, cy, pr, wCol);
             }
             float danger = zoneManager.getTargetDangerLevel(i);
             if (danger > 0.01f) {
-                uint16_t dangerColor = sprite.alphaBlend((uint8_t)(danger * 255.0f), TFT_RED, TFT_YELLOW);
-                uint16_t wCol = sprite.alphaBlend(currentAlpha, dangerColor, TFT_BLACK);
+                uint16_t dangerColor = sprite.alphaBlend((uint8_t)(danger * 255.0f), themeDanger, themeWarning);
+                uint16_t wCol = sprite.alphaBlend(currentAlpha, dangerColor, themeBg);
 
                 float pulseSpeed = 300.0f - (danger * 200.0f);
                 // ⚡ Bolt: Use single-precision sinf() to avoid implicit double conversion
@@ -643,7 +643,7 @@ public:
             }
 
             if (theme != THEME_ALIEN && telemetryMode != TELEMETRY_OFF) {
-                sprite.setTextColor(color, TFT_BLACK);
+                sprite.setTextColor(color, themeBg);
 
                 sprite.setCursor(cx + 8, cy - 12);
 
@@ -667,7 +667,7 @@ public:
                     sprite.printf("%.1fm/s", speed_ms);
                 }
             } else if (theme != THEME_ALIEN && telemetryMode == TELEMETRY_OFF) {
-                sprite.setTextColor(color, TFT_BLACK);
+                sprite.setTextColor(color, themeBg);
                 sprite.setCursor(cx + 8, cy - 8);
                 sprite.printf("T%d", i + 1);
             }
@@ -704,7 +704,7 @@ public:
                 sprite.setCursor(5, 5);
                 sprite.printf("Anchor: (%dmm, %dmm)", anchorX, anchorY);
             } else {
-                sprite.setTextColor(TFT_RED, TFT_BLACK);
+                sprite.setTextColor(themeDanger, themeBg);
                 sprite.setCursor(5, 5);
                 sprite.printf("No Anchor");
             }
