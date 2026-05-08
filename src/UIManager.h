@@ -638,14 +638,16 @@ public:
                     float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) / 1000.0f;
                     int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 180.0f / PI);
                     sprite.printf("%.1fm %d", dist_m, angle);
+                    sprite.printf("%.1fm %ddeg", dist_m, angle);
                 } else if (telemetryMode == TELEMETRY_VELOCITY) {
                     sprite.printf("%.1fm/s", speed_ms);
                 } else if (telemetryMode == TELEMETRY_RAW) {
-                    sprite.printf("%d,%d", rawTargetX[i], rawTargetY[i]);
+                    sprite.printf("%dmm,%dmm", rawTargetX[i], rawTargetY[i]);
                 } else if (telemetryMode == TELEMETRY_ALL) {
                     float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) / 1000.0f;
                     int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 180.0f / PI);
                     sprite.printf("T%d %.1fm %d", i+1, dist_m, angle);
+                    sprite.printf("T%d %.1fm %ddeg", i+1, dist_m, angle);
                     sprite.setCursor(cx + 8, cy - 2);
                     sprite.printf("%.1fm/s", speed_ms);
                 }
@@ -693,7 +695,7 @@ public:
             if (anchorValid) {
                 sprite.setTextColor(themePrimary, themeBg);
                 sprite.setCursor(5, 5);
-                sprite.printf("Anchor: (%d, %d)", anchorX, anchorY);
+                sprite.printf("Anchor: (%dmm, %dmm)", anchorX, anchorY);
             } else {
                 sprite.setTextColor(TFT_RED, TFT_BLACK);
                 sprite.setCursor(5, 5);
@@ -917,10 +919,10 @@ public:
         items[numItems++] = "<- Back";
         items[numItems++] = "Warn Zone: " + warnStr;
         if (zoneManager.getWarnPreset() == ZONE_CUSTOM) {
-            items[numItems++] = " W-MinD: " + String(zoneManager.getWarnCustom().minDist);
-            items[numItems++] = " W-MaxD: " + String(zoneManager.getWarnCustom().maxDist);
-            items[numItems++] = " W-MinA: " + String(zoneManager.getWarnCustom().minAngle);
-            items[numItems++] = " W-MaxA: " + String(zoneManager.getWarnCustom().maxAngle);
+            items[numItems++] = " W-MinD: " + String(zoneManager.getWarnCustom().minDist) + "mm";
+            items[numItems++] = " W-MaxD: " + String(zoneManager.getWarnCustom().maxDist) + "mm";
+            items[numItems++] = " W-MinA: " + String(zoneManager.getWarnCustom().minAngle) + "deg";
+            items[numItems++] = " W-MaxA: " + String(zoneManager.getWarnCustom().maxAngle) + "deg";
         }
         if (zoneManager.getWarnPreset() != ZONE_OFF) {
             items[numItems++] = "Warn Fuzz: " + String(zoneManager.getFuzzingThreshold()) + "%";
@@ -929,10 +931,10 @@ public:
 
         items[numItems++] = "Dead Zone: " + deadStr;
         if (zoneManager.getDeadPreset() == ZONE_CUSTOM) {
-            items[numItems++] = " D-MinD: " + String(zoneManager.getDeadCustom().minDist);
-            items[numItems++] = " D-MaxD: " + String(zoneManager.getDeadCustom().maxDist);
-            items[numItems++] = " D-MinA: " + String(zoneManager.getDeadCustom().minAngle);
-            items[numItems++] = " D-MaxA: " + String(zoneManager.getDeadCustom().maxAngle);
+            items[numItems++] = " D-MinD: " + String(zoneManager.getDeadCustom().minDist) + "mm";
+            items[numItems++] = " D-MaxD: " + String(zoneManager.getDeadCustom().maxDist) + "mm";
+            items[numItems++] = " D-MinA: " + String(zoneManager.getDeadCustom().minAngle) + "deg";
+            items[numItems++] = " D-MaxA: " + String(zoneManager.getDeadCustom().maxAngle) + "deg";
         }
     }
 
@@ -948,7 +950,7 @@ public:
 
         items[numItems++] = "<- Back";
         items[numItems++] = "Telemetry: " + tDataStr;
-        items[numItems++] = "Sensitivity: " + String(sensitivity);
+        items[numItems++] = "Sensitivity: " + String(sensitivity) + " cm/s";
         items[numItems++] = "Loc Avg: " + String(locationAveraging);
         items[numItems++] = "Smoothing: " + String(interDisp);
         items[numItems++] = "[ Reset Tracking ]";
