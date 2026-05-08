@@ -630,19 +630,23 @@ public:
             if (theme != THEME_ALIEN && telemetryMode != TELEMETRY_OFF) {
                 sprite.setTextColor(color, TFT_BLACK);
 
-                float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) / 1000.0f;
-                int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 180.0f / PI);
-                float speed_ms = (float)rawTargetSpeed[i] / 10.0f;
-
                 sprite.setCursor(cx + 8, cy - 12);
 
                 if (telemetryMode == TELEMETRY_DIST_ANG) {
+                    float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) / 1000.0f;
+                    int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 180.0f / PI);
+                    sprite.printf("%.1fm %d", dist_m, angle);
                     sprite.printf("%.1fm %ddeg", dist_m, angle);
                 } else if (telemetryMode == TELEMETRY_VELOCITY) {
+                    float speed_ms = (float)rawTargetSpeed[i] / 10.0f;
                     sprite.printf("%.1fm/s", speed_ms);
                 } else if (telemetryMode == TELEMETRY_RAW) {
                     sprite.printf("%dmm,%dmm", rawTargetX[i], rawTargetY[i]);
                 } else if (telemetryMode == TELEMETRY_ALL) {
+                    float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) / 1000.0f;
+                    int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 180.0f / PI);
+                    float speed_ms = (float)rawTargetSpeed[i] / 10.0f;
+                    sprite.printf("T%d %.1fm %d", i+1, dist_m, angle);
                     sprite.printf("T%d %.1fm %ddeg", i+1, dist_m, angle);
                     sprite.setCursor(cx + 8, cy - 2);
                     sprite.printf("%.1fm/s", speed_ms);
