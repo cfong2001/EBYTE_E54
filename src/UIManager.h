@@ -355,6 +355,15 @@ public:
             }
         }
 
+        for (int i = 0; i < 3; i++) {
+            int dotX = 100 + i * 20;
+            if (i == guidePage) {
+                sprite.fillCircle(dotX, 230, 4, themePrimary);
+            } else {
+                sprite.drawCircle(dotX, 230, 4, themePrimary);
+            }
+        }
+
         sprite.pushSprite(0, 0);
     }
 
@@ -635,13 +644,13 @@ public:
                 sprite.setCursor(cx + 8, cy - 12);
 
                 if (telemetryMode == TELEMETRY_DIST_ANG) {
-                    sprite.printf("%.1fm %d", dist_m, angle);
+                    sprite.printf("%.1fm %ddeg", dist_m, angle);
                 } else if (telemetryMode == TELEMETRY_VELOCITY) {
                     sprite.printf("%.1fm/s", speed_ms);
                 } else if (telemetryMode == TELEMETRY_RAW) {
-                    sprite.printf("%d,%d", rawTargetX[i], rawTargetY[i]);
+                    sprite.printf("%dmm,%dmm", rawTargetX[i], rawTargetY[i]);
                 } else if (telemetryMode == TELEMETRY_ALL) {
-                    sprite.printf("T%d %.1fm %d", i+1, dist_m, angle);
+                    sprite.printf("T%d %.1fm %ddeg", i+1, dist_m, angle);
                     sprite.setCursor(cx + 8, cy - 2);
                     sprite.printf("%.1fm/s", speed_ms);
                 }
@@ -669,10 +678,18 @@ public:
         sprite.print("BAT");
 
         sprite.setCursor(5, 308);
-        if (state == STATE_RADAR_VIEW) {
+        if (showTooltip) {
+            sprite.print(" INFO  [CLOSE]");
+        } else if (state == STATE_RADAR_VIEW) {
             sprite.print("[VIEW]  MENU");
         } else if (state == STATE_MENU_EDIT) {
             sprite.print(" EDIT  [SAVE]");
+        } else if (state == STATE_MENU) {
+            sprite.print("[MENU]  SELECT");
+        } else if (state == STATE_IMPORTING) {
+            sprite.print(" IMPORT [CANCEL]");
+        } else if (state == STATE_FALLBACK) {
+            sprite.print(" TEST   [KEEP]");
         } else {
             sprite.print(" VIEW  [MENU]");
         }
@@ -681,7 +698,7 @@ public:
             if (anchorValid) {
                 sprite.setTextColor(themePrimary, themeBg);
                 sprite.setCursor(5, 5);
-                sprite.printf("Anchor: (%d, %d)", anchorX, anchorY);
+                sprite.printf("Anchor: (%dmm, %dmm)", anchorX, anchorY);
             } else {
                 sprite.setTextColor(TFT_RED, TFT_BLACK);
                 sprite.setCursor(5, 5);
@@ -905,10 +922,10 @@ public:
         items[numItems++] = "<- Back";
         items[numItems++] = "Warn Zone: " + warnStr;
         if (zoneManager.getWarnPreset() == ZONE_CUSTOM) {
-            items[numItems++] = " W-MinD: " + String(zoneManager.getWarnCustom().minDist);
-            items[numItems++] = " W-MaxD: " + String(zoneManager.getWarnCustom().maxDist);
-            items[numItems++] = " W-MinA: " + String(zoneManager.getWarnCustom().minAngle);
-            items[numItems++] = " W-MaxA: " + String(zoneManager.getWarnCustom().maxAngle);
+            items[numItems++] = " W-MinD: " + String(zoneManager.getWarnCustom().minDist) + "mm";
+            items[numItems++] = " W-MaxD: " + String(zoneManager.getWarnCustom().maxDist) + "mm";
+            items[numItems++] = " W-MinA: " + String(zoneManager.getWarnCustom().minAngle) + "deg";
+            items[numItems++] = " W-MaxA: " + String(zoneManager.getWarnCustom().maxAngle) + "deg";
         }
         if (zoneManager.getWarnPreset() != ZONE_OFF) {
             items[numItems++] = "Warn Fuzz: " + String(zoneManager.getFuzzingThreshold()) + "%";
@@ -917,10 +934,10 @@ public:
 
         items[numItems++] = "Dead Zone: " + deadStr;
         if (zoneManager.getDeadPreset() == ZONE_CUSTOM) {
-            items[numItems++] = " D-MinD: " + String(zoneManager.getDeadCustom().minDist);
-            items[numItems++] = " D-MaxD: " + String(zoneManager.getDeadCustom().maxDist);
-            items[numItems++] = " D-MinA: " + String(zoneManager.getDeadCustom().minAngle);
-            items[numItems++] = " D-MaxA: " + String(zoneManager.getDeadCustom().maxAngle);
+            items[numItems++] = " D-MinD: " + String(zoneManager.getDeadCustom().minDist) + "mm";
+            items[numItems++] = " D-MaxD: " + String(zoneManager.getDeadCustom().maxDist) + "mm";
+            items[numItems++] = " D-MinA: " + String(zoneManager.getDeadCustom().minAngle) + "deg";
+            items[numItems++] = " D-MaxA: " + String(zoneManager.getDeadCustom().maxAngle) + "deg";
         }
     }
 
@@ -936,7 +953,7 @@ public:
 
         items[numItems++] = "<- Back";
         items[numItems++] = "Telemetry: " + tDataStr;
-        items[numItems++] = "Sensitivity: " + String(sensitivity);
+        items[numItems++] = "Sensitivity: " + String(sensitivity) + " cm/s";
         items[numItems++] = "Loc Avg: " + String(locationAveraging);
         items[numItems++] = "Smoothing: " + String(interDisp);
         items[numItems++] = "[ Reset Tracking ]";
@@ -985,8 +1002,10 @@ public:
 
             if (idx == menuSelection) {
                 if (state == STATE_MENU_EDIT) {
-                    sprite.fillRect(5, yPos - 4, 230, 24, themeWarning);
-                    sprite.setTextColor(themeBg, themeWarning);
+                    float pulse = (sinf(millis() / 150.0f) + 1.0f) * 0.5f;
+                    uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 255.0f), themeWarning, themeBg);
+                    sprite.fillRect(5, yPos - 4, 230, 24, pulseColor);
+                    sprite.setTextColor(themeBg, pulseColor);
                 } else {
                     sprite.fillRect(5, yPos - 4, 230, 24, themePrimary);
                     sprite.setTextColor(themeBg, themePrimary);
@@ -1007,6 +1026,12 @@ public:
             int handleH = max(10, (sbH * 4) / numItems);
             int handleY = sbY + (int)(((float)menuSelection / (numItems - 1)) * (sbH - handleH));
             sprite.fillRect(sbX, handleY, 2, handleH, themePrimary);
+            int scrollTrackH = 4 * 25 - 4;
+            int scrollTrackY = 35 - 4;
+            sprite.drawLine(235, scrollTrackY, 235, scrollTrackY + scrollTrackH, sprite.alphaBlend(100, themePrimary, themeBg));
+            int thumbH = max(4, (scrollTrackH * 4) / numItems);
+            int thumbY = scrollTrackY + (startIdx * scrollTrackH) / numItems;
+            sprite.fillRect(233, thumbY, 5, thumbH, themePrimary);
         }
 
         if (showTooltip) {
