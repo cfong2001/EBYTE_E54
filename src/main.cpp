@@ -47,10 +47,6 @@ SemaphoreHandle_t dataMutex;
 #define RADAR_TX_PIN 4   // Radar RX -> ESP32 TX
 #endif
 
-#ifndef RADAR_BAUD
-#define RADAR_BAUD 256000
-#endif
-
 RotaryEncoder encoder(PIN_ENCODER_A, PIN_ENCODER_B, RotaryEncoder::LatchMode::TWO03);
 // Module has 10k hardware pullups on PUSH, A, B, KEY0 -- do NOT enable ESP32 internal pullups (pullupActive=false)
 OneButton button(PIN_BUTTON, true, false);  // PUSH: active-low, external pullup on module
@@ -123,7 +119,8 @@ void radarTask(void *pvParameters) {
 
                 RadarTarget compensatedTargets[3];
                 if (ui.motionCompEnabled) {
-                    motionComp.process(radar.targets, compensatedTargets);
+                    float dt = radar.getDeltaTimeSec();
+                    motionComp.process(dt, radar.targets, compensatedTargets);
                 } else {
                     for(int i=0; i<3; i++) {
                         compensatedTargets[i] = radar.targets[i];
@@ -139,7 +136,7 @@ void radarTask(void *pvParameters) {
 
                 for (int i = 0; i < 3; i++) {
                     ui.setTargetMotion(i, motionComp.getTargetVelX(i), motionComp.getTargetVelY(i),
-                                          motionComp.getTargetAccX(i), motionComp.getTargetAccY(i));
+                                          motionComp.getTargetAccX(i), motionComp.getTargetAccY(i), motionComp.getTargetStdDev(i));
                 }
                 xSemaphoreGive(dataMutex);
             }
@@ -189,6 +186,8 @@ void setup() {
     uint8_t startCmd[] = {0xFD, 0xFC, 0xFB, 0xFA, 0x02, 0x00, 0x90, 0x00, 0x04, 0x03, 0x02, 0x01};
     
     Serial.println("Handshake Step 1: 115200 baud...");
+    // Optimization: Increase RX buffer size from default 256 to 1024 to prevent overflow and packet loss at high baud rates (115200+)
+    radarUART.setRxBufferSize(1024);
     radarUART.begin(115200, SERIAL_8N1, RADAR_RX_PIN, RADAR_TX_PIN);
     radarUART.write(startCmd, sizeof(startCmd));
     delay(200);
@@ -263,12 +262,6 @@ void loop() {
             if (serialBuffer.endsWith("}")) {
                 configManager.importConfig(serialBuffer);
                 serialBuffer = "";
-            } else if (serialBuffer.length() > 2048) {
-                // Prevent buffer overflow DoS attacks
-                Serial.println("Error: Import buffer overflow. Aborting.");
-                serialBuffer = "";
-                ui.state = STATE_MENU;
-                break;
             }
         }
     } else if (ui.state == STATE_FALLBACK) {

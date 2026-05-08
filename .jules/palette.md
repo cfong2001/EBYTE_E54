@@ -48,7 +48,19 @@
 ## 2026-05-03 - [Soft Lockout Prevention via Fallback UI]
 **Learning:** Modifying core settings via JSON injections could render the system inoperable if the new settings conflict with hardware (like changing UI sizes or themes uncontrollably). Implementing a `STATE_FALLBACK` UI that temporarily applies settings and requires physical button confirmation to persist them prevents headless lockouts.
 **Action:** Always implement a physical timeout/confirmation layer for remote configuration changes to prevent "bricking" headless devices.
+## 2026-05-04 - [Visualizing Tracker Uncertainty]
+**Learning:** When targets are momentarily lost by the sensor, running an invisible mathematical "coasting" or "forward prediction" filter is critical for stability. However, failing to communicate this drop in confidence to the user makes the UI feel untrustworthy if the target eventually jumps when it reacquires.
+**Action:** When a tracking target enters a "coasting" or "predicted" state without live sensor backing, visually alter the UI representation (e.g., removing the hard white stroke/outline from the target's shape) to subtly communicate to the user that the entity's exact position is currently an estimation.
 
+## 2026-05-21 - [List Context & Multistep Indicators]
+**Learning:** Menus exceeding the vertical space of hardware displays without any context indicators can lead to users feeling lost. Similarly, using repetitive raw text like "GUIDE 1/3", "GUIDE 2/3" accompanied by duplicate "Press next" instructions creates visual clutter.
+**Action:** For rotary encoder menus on small screens where items exceed vertical capacity, implement a visual scrollbar mapping the selection index to the total length. For multi-step modal guides, abstract repetitive text navigation and replace page counters with multi-dot progress indicators rendered natively via `drawCircle` and `fillCircle`.
 ## 2026-06-25 - [Long List Navigation & Progress Indication]
 **Learning:** Users can easily lose context in long, paginated menus on small screens without visual anchors, and multi-step guide screens without progress indicators leave users uncertain of the total length.
 **Action:** When creating rotary encoder menus where `numItems` exceeds the screen's vertical capacity, always implement a visual scrollbar mapping the `startIdx` to the total length. For multi-screen modal guides, implement a simple multi-dot progress indicator (filled/unfilled circles) tied to the active page index to provide clear spatial context.
+## 2024-05-24 - Dynamic Theming and Hardcoded Colors
+**Learning:** Hardcoding standard display colors (like `TFT_BLACK` or `TFT_RED`) inside drawing routines breaks dynamic theming and custom color palettes, leading to unstyled bounding boxes or illegible text on non-standard backgrounds.
+**Action:** Always utilize the active design system's variables (e.g., `themeBg`, `themeDanger`, `themePrimary`) for both foregrounds and backgrounds, ensuring UI elements inherit colors contextually rather than forcing absolute values.
+## 2025-05-24 - Explicit Contextual Units
+**Learning:** Displaying raw, unitless numbers (e.g. `Sensitivity: 5` or `Anchor: 100, 200`) in hardware UI panels increases cognitive load and risks user misconfiguration. Users shouldn't have to guess if a value is in mm, cm/s, or degrees.
+**Action:** Always append explicit contextual measurement units (e.g., `mm`, `deg`, `cm/s`) directly to numerical values in configuration menus and telemetry readouts to ensure the interface is instantly intuitive.
