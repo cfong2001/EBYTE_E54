@@ -52,3 +52,6 @@
 ## 2026-06-25 - [Long List Navigation & Progress Indication]
 **Learning:** Users can easily lose context in long, paginated menus on small screens without visual anchors, and multi-step guide screens without progress indicators leave users uncertain of the total length.
 **Action:** When creating rotary encoder menus where `numItems` exceeds the screen's vertical capacity, always implement a visual scrollbar mapping the `startIdx` to the total length. For multi-screen modal guides, implement a simple multi-dot progress indicator (filled/unfilled circles) tied to the active page index to provide clear spatial context.
+## 2026-05-08 - Contextual Measurement Units in Custom Zones
+**Learning:** Users experience cognitive friction when trying to configure continuous hardware variables (like custom zone boundaries) without explicit spatial units.
+**Action:** Always append precise real-world measurement units (e.g., `mm`, `deg`) to the displayed strings of numeric configuration parameters.
