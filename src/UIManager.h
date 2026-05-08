@@ -61,6 +61,7 @@ public:
     bool devRiskAccepted = false;
     bool motionCompEnabled = true;
     bool passthroughMode = true;
+    bool showStdDev = false;
     int uiTextSize = 1;
 
     UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
@@ -101,6 +102,7 @@ public:
             smoothVecX[i] = 0.0f;
             smoothVecY[i] = 0.0f;
             smoothSpeed[i] = 0.0f;
+            targetStdDev[i] = 0.0f;
 
             for (int h=0; h<10; h++) {
                 targetHistoryX[i][h] = 120.0f;
@@ -118,6 +120,7 @@ public:
         gridEnabled = preferences.getBool("grid", true);
         startupAnimEnabled = preferences.getBool("startup", true);
         simulatedSweep = preferences.getBool("simSwp", false);
+        showStdDev = preferences.getBool("showStd", false);
 
         telemetryMode = (TelemetryMode)preferences.getInt("tData", TELEMETRY_OFF);
         uiTextSize = preferences.getInt("textSize", 1);
@@ -136,6 +139,7 @@ public:
         preferences.putBool("grid", gridEnabled);
         preferences.putBool("startup", startupAnimEnabled);
         preferences.putBool("simSwp", simulatedSweep);
+        preferences.putBool("showStd", showStdDev);
 
         preferences.putInt("tData", telemetryMode);
         preferences.putInt("textSize", uiTextSize);
@@ -191,8 +195,6 @@ public:
     }
 
     void handleEncoder(int dir) {
-        showTooltip = false;
-
         if (state == STATE_GUIDE) {
             guidePage += dir;
             if (guidePage < 0) guidePage = 0;
@@ -211,15 +213,11 @@ public:
 
     void handleButtonLongPress() {
         if (state == STATE_MENU) {
-            showTooltip = !showTooltip;
+            showTooltip = true;
         }
     }
 
     void handleButton() {
-        if (showTooltip) {
-            showTooltip = false;
-            return;
-        }
 
         if (state == STATE_IMPORTING) {
             state = STATE_MENU; // Cancel import
@@ -241,7 +239,7 @@ public:
 
 
 
-    void setTargetMotion(int index, float vx, float vy, float ax, float ay) {
+    void setTargetMotion(int index, float vx, float vy, float ax, float ay, float stdDev = 0.0f) {
         if (index >= 0 && index < 3) {
             // Convert mm/s to screen pixels
             targetVelX[index] = vx * 120 / 5000;
@@ -260,6 +258,7 @@ public:
 
         for (int i = 0; i < 3; i++) {
             targetActive[i] = targets[i].active;
+            targetCoasting[i] = targets[i].isCoasting;
 
             if (targets[i].active) {
                 int16_t absSpeed = abs(targets[i].speed);
@@ -346,15 +345,6 @@ public:
             sprite.setCursor(10, 200);
             sprite.setTextColor(themeWarning, themeBg);
             sprite.print("[Turn] Next  [Press] Exit");
-        }
-
-        for (int i = 0; i < 3; i++) {
-            int dotX = 100 + i * 20;
-            if (i == guidePage) {
-                sprite.fillCircle(dotX, 230, 4, themePrimary);
-            } else {
-                sprite.drawCircle(dotX, 230, 4, themePrimary);
-            }
         }
 
         sprite.pushSprite(0, 0);
@@ -461,21 +451,32 @@ public:
                     targetHistoryY[i][0] = targetCurrentY[i];
                 }
 
-                float diffX = (float)targetGoalX[i] - targetCurrentX[i];
-                float diffY = (float)targetGoalY[i] - targetCurrentY[i];
+                float t = 0.03f; // DT ~30ms render loop
+                float t_sq_half = (t * t) * 0.5f;
 
-                if (fabsf(diffX) < 0.5f && fabsf(diffY) < 0.5f) {
-                    targetCurrentX[i] = (float)targetGoalX[i];
-                    targetCurrentY[i] = (float)targetGoalY[i];
+                float curveForwardX = (targetVelX[i] * t) + (targetAccX[i] * t_sq_half);
+                float curveForwardY = (targetVelY[i] * t) + (targetAccY[i] * t_sq_half);
+
+                if (targetCoasting[i]) {
+                    // Seamless Coasting: Do not interpolate towards the static 'targetGoal' from the dropped packet.
+                    // Just push the sub-frame curve forward identically to the backend tracker.
+                    targetCurrentX[i] += curveForwardX;
+                    targetCurrentY[i] += curveForwardY;
+
+                    // Keep targetGoal updated so when sensor regains lock, the visual diffX isn't huge.
+                    targetGoalX[i] = (int)targetCurrentX[i];
+                    targetGoalY[i] = (int)targetCurrentY[i];
                 } else {
-                    float t = 0.03f; // DT ~30ms render loop
-                    float t_sq_half = (t * t) * 0.5f;
+                    float diffX = (float)targetGoalX[i] - targetCurrentX[i];
+                    float diffY = (float)targetGoalY[i] - targetCurrentY[i];
 
-                    float curveForwardX = (targetVelX[i] * t) + (targetAccX[i] * t_sq_half);
-                    float curveForwardY = (targetVelY[i] * t) + (targetAccY[i] * t_sq_half);
-
-                    targetCurrentX[i] += (diffX * interpolationAmount) + curveForwardX;
-                    targetCurrentY[i] += (diffY * interpolationAmount) + curveForwardY;
+                    if (fabsf(diffX) < 0.5f && fabsf(diffY) < 0.5f) {
+                        targetCurrentX[i] = (float)targetGoalX[i];
+                        targetCurrentY[i] = (float)targetGoalY[i];
+                    } else {
+                        targetCurrentX[i] += (diffX * interpolationAmount) + curveForwardX;
+                        targetCurrentY[i] += (diffY * interpolationAmount) + curveForwardY;
+                    }
                 }
 
                 if (simulatedSweep) {
@@ -554,6 +555,16 @@ public:
                 }
             }
 
+            // Draw StdDev Visualization Circle
+            if (showStdDev && targetStdDev[i] > 1.0f) {
+                // Convert millimeter stdDev to screen pixels (approx 120 pixels per 5000 mm)
+                float screenRadius = targetStdDev[i] * (120.0f / 5000.0f);
+                if (screenRadius < 2.0f) screenRadius = 2.0f;
+                if (screenRadius > 120.0f) screenRadius = 120.0f;
+                uint16_t devColor = sprite.alphaBlend(100, baseColor, themeBg); // subtle wireframe
+                sprite.drawCircle(cx, cy, (int)screenRadius, devColor);
+            }
+
             if (zoneManager.isWarning(i)) {
                 float pulse = (sinf(millis() / 150.0f) + 1.0f) * 0.5f;
                 uint8_t blendRatio = (uint8_t)(pulse * 255.0f);
@@ -578,15 +589,19 @@ public:
 
             if (targetIcon == ICON_CIRCLE) {
                 sprite.fillCircle(cx, cy, 4, color);
+                if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 5, TFT_WHITE);
             }
             else if (targetIcon == ICON_SQUARE) {
                 sprite.fillRect(cx - 3, cy - 3, 7, 7, color);
+                if (!targetCoasting[i]) sprite.drawRect(cx - 4, cy - 4, 9, 9, TFT_WHITE);
             }
             else if (targetIcon == ICON_TRIANGLE) {
                 sprite.fillTriangle(cx, cy - 5, cx - 4, cy + 3, cx + 4, cy + 3, color);
+                if (!targetCoasting[i]) sprite.drawTriangle(cx, cy - 6, cx - 5, cy + 4, cx + 5, cy + 4, TFT_WHITE);
             }
             else if (targetIcon == ICON_SMART) {
                 sprite.drawCircle(cx, cy, 3, color);
+                if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 4, TFT_WHITE);
 
                 int absSpd = abs(rawTargetSpeed[i]);
                 float rawDx = targetCurrentX[i] - targetHistoryX[i][2];
@@ -675,18 +690,10 @@ public:
         sprite.print("BAT");
 
         sprite.setCursor(5, 308);
-        if (showTooltip) {
-            sprite.print(" INFO  [CLOSE]");
-        } else if (state == STATE_RADAR_VIEW) {
+        if (state == STATE_RADAR_VIEW) {
             sprite.print("[VIEW]  MENU");
         } else if (state == STATE_MENU_EDIT) {
             sprite.print(" EDIT  [SAVE]");
-        } else if (state == STATE_MENU) {
-            sprite.print("[MENU]  SELECT");
-        } else if (state == STATE_IMPORTING) {
-            sprite.print(" IMPORT [CANCEL]");
-        } else if (state == STATE_FALLBACK) {
-            sprite.print(" TEST   [KEEP]");
         } else {
             sprite.print(" VIEW  [MENU]");
         }
@@ -739,6 +746,7 @@ public:
     int16_t anchorY;
 
     bool targetActive[3];
+    bool targetCoasting[3];
     int targetGoalX[3];
     int targetGoalY[3];
 
@@ -759,6 +767,7 @@ public:
     float smoothVecX[3];
     float smoothVecY[3];
     float smoothSpeed[3];
+    float targetStdDev[3];
 
     bool lastTargetActive[3];
     int lastDrawnX[3];
@@ -965,6 +974,7 @@ public:
         if (devRiskAccepted) {
             items[numItems++] = "Motion Comp: " + String(motionCompEnabled ? "ON" : "OFF");
             items[numItems++] = "Passthrough: " + String(passthroughMode ? "ON" : "OFF");
+            items[numItems++] = "Show StdDev: " + String(showStdDev ? "ON" : "OFF");
             items[numItems++] = "[ FACTORY RESET ]";
             items[numItems++] = "[ EXPORT CONFIG ]";
             items[numItems++] = "[ IMPORT CONFIG ]";
@@ -999,10 +1009,8 @@ public:
 
             if (idx == menuSelection) {
                 if (state == STATE_MENU_EDIT) {
-                    float pulse = (sinf(millis() / 150.0f) + 1.0f) * 0.5f;
-                    uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 255.0f), themeWarning, themeBg);
-                    sprite.fillRect(5, yPos - 4, 230, 24, pulseColor);
-                    sprite.setTextColor(themeBg, pulseColor);
+                    sprite.fillRect(5, yPos - 4, 230, 24, themeWarning);
+                    sprite.setTextColor(themeBg, themeWarning);
                 } else {
                     sprite.fillRect(5, yPos - 4, 230, 24, themePrimary);
                     sprite.setTextColor(themeBg, themePrimary);
@@ -1013,15 +1021,6 @@ public:
 
             sprite.setCursor(15, yPos);
             sprite.print(items[idx]);
-        }
-
-        if (numItems > 4) {
-            int scrollTrackH = 4 * 25 - 4;
-            int scrollTrackY = 35 - 4;
-            sprite.drawLine(235, scrollTrackY, 235, scrollTrackY + scrollTrackH, sprite.alphaBlend(100, themePrimary, themeBg));
-            int thumbH = max(4, (scrollTrackH * 4) / numItems);
-            int thumbY = scrollTrackY + (startIdx * scrollTrackH) / numItems;
-            sprite.fillRect(233, thumbY, 5, thumbH, themePrimary);
         }
 
         if (showTooltip) {
@@ -1167,6 +1166,7 @@ public:
             if (devRiskAccepted) {
                 if (idx++ == menuSelection) { motionCompEnabled = !motionCompEnabled; return; }
                 if (idx++ == menuSelection) { passthroughMode = !passthroughMode; return; }
+                if (idx++ == menuSelection) { showStdDev = !showStdDev; return; }
                 if (idx++ == menuSelection) {
                     sprite.fillSprite(themeDanger);
                     sprite.setTextColor(TFT_WHITE);

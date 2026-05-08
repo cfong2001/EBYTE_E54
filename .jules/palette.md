@@ -48,6 +48,9 @@
 ## 2026-05-03 - [Soft Lockout Prevention via Fallback UI]
 **Learning:** Modifying core settings via JSON injections could render the system inoperable if the new settings conflict with hardware (like changing UI sizes or themes uncontrollably). Implementing a `STATE_FALLBACK` UI that temporarily applies settings and requires physical button confirmation to persist them prevents headless lockouts.
 **Action:** Always implement a physical timeout/confirmation layer for remote configuration changes to prevent "bricking" headless devices.
+## 2026-05-04 - [Visualizing Tracker Uncertainty]
+**Learning:** When targets are momentarily lost by the sensor, running an invisible mathematical "coasting" or "forward prediction" filter is critical for stability. However, failing to communicate this drop in confidence to the user makes the UI feel untrustworthy if the target eventually jumps when it reacquires.
+**Action:** When a tracking target enters a "coasting" or "predicted" state without live sensor backing, visually alter the UI representation (e.g., removing the hard white stroke/outline from the target's shape) to subtly communicate to the user that the entity's exact position is currently an estimation.
 
 ## 2026-06-25 - [Long List Navigation & Progress Indication]
 **Learning:** Users can easily lose context in long, paginated menus on small screens without visual anchors, and multi-step guide screens without progress indicators leave users uncertain of the total length.
