@@ -9,6 +9,7 @@ struct RadarTarget {
     int16_t y;          // mm
     int16_t speed;      // cm/s
     uint16_t resolution; // mm
+    bool isCoasting;    // flag indicating the target is a predicted coasting frame during dropout
 };
 
 class E54_Radar {
@@ -40,6 +41,14 @@ public:
             }
         }
         return updated;
+    }
+
+    uint32_t lastFrameTimestamp = 0;
+    uint32_t frameDeltaMicros = 0;
+
+    float getDeltaTimeSec() const {
+        if (frameDeltaMicros == 0) return 0.1f; // Default 10Hz fallback
+        return frameDeltaMicros / 1000000.0f;
     }
 
     uint32_t rawByteCount = 0; // Total raw bytes received — 0 means no UART activity
@@ -94,6 +103,11 @@ private:
                 break;
             case TAIL_2:
                 if (b == 0xCC) {
+                    uint32_t now = micros();
+                    if (lastFrameTimestamp != 0) {
+                        frameDeltaMicros = now - lastFrameTimestamp;
+                    }
+                    lastFrameTimestamp = now;
                     parsePayload();
                     state = SYNC_1;
                     return true;
@@ -115,10 +129,12 @@ private:
 
             if (xRaw == 0 && yRaw == 0 && sRaw == 0 && rRaw == 0) {
                 targets[i].active = false;
+                targets[i].isCoasting = false;
                 continue;
             }
 
             targets[i].active = true;
+            targets[i].isCoasting = false; // Fresh data from hardware is never coasting
             targets[i].x = decodeValue(xRaw);
             targets[i].y = decodeValue(yRaw);
             targets[i].speed = decodeValue(sRaw);
