@@ -19,6 +19,8 @@ public:
     }
 
     void begin(uint8_t rxPin, uint8_t txPin, long baudRate = 256000) {
+        // Optimization: Increase RX buffer size from default 256 to 1024 to prevent overflow and packet loss at high baud rates (256000)
+        radarSerial.setRxBufferSize(1024);
         radarSerial.begin(baudRate, SERIAL_8N1, rxPin, txPin);
     }
 
