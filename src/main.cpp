@@ -186,6 +186,8 @@ void setup() {
     uint8_t startCmd[] = {0xFD, 0xFC, 0xFB, 0xFA, 0x02, 0x00, 0x90, 0x00, 0x04, 0x03, 0x02, 0x01};
     
     Serial.println("Handshake Step 1: 115200 baud...");
+    // Optimization: Increase RX buffer size from default 256 to 1024 to prevent overflow and packet loss at high baud rates (115200+)
+    radarUART.setRxBufferSize(1024);
     radarUART.begin(115200, SERIAL_8N1, RADAR_RX_PIN, RADAR_TX_PIN);
     radarUART.write(startCmd, sizeof(startCmd));
     delay(200);
