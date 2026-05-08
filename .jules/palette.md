@@ -52,6 +52,9 @@
 **Learning:** When targets are momentarily lost by the sensor, running an invisible mathematical "coasting" or "forward prediction" filter is critical for stability. However, failing to communicate this drop in confidence to the user makes the UI feel untrustworthy if the target eventually jumps when it reacquires.
 **Action:** When a tracking target enters a "coasting" or "predicted" state without live sensor backing, visually alter the UI representation (e.g., removing the hard white stroke/outline from the target's shape) to subtly communicate to the user that the entity's exact position is currently an estimation.
 
+## 2026-05-21 - [List Context & Multistep Indicators]
+**Learning:** Menus exceeding the vertical space of hardware displays without any context indicators can lead to users feeling lost. Similarly, using repetitive raw text like "GUIDE 1/3", "GUIDE 2/3" accompanied by duplicate "Press next" instructions creates visual clutter.
+**Action:** For rotary encoder menus on small screens where items exceed vertical capacity, implement a visual scrollbar mapping the selection index to the total length. For multi-step modal guides, abstract repetitive text navigation and replace page counters with multi-dot progress indicators rendered natively via `drawCircle` and `fillCircle`.
 ## 2026-06-25 - [Long List Navigation & Progress Indication]
 **Learning:** Users can easily lose context in long, paginated menus on small screens without visual anchors, and multi-step guide screens without progress indicators leave users uncertain of the total length.
 **Action:** When creating rotary encoder menus where `numItems` exceeds the screen's vertical capacity, always implement a visual scrollbar mapping the `startIdx` to the total length. For multi-screen modal guides, implement a simple multi-dot progress indicator (filled/unfilled circles) tied to the active page index to provide clear spatial context.
