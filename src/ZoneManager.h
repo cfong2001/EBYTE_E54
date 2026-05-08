@@ -88,17 +88,17 @@ public:
 
 
 
-    ZonePreset getWarnPreset() { return warnPreset; }
-    ZonePreset getDeadPreset() { return deadPreset; }
-    RadialZone getWarnCustom() { return warnCustom; }
-    RadialZone getDeadCustom() { return deadCustom; }
-    int getFuzzingThreshold() { return fuzzingThreshold; }
-    int getHistoryWindow() { return historyWindow; }
+    ZonePreset getWarnPreset() const { return warnPreset; }
+    ZonePreset getDeadPreset() const { return deadPreset; }
+    RadialZone getWarnCustom() const { return warnCustom; }
+    RadialZone getDeadCustom() const { return deadCustom; }
+    int getFuzzingThreshold() const { return fuzzingThreshold; }
+    int getHistoryWindow() const { return historyWindow; }
 
-    RadialZone getActiveWarnZone() { return getZoneFromPreset(warnPreset, warnCustom); }
-    RadialZone getActiveDeadZone() { return getZoneFromPreset(deadPreset, deadCustom); }
+    RadialZone getActiveWarnZone() const { return getZoneFromPreset(warnPreset, warnCustom); }
+    RadialZone getActiveDeadZone() const { return getZoneFromPreset(deadPreset, deadCustom); }
 
-    bool isInsideZone(int16_t x, int16_t y, RadialZone z) {
+    bool isInsideZone(int16_t x, int16_t y, RadialZone z) const {
         if (x == 0 && y == 0) return false;
         long distSq = (long)x*x + (long)y*y;
         long minDistSq = (long)z.minDist * z.minDist;
@@ -113,7 +113,7 @@ public:
         return true;
     }
 
-    bool isDead(int16_t x, int16_t y) {
+    bool isDead(int16_t x, int16_t y) const {
         if (deadPreset == ZONE_OFF) return false;
         return isInsideZone(x, y, getActiveDeadZone());
     }
@@ -135,7 +135,7 @@ public:
         }
     }
 
-    bool isWarning(int targetId) {
+    bool isWarning(int targetId) const {
         if (warnPreset == ZONE_OFF) return false;
         if (historyCount[targetId] == 0) return false;
         int hits = 0;
@@ -148,7 +148,7 @@ public:
         return (percent >= fuzzingThreshold);
     }
 
-    float getTargetDangerLevel(int targetId) {
+    float getTargetDangerLevel(int targetId) const {
         if (warnPreset == ZONE_OFF) return 0.0f;
         if (historyCount[targetId] == 0) return 0.0f;
 
@@ -171,7 +171,7 @@ public:
         return danger;
     }
 
-    float getDangerLevel() {
+    float getDangerLevel() const {
         if (warnPreset == ZONE_OFF) return 0.0f;
         float maxDanger = 0.0f;
         for (int i=0; i<3; i++) {
@@ -191,7 +191,7 @@ private:
     bool warnHistory[3][30];
     int historyCount[3];
 
-    RadialZone getZoneFromPreset(ZonePreset p, RadialZone custom) {
+    RadialZone getZoneFromPreset(ZonePreset p, RadialZone custom) const {
         switch(p) {
             case ZONE_CLOSE:  return {0, 2000, -90, 90};
             case ZONE_MEDIUM: return {2000, 4000, -90, 90};

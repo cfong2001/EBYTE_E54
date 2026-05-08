@@ -81,8 +81,8 @@ void handleKey0LongPress() {
 }
 
 void radarTask(void *pvParameters) {
-    static uint32_t lastHeartbeat = 0;
-    static uint32_t totalFrames = 0;
+    static uint32_t lastHeartbeat{0};
+    static uint32_t totalFrames{0};
 
     while (1) {
         // NOTE: hex dump is captured inside radar.update() via rawLogBuf[]
@@ -217,9 +217,9 @@ void setup() {
         radarTask,   /* Task function. */
         "RadarTask", /* String with name of task. */
         4096,        /* Stack size in bytes. */
-        NULL,        /* Parameter passed as input of the task */
+        nullptr,        /* Parameter passed as input of the task */
         1,           /* Priority of the task. */
-        NULL,        /* Task handle. */
+        nullptr,        /* Task handle. */
         0);          /* Core where the task should run */
 
     Serial.println("Setup complete. Monitoring...");
