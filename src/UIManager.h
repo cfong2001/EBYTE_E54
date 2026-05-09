@@ -461,10 +461,17 @@ public:
         if (state == STATE_MENU || state == STATE_MENU_EDIT) {
             drawMenuOverlay();
         } else if (state == STATE_IMPORTING) {
-            sprite.fillRect(10, 100, 220, 40, themeWarning);
-            sprite.setTextColor(themeBg, themeWarning);
+            float pulse = (sinf(millis() / 300.0f) + 1.0f) * 0.5f;
+            uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 155.0f) + 100, themeWarning, themeBg);
+            sprite.fillRect(10, 100, 220, 40, pulseColor);
+            sprite.setTextColor(themeBg, pulseColor);
             sprite.setCursor(20, 110);
-            sprite.print("WAITING FOR CONFIG...");
+
+            int dots = (millis() / 500) % 4;
+            String dotStr = "";
+            for(int d=0; d<dots; d++) dotStr += ".";
+            sprite.print("WAITING FOR CONFIG" + dotStr + "   ");
+
             sprite.setCursor(20, 125);
             sprite.print("[PRESS BUTTON TO CANCEL]");
         } else if (state == STATE_FALLBACK) {
