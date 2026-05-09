@@ -64,3 +64,7 @@
 ## 2025-05-24 - Explicit Contextual Units
 **Learning:** Displaying raw, unitless numbers (e.g. `Sensitivity: 5` or `Anchor: 100, 200`) in hardware UI panels increases cognitive load and risks user misconfiguration. Users shouldn't have to guess if a value is in mm, cm/s, or degrees.
 **Action:** Always append explicit contextual measurement units (e.g., `mm`, `deg`, `cm/s`) directly to numerical values in configuration menus and telemetry readouts to ensure the interface is instantly intuitive.
+
+## 2024-05-10 - Auto-dismissing Tooltips
+**Learning:** Temporary UI overlays (like long-press tooltips) that act as one-way state setters become "UI traps" for users, especially on hardware devices with limited input mechanisms. If a tooltip is shown but navigation doesn't dismiss it, the user is forced to perform unrelated actions or even reboot to clear the screen.
+**Action:** Always ensure temporary overlays are toggles and auto-dismiss on any subsequent user interaction (like encoder navigation or short button presses) to prevent trapping the user in a view.
