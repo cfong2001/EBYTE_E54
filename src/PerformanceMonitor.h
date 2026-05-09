@@ -48,7 +48,7 @@ private:
     int parseErrorsThisSecond = 0;
 
     #if defined(ESP32)
-    TaskHandle_t perfTaskHandle;
+    TaskHandle_t perfTaskHandle = nullptr;
     #endif
     unsigned long lastSystemReportTime = 0;
     unsigned long lastMetricsReportTime = 0;

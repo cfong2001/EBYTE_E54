@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <memory>
 #include <TFT_eSPI.h>
 #include <RotaryEncoder.h>
 #include <OneButton.h>
@@ -12,13 +13,13 @@
 ConfigManager configManager;
 
 // Hardware instances
-HardwareSerial radarUART(2);
-E54_Radar radar(radarUART);
-MotionCompensation motionComp;
-PerformanceMonitor perfMonitor;
+std::unique_ptr<HardwareSerial> radarUART;
+std::unique_ptr<E54_Radar> radar;
+std::unique_ptr<MotionCompensation> motionComp;
+std::unique_ptr<PerformanceMonitor> perfMonitor;
 
-TFT_eSPI tft = TFT_eSPI();
-UIManager ui(tft);
+std::unique_ptr<TFT_eSPI> tft;
+std::unique_ptr<UIManager> ui;
 
 SemaphoreHandle_t dataMutex;
 
@@ -58,25 +59,25 @@ void IRAM_ATTR checkPosition() {
 }
 
 void handleButtonPress() {
-    ui.handleButton();
+    ui->handleButton();
 }
 
 void handleButtonLongPressStart() {
-    ui.handleButtonLongPress();
+    ui->handleButtonLongPress();
 }
 
 // KEY0: secondary "menu return / confirmation" button per module datasheet
 void handleKey0Press() {
     // In menu: acts as back/confirm (same as encoder press for simplicity)
     // In radar view: same as encoder press (open menu)
-    ui.handleButton();
+    ui->handleButton();
 }
 
 void handleKey0LongPress() {
     // Long-press KEY0: open the guide screen
-    if (ui.state == STATE_RADAR_VIEW) {
-        ui.state = STATE_GUIDE;
-        ui.guidePage = 0;
+    if (ui->state == STATE_RADAR_VIEW) {
+        ui->state = STATE_GUIDE;
+        ui->guidePage = 0;
     }
 }
 
@@ -85,25 +86,25 @@ void radarTask(void *pvParameters) {
     static uint32_t totalFrames = 0;
 
     while (1) {
-        // NOTE: hex dump is captured inside radar.update() via rawLogBuf[]
+        // NOTE: hex dump is captured inside radar->update() via rawLogBuf[]
         // so the parser always sees every byte first.
-        if (radar.update()) {
+        if (radar->update()) {
             totalFrames++;
 
             int activeCount = 0;
             for (int i = 0; i < 3; i++) {
-                if (radar.targets[i].active) activeCount++;
+                if (radar->targets[i].active) activeCount++;
             }
 
             // --- RADAR REPORTING ---
             if (activeCount > 0) {
                 Serial.printf("[RADAR] Frame #%lu | %d Active |", totalFrames, activeCount);
                 for (int i = 0; i < 3; i++) {
-                    if (radar.targets[i].active) {
+                    if (radar->targets[i].active) {
                         Serial.printf(" T%d(X:%dmm Y:%dmm Spd:%dcm/s)", i+1,
-                            radar.targets[i].x,
-                            radar.targets[i].y,
-                            radar.targets[i].speed);
+                            radar->targets[i].x,
+                            radar->targets[i].y,
+                            radar->targets[i].speed);
                     }
                 }
                 Serial.println();
@@ -112,31 +113,31 @@ void radarTask(void *pvParameters) {
             }
 
             if (xSemaphoreTake(dataMutex, portMAX_DELAY)) {
-                bool activeArr[3] = {radar.targets[0].active, radar.targets[1].active, radar.targets[2].active};
-                int16_t xArr[3] = {radar.targets[0].x, radar.targets[1].x, radar.targets[2].x};
-                int16_t yArr[3] = {radar.targets[0].y, radar.targets[1].y, radar.targets[2].y};
-                ui.zoneManager.updateFuzzing(activeArr, xArr, yArr);
+                bool activeArr[3] = {radar->targets[0].active, radar->targets[1].active, radar->targets[2].active};
+                int16_t xArr[3] = {radar->targets[0].x, radar->targets[1].x, radar->targets[2].x};
+                int16_t yArr[3] = {radar->targets[0].y, radar->targets[1].y, radar->targets[2].y};
+                ui->zoneManager.updateFuzzing(activeArr, xArr, yArr);
 
                 RadarTarget compensatedTargets[3];
-                if (ui.motionCompEnabled) {
-                    float dt = radar.getDeltaTimeSec();
-                    motionComp.process(dt, radar.targets, compensatedTargets);
+                if (ui->motionCompEnabled) {
+                    float dt = radar->getDeltaTimeSec();
+                    motionComp->process(dt, radar->targets, compensatedTargets);
                 } else {
                     for(int i=0; i<3; i++) {
-                        compensatedTargets[i] = radar.targets[i];
+                        compensatedTargets[i] = radar->targets[i];
                     }
                 }
 
                 for(int i=0; i<3; i++) {
-                    if (compensatedTargets[i].active && ui.zoneManager.isDead(compensatedTargets[i].x, compensatedTargets[i].y)) {
+                    if (compensatedTargets[i].active && ui->zoneManager.isDead(compensatedTargets[i].x, compensatedTargets[i].y)) {
                         compensatedTargets[i].active = false;
                     }
                 }
-                ui.updateRadarData(compensatedTargets, motionComp.isAnchorValid(), motionComp.getAnchorX(), motionComp.getAnchorY());
+                ui->updateRadarData(compensatedTargets, motionComp->isAnchorValid(), motionComp->getAnchorX(), motionComp->getAnchorY());
 
                 for (int i = 0; i < 3; i++) {
-                    ui.setTargetMotion(i, motionComp.getTargetVelX(i), motionComp.getTargetVelY(i),
-                                          motionComp.getTargetAccX(i), motionComp.getTargetAccY(i), motionComp.getTargetStdDev(i));
+                    ui->setTargetMotion(i, motionComp->getTargetVelX(i), motionComp->getTargetVelY(i),
+                                          motionComp->getTargetAccX(i), motionComp->getTargetAccY(i), motionComp->getTargetStdDev(i));
                 }
                 xSemaphoreGive(dataMutex);
             }
@@ -150,6 +151,12 @@ unsigned long fallbackStart = 0;
 String serialBuffer = "";
 
 void setup() {
+    radarUART = std::make_unique<HardwareSerial>(2);
+    radar = std::make_unique<E54_Radar>(*radarUART);
+    motionComp = std::make_unique<MotionCompensation>();
+    perfMonitor = std::make_unique<PerformanceMonitor>();
+    tft = std::make_unique<TFT_eSPI>();
+    ui = std::make_unique<UIManager>(*tft);
     dataMutex = xSemaphoreCreateMutex();
     Serial.begin(115200);
     Serial.println("ESP32 Radar Tracker Starting...");
@@ -158,7 +165,7 @@ void setup() {
 
     // Fallback logic
     if (configManager.checkFallback()) {
-        ui.state = STATE_FALLBACK;
+        ui->state = STATE_FALLBACK;
         fallbackStart = millis();
     }
 
@@ -187,23 +194,23 @@ void setup() {
     
     Serial.println("Handshake Step 1: 115200 baud...");
     // Optimization: Increase RX buffer size from default 256 to 1024 to prevent overflow and packet loss at high baud rates (115200+)
-    radarUART.setRxBufferSize(1024);
-    radarUART.begin(115200, SERIAL_8N1, RADAR_RX_PIN, RADAR_TX_PIN);
-    radarUART.write(startCmd, sizeof(startCmd));
+    radarUART->setRxBufferSize(1024);
+    radarUART->begin(115200, SERIAL_8N1, RADAR_RX_PIN, RADAR_TX_PIN);
+    radarUART->write(startCmd, sizeof(startCmd));
     delay(200);
 
     Serial.println("Handshake Step 2: 256000 baud...");
-    radarUART.begin(256000, SERIAL_8N1, RADAR_RX_PIN, RADAR_TX_PIN);
-    radarUART.write(startCmd, sizeof(startCmd));
+    radarUART->begin(256000, SERIAL_8N1, RADAR_RX_PIN, RADAR_TX_PIN);
+    radarUART->write(startCmd, sizeof(startCmd));
     delay(200);
 
-    radar.begin(RADAR_RX_PIN, RADAR_TX_PIN, 256000);
+    radar->begin(RADAR_RX_PIN, RADAR_TX_PIN, 256000);
     
-    motionComp.init();
-    perfMonitor.begin();
+    motionComp->init();
+    perfMonitor->begin();
 
     // Initialize UI
-    ui.init();
+    ui->init();
 
     // Initialize inputs
     attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_A), checkPosition, CHANGE);
@@ -239,14 +246,14 @@ void loop() {
     static int lastPos = 0;
     if (newPos != lastPos) {
         int dir = (int)(encoder.getDirection());
-        ui.handleEncoder(dir);
+        ui->handleEncoder(dir);
         lastPos = newPos;
     }
 
     // Process UI Actions
-    int act = ui.consumeAction();
+    int act = ui->consumeAction();
     if (act == 1) { // Reset Tracking
-        motionComp.forceReset();
+        motionComp->forceReset();
         Serial.println("Motion Compensation Tracking Reset.");
     } else if (act == 2) {
         configManager.exportConfig(ui);
@@ -255,7 +262,7 @@ void loop() {
         Serial.println("New config confirmed.");
     }
 
-    if (ui.state == STATE_IMPORTING) {
+    if (ui->state == STATE_IMPORTING) {
         while (Serial.available()) {
             char c = Serial.read();
             serialBuffer += c;
@@ -264,7 +271,7 @@ void loop() {
                 serialBuffer = "";
             }
         }
-    } else if (ui.state == STATE_FALLBACK) {
+    } else if (ui->state == STATE_FALLBACK) {
         if (millis() - fallbackStart > 15000) { // 15s timeout
             Serial.println("Fallback timeout. Reverting...");
             configManager.restoreFromFallback();
@@ -274,13 +281,13 @@ void loop() {
     }
 
 // Apply Settings
-    motionComp.setAveragingStrength(ui.getLocationAveraging());
+    motionComp->setAveragingStrength(ui->getLocationAveraging());
 
-    radar.passthroughMode = ui.passthroughMode;
+    radar->passthroughMode = ui->passthroughMode;
 
-    if (ui.passthroughMode && Serial) {
+    if (ui->passthroughMode && Serial) {
         while (Serial.available()) {
-            radarUART.write(Serial.read());
+            radarUART->write(Serial.read());
         }
     }
 
@@ -288,7 +295,7 @@ void loop() {
     unsigned long now = millis();
     if (now - lastRender >= 30) { // ~33Hz display rendering
         if (xSemaphoreTake(dataMutex, portMAX_DELAY)) {
-            ui.renderLoop();
+            ui->renderLoop();
             xSemaphoreGive(dataMutex);
         }
         lastRender = now;
