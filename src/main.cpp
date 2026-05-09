@@ -151,12 +151,12 @@ unsigned long fallbackStart = 0;
 String serialBuffer = "";
 
 void setup() {
-    radarUART = std::make_unique<HardwareSerial>(2);
-    radar = std::make_unique<E54_Radar>(*radarUART);
-    motionComp = std::make_unique<MotionCompensation>();
-    perfMonitor = std::make_unique<PerformanceMonitor>();
-    tft = std::make_unique<TFT_eSPI>();
-    ui = std::make_unique<UIManager>(*tft);
+    radarUART = std::unique_ptr<HardwareSerial>(new HardwareSerial(2));
+    radar = std::unique_ptr<E54_Radar>(new E54_Radar(*radarUART));
+    motionComp = std::unique_ptr<MotionCompensation>(new MotionCompensation());
+    perfMonitor = std::unique_ptr<PerformanceMonitor>(new PerformanceMonitor());
+    tft = std::unique_ptr<TFT_eSPI>(new TFT_eSPI());
+    ui = std::unique_ptr<UIManager>(new UIManager(*tft));
     dataMutex = xSemaphoreCreateMutex();
     Serial.begin(115200);
     Serial.println("ESP32 Radar Tracker Starting...");
@@ -256,7 +256,7 @@ void loop() {
         motionComp->forceReset();
         Serial.println("Motion Compensation Tracking Reset.");
     } else if (act == 2) {
-        configManager.exportConfig(ui);
+        configManager.exportConfig(*ui);
     } else if (act == 3) {
         // Confirmed fallback
         Serial.println("New config confirmed.");
