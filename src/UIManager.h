@@ -1140,16 +1140,45 @@ public:
             sprite.print("INFO: ");
             sprite.setCursor(15, 160);
 
-            // Simple logic to display something based on item
+            // Contextual tooltip logic for all menus
             if (activePage == PAGE_MAIN) {
-                if (menuSelection == 0) sprite.print("Adjust visual themes,");
-                else if (menuSelection == 1) sprite.print("icons, and display settings.");
-                else if (menuSelection == 2) sprite.print("Configure warning and");
-                else if (menuSelection == 3) sprite.print("dead zones.");
-                else if (menuSelection == 4) sprite.print("Adjust raw telemetry");
-                else if (menuSelection == 5) sprite.print("filtering options.");
-                else if (menuSelection == 6) sprite.print("Return to radar view.");
-                else sprite.print("Select an option.");
+                if (menuSelection == 0 || menuSelection == 1) { sprite.print("Adjust visual themes,"); sprite.setCursor(15, 175); sprite.print("icons, and UI settings."); }
+                else if (menuSelection == 2 || menuSelection == 3) { sprite.print("Configure tracking boundaries"); sprite.setCursor(15, 175); sprite.print("and warning zones."); }
+                else if (menuSelection == 4 || menuSelection == 5) { sprite.print("Adjust raw telemetry,"); sprite.setCursor(15, 175); sprite.print("sensitivity, and filtering."); }
+                else if (menuSelection == 6) { sprite.print("Advanced settings and"); sprite.setCursor(15, 175); sprite.print("device configurations."); }
+                else if (menuSelection == 7) { sprite.print("View on-device help"); sprite.setCursor(15, 175); sprite.print("and instructions."); }
+                else if (menuSelection == 8) { sprite.print("Return to the live"); sprite.setCursor(15, 175); sprite.print("radar view."); }
+            } else if (activePage == PAGE_VISUALS) {
+                if (menuSelection == 0) { sprite.print("Return to the"); sprite.setCursor(15, 175); sprite.print("main config menu."); }
+                else if (menuSelection == 1) { sprite.print("Change the overall color"); sprite.setCursor(15, 175); sprite.print("theme of the UI."); }
+                else if (menuSelection == 2) { sprite.print("Select the shape used"); sprite.setCursor(15, 175); sprite.print("to draw targets."); }
+                else if (menuSelection == 3) { sprite.print("Adjust the size of"); sprite.setCursor(15, 175); sprite.print("all on-screen text."); }
+                else if (menuSelection == 4) { sprite.print("Toggle the rotating"); sprite.setCursor(15, 175); sprite.print("green sweep line."); }
+                else if (menuSelection == 5) { sprite.print("Toggle fake sweep line"); sprite.setCursor(15, 175); sprite.print("rotation animation."); }
+                else if (menuSelection == 6) { sprite.print("Adjust length of target"); sprite.setCursor(15, 175); sprite.print("history motion trails."); }
+                else if (menuSelection == 7) { sprite.print("Toggle the background"); sprite.setCursor(15, 175); sprite.print("radar grid visibility."); }
+                else if (menuSelection == 8) { sprite.print("Toggle the startup"); sprite.setCursor(15, 175); sprite.print("calibration animation."); }
+            } else if (activePage == PAGE_ZONES) {
+                if (menuSelection == 0) { sprite.print("Return to the"); sprite.setCursor(15, 175); sprite.print("main config menu."); }
+                else if (menuSelection == 1) { sprite.print("Select warning zone preset."); }
+                else { sprite.print("Adjust zone boundaries"); sprite.setCursor(15, 175); sprite.print("and sensitivity."); }
+            } else if (activePage == PAGE_DATA) {
+                if (menuSelection == 0) { sprite.print("Return to the"); sprite.setCursor(15, 175); sprite.print("main config menu."); }
+                else if (menuSelection == 1) { sprite.print("Show raw distance, angle,"); sprite.setCursor(15, 175); sprite.print("and speed data on screen."); }
+                else if (menuSelection == 2) { sprite.print("Adjust hardware sensitivity"); sprite.setCursor(15, 175); sprite.print("(minimum target speed)."); }
+                else if (menuSelection == 3) { sprite.print("Adjust target position"); sprite.setCursor(15, 175); sprite.print("averaging history length."); }
+                else if (menuSelection == 4) { sprite.print("Adjust motion smoothing"); sprite.setCursor(15, 175); sprite.print("interpolation amount."); }
+                else if (menuSelection == 5) { sprite.print("Force clear and reset"); sprite.setCursor(15, 175); sprite.print("all target tracking."); }
+            } else if (activePage == PAGE_DEV) {
+                if (menuSelection == 0) { sprite.print("Return to the"); sprite.setCursor(15, 175); sprite.print("main config menu."); }
+                else if (menuSelection == 1) { sprite.print("Unlock advanced"); sprite.setCursor(15, 175); sprite.print("developer options."); }
+                else if (menuSelection == 2) { sprite.print("Toggle target motion"); sprite.setCursor(15, 175); sprite.print("prediction during dropout."); }
+                else if (menuSelection == 3) { sprite.print("Toggle raw byte printing"); sprite.setCursor(15, 175); sprite.print("over serial connection."); }
+                else if (menuSelection == 4) { sprite.print("Visualize motion standard"); sprite.setCursor(15, 175); sprite.print("deviation on screen."); }
+                else if (menuSelection == 5) { sprite.print("Wipe all preferences"); sprite.setCursor(15, 175); sprite.print("and reset the device."); }
+                else if (menuSelection == 6) { sprite.print("Export the current config"); sprite.setCursor(15, 175); sprite.print("as a JSON string."); }
+                else if (menuSelection == 7) { sprite.print("Import a JSON config"); sprite.setCursor(15, 175); sprite.print("string from serial."); }
+                else { sprite.print("Advanced dev option."); }
             } else {
                 sprite.print("Adjust this setting to");
                 sprite.setCursor(15, 175);
