@@ -945,10 +945,13 @@ public:
                 sprite.drawRect(120 - r, 120 - r, r * 2, r * 2, sprite.alphaBlend(50, themePrimary, themeBg));
             }
             if (theme == THEME_ALIEN) {
-                for (int r=60; r<=180; r+=60) {
-                    for (int a=0; a<=180; a+=5) {
-                        float rad = (a - 180) * 0.0174533f;
-                        sprite.drawPixel(120 + r * cosf(rad), 240 + r * sinf(rad), gridColor);
+                // ⚡ Bolt: Loop hoisting for trigonometry optimizations
+                for (int a=0; a<=180; a+=5) {
+                    float rad = (a - 180) * 0.0174533f;
+                    float c = cosf(rad);
+                    float s = sinf(rad);
+                    for (int r=60; r<=180; r+=60) {
+                        sprite.drawPixel(120 + r * c, 240 + r * s, gridColor);
                     }
                 }
             } else {
