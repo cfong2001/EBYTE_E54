@@ -64,7 +64,7 @@ public:
     bool showStdDev = false;
     int uiTextSize = 1;
 
-    UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
+    explicit UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
         state = STATE_BOOT;
         activePage = PAGE_MAIN;
         menuSelection = 0;
