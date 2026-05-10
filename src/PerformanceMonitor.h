@@ -40,7 +40,7 @@ public:
     void incrementParseErrors() { parseErrorsThisSecond++; }
 
     // For testing purposes
-    int getFrames() const { return framesThisSecond; }
+    int getFrames() { return framesThisSecond; }
 
 private:
     int framesThisSecond = 0;
@@ -48,7 +48,7 @@ private:
     int parseErrorsThisSecond = 0;
 
     #if defined(ESP32)
-    TaskHandle_t perfTaskHandle = nullptr;
+    TaskHandle_t perfTaskHandle;
     #endif
     unsigned long lastSystemReportTime = 0;
     unsigned long lastMetricsReportTime = 0;
