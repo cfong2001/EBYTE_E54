@@ -58,3 +58,6 @@
 ## 2026-05-08 - [Const Correctness]
 **Learning:** The C++ Core Guidelines strongly emphasize marking member functions as `const` by default (Con.2) if they do not modify the object's state. This is especially important for getter methods and mathematical helper functions (like `isInsideZone`). This provides compiler-enforced safety and potential optimization.
 **Action:** Always evaluate member functions for state modification. Apply `const` qualifiers to the end of function signatures for any method that acts as a pure getter or calculates derived state without altering member variables.
+## 2026-05-19 - Loop hoisting for trigonometry optimizations
+**Learning:** In nested loop structures calculating radial visual elements (like dotted grids), executing `sinf` and `cosf` functions inside the inner loop is redundant when the angle does not change with the radius. On low-power embedded CPUs, repetitive float trigonometric functions inside ~33Hz hot loops waste significant CPU cycles.
+**Action:** When drawing complex radial visual features in C++ that iterate over radius and angle, swap the loops if necessary and always calculate and cache the angle's sine and cosine inside the outer loop, iterating the radius in the inner loop with the pre-computed trigonometric values.
