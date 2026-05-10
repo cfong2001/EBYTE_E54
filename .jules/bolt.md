@@ -55,3 +55,6 @@
 **Learning:** Understanding whether the internal filter state has "locked in" (tight tracking window) or is spreading out due to noise or rapid movement is difficult when observing just a single computed coordinate dot.
 **Action:** When developing complex trajectory optimization logic, calculate and expose the mathematical Standard Deviation (or variance) of the tracking buffer. Pass this variable to the UI to render an alpha-blended confidence circle (or bounding box) around the entity, allowing developers to visually confirm exactly how the temporal smoothing buffers are reacting to input stimuli.
 >>>>>>> master
+## 2026-05-08 - [Const Correctness]
+**Learning:** The C++ Core Guidelines strongly emphasize marking member functions as `const` by default (Con.2) if they do not modify the object's state. This is especially important for getter methods and mathematical helper functions (like `isInsideZone`). This provides compiler-enforced safety and potential optimization.
+**Action:** Always evaluate member functions for state modification. Apply `const` qualifiers to the end of function signatures for any method that acts as a pure getter or calculates derived state without altering member variables.

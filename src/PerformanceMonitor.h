@@ -40,7 +40,7 @@ public:
     void incrementParseErrors() { parseErrorsThisSecond++; }
 
     // For testing purposes
-    int getFrames() { return framesThisSecond; }
+    int getFrames() const { return framesThisSecond; }
 
 private:
     int framesThisSecond = 0;
