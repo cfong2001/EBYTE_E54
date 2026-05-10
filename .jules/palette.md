@@ -45,30 +45,6 @@
 ## 2024-05-03 - Menu Back button and Customizable UI Text Size
 **Learning:** Raw string manipulation (e.g., using just `<` for a back arrow) isn't as polished or readable on tiny screens as explicitly forming an arrow `<-`, and hardcoding standard text sizes prevents users with varying setups from properly reading UI menus. TFT fonts lack standard Unicode glyphs without extra heavy library dependencies, so ASCII composite arrows are best for compatibility.
 **Action:** Always offer custom scaling (`uiTextSize` parameter bounded to practical limits like 1-2) mapped directly to hardware rendering functions, while saving preferences dynamically. Use `<-` for backward arrows when Unicode coverage on TFTs isn't guaranteed.
-## 2026-05-03 - Added display rotation and positioning
-**Learning:** Hardcoded coordinates (like 120 and 240) in UI drawing code break when switching orientations or moving between square and rectangular screen profiles.
-**Action:** Replaced hardcoded boundaries and center points with dynamic math relying on `getScreenDimensions()` (e.g. `w/2`, `h`). Implemented flexible offset logic based on enum settings.
-## 2026-05-03 - Added display rotation and positioning
-**Learning:** Hardcoded coordinates (like 120 and 240) in UI drawing code break when switching orientations or moving between square and rectangular screen profiles.
-**Action:** Replaced hardcoded boundaries and center points with dynamic math relying on `getScreenDimensions()` (e.g. `w/2`, `h`). Implemented flexible offset logic based on enum settings.
-## 2026-05-20 - Contextual Empty States & Dynamic Hints (Extended)
-**Learning:** Hardcoded "pseudo-tab-bar" labels that don't accurately reflect hardware button actions cause significant confusion (e.g. `[VIEW] MENU` implies two buttons or touch areas, when there's only one encoder button). Furthermore, "UI traps" like tooltips that can be turned on but not dismissed create frustration.
-**Action:** Ensure hardware button label prompts on the screen dynamically update their text to explicitly match the exact action the single button performs in that context (e.g., `RADAR [MENU]`, `MENU [SELECT]`, `EDIT [SAVE]`). Always ensure that secondary UI states (like long-press tooltips) act as toggles (`!state`) rather than one-way setters.
-
-## 2024-05-03 - Hardware Navigation Buttons
-**Learning:** Secondary hardware buttons can dramatically improve rotary encoder UIs by providing a dedicated 'Back' or 'Escape' function during menu navigation, reducing the need to scroll to an on-screen back option.
-**Action:** When integrating auxiliary buttons, map them to context-aware actions like cycling themes in the main view and canceling/exiting when in edit or menu states.
-
-## 2024-05-18 - Precision Brutalism Web UI
-**Learning:** Designing lightweight web UIs hosted directly on microcontrollers benefits immensely from a "Precision Brutalism" approach. Relying on strict grid lines, high contrast borders, CSS shapes (border-radius: 50% for blips), and a minimal color palette (cyan, red, yellow on dark grey) ensures fast parsing without relying on external assets or emojis, which can render unpredictably on different client devices.
-**Action:** Use CSS-only shapes, raw HTML grids, and hardcoded inline styles tailored for high-contrast "tactical" reading in future embedded web interfaces to balance visual impact with constrained microcontroller storage.
-
-## 2024-05-18 - SVG Canvas for Dynamic IoT Visualization
-**Learning:** For rendering complex dynamic data (such as radar exclusion zones or target velocity vectors) on a microcontroller web interface, embedding a raw SVG canvas directly into the HTML string and manipulating its DOM via vanilla JavaScript is vastly superior to importing heavy charting libraries or using Canvas API. SVGs scale perfectly without pixelation and do not bloat the initial payload size.
-**Action:** Default to raw SVG manipulation via `document.createElementNS` in lightweight embedded web servers when visual aids like lines, arcs, or shapes are necessary.
-## 2026-05-20 - [Menu Categorization & Intuitive Flow]
-**Learning:** Having excessive top-level menu categories (like splitting "VISUALS" and "DISPLAY POS") increases cognitive load and navigation time.
-**Action:** Consolidate related settings under logical groups (e.g. merging Display Orientation and Menu Position under the existing Visual Settings page). When reorganizing C++ array-based menus, ensure index mappings across population functions (`populateMainMenu`), click handlers (`handleMenuClick`), and edit functions (`executeMenuEdit`) are perfectly synchronized to avoid inaccessible options.
 ## 2026-05-03 - [Soft Lockout Prevention via Fallback UI]
 **Learning:** Modifying core settings via JSON injections could render the system inoperable if the new settings conflict with hardware (like changing UI sizes or themes uncontrollably). Implementing a `STATE_FALLBACK` UI that temporarily applies settings and requires physical button confirmation to persist them prevents headless lockouts.
 **Action:** Always implement a physical timeout/confirmation layer for remote configuration changes to prevent "bricking" headless devices.
@@ -88,3 +64,10 @@
 ## 2025-05-24 - Explicit Contextual Units
 **Learning:** Displaying raw, unitless numbers (e.g. `Sensitivity: 5` or `Anchor: 100, 200`) in hardware UI panels increases cognitive load and risks user misconfiguration. Users shouldn't have to guess if a value is in mm, cm/s, or degrees.
 **Action:** Always append explicit contextual measurement units (e.g., `mm`, `deg`, `cm/s`) directly to numerical values in configuration menus and telemetry readouts to ensure the interface is instantly intuitive.
+
+## 2024-05-10 - Auto-dismissing Tooltips
+**Learning:** Temporary UI overlays (like long-press tooltips) that act as one-way state setters become "UI traps" for users, especially on hardware devices with limited input mechanisms. If a tooltip is shown but navigation doesn't dismiss it, the user is forced to perform unrelated actions or even reboot to clear the screen.
+**Action:** Always ensure temporary overlays are toggles and auto-dismiss on any subsequent user interaction (like encoder navigation or short button presses) to prevent trapping the user in a view.
+## 2026-06-25 - Context-Specific Menu Tooltips
+**Learning:** Providing a generic fallback string like "Adjust this setting to change device behavior" across an entire hardware menu significantly increases cognitive load, as users have to guess the impact of technical options (like "Fuzzing Threshold" or "Interpolation"). Furthermore, splitting a single sentence's logic across multiple menu index selections (e.g. `idx==0` -> "Adjust themes,", `idx==1` -> "and visual icons") causes the tooltip to look broken if the user only hovers on `idx==1`.
+**Action:** When implementing an embedded help/tooltip overlay for a hardware dial menu, ensure every single menu item (or logical grouping of related items) has a complete, contextually relevant explanation formatted properly for the screen constraints. Avoid sentence fragmentation across indices.

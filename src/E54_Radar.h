@@ -4,18 +4,18 @@
 #include <Arduino.h>
 
 struct RadarTarget {
-    bool active;
-    int16_t x;          // mm
-    int16_t y;          // mm
-    int16_t speed;      // cm/s
-    uint16_t resolution; // mm
-    bool isCoasting;    // flag indicating the target is a predicted coasting frame during dropout
+    bool active = false;
+    int16_t x = 0;          // mm
+    int16_t y = 0;          // mm
+    int16_t speed = 0;      // cm/s
+    uint16_t resolution = 0; // mm
+    bool isCoasting = false;    // flag indicating the target is a predicted coasting frame during dropout
 };
 
 class E54_Radar {
 public:
     bool passthroughMode = false;
-    E54_Radar(HardwareSerial& serial) : radarSerial(serial) {
+    explicit E54_Radar(HardwareSerial& serial) : radarSerial(serial) {
         passthroughMode = false;
     }
 
@@ -61,7 +61,7 @@ public:
 
 private:
     HardwareSerial& radarSerial;
-    uint8_t buffer[64];
+    uint8_t buffer[64] = {0};
     uint8_t bufIndex = 0;
 
     enum State {
