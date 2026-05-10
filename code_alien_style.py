@@ -9,6 +9,11 @@ from shared.ui_utils import draw_dotted_circle
 import adafruit_ssd1306
 import neopixel
 import math
+
+# Pre-computed trigonometric lookup tables for UI rendering
+COS_TABLE = tuple(math.cos(math.radians(i)) for i in range(360))
+SIN_TABLE = tuple(math.sin(math.radians(i)) for i in range(360))
+
 from utils import s16_le
 
 # Initialize hardware
@@ -40,9 +45,9 @@ pixel.fill((0, 10, 0))  # Green = ready
 def draw_angle_markers(cx, cy):
     """Draw angle marker lines every 45 degrees"""
     for angle_deg in [0, 45, 90, 135, 180]:
-        rad = math.radians(angle_deg - 90)
-        cos_rad = math.cos(rad)
-        sin_rad = math.sin(rad)
+        idx = int(round(angle_deg - 90)) % 360
+        cos_rad = COS_TABLE[idx]
+        sin_rad = SIN_TABLE[idx]
         # Draw line from inner to outer
         for r in range(R_MAX - 4, R_MAX + 1):
             x = int(cx + r * cos_rad)
@@ -108,9 +113,9 @@ def draw_radar_screen():
     
     # Draw rotating sweep line (Alien style)
     sweep_angle = (sweep_angle + 8) % 180
-    rad = math.radians(sweep_angle - 90)
-    cos_rad = math.cos(rad)
-    sin_rad = math.sin(rad)
+    idx = int(round(sweep_angle - 90)) % 360
+    cos_rad = COS_TABLE[idx]
+    sin_rad = SIN_TABLE[idx]
     for r in range(0, R_MAX + 1, 2):
         x = int(CX + r * cos_rad)
         y = int(CY + r * sin_rad)
@@ -146,9 +151,9 @@ def draw_radar_screen():
                 r = int((dist_mm / MAX_RANGE) * R_MAX)
                 
                 # Calculate screen position
-                screen_rad = math.radians(angle_deg - 90)
-                px = int(CX + r * math.cos(screen_rad))
-                py = int(CY + r * math.sin(screen_rad))
+                idx = int(round(angle_deg - 90)) % 360
+                px = int(CX + r * COS_TABLE[idx])
+                py = int(CY + r * SIN_TABLE[idx])
                 
                 # Draw the target
                 draw_target(px, py, t_idx, age)
