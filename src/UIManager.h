@@ -283,7 +283,8 @@ public:
     void handleButton() {
 
         if (state == STATE_IMPORTING) {
-            state = STATE_MENU; // Cancel import
+            actionRequested = 4; // Apply batched changes
+            state = STATE_MENU;
         } else if (state == STATE_FALLBACK) {
             actionRequested = 3; // Confirm fallback
             state = STATE_RADAR_VIEW;
@@ -473,7 +474,7 @@ public:
             sprite.setCursor(20, 110);
             sprite.print("WAITING FOR CONFIG...");
             sprite.setCursor(20, 125);
-            sprite.print("[PRESS BUTTON TO CANCEL]");
+            sprite.print("[PRESS BUTTON TO APPLY]");
         } else if (state == STATE_FALLBACK) {
             sprite.fillRect(10, 90, 220, 60, themeDanger);
             sprite.setTextColor(TFT_WHITE, themeDanger);
