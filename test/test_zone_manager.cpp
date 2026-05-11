@@ -73,10 +73,11 @@ void test_isInsideZone_edge_cases() {
     std::cout << "  ✓ test_isInsideZone_edge_cases passed" << std::endl;
 }
 
-void test_zone_manager_all() {
+int main() {
     std::cout << "Testing ZoneManager..." << std::endl;
     test_isInsideZone_distance();
     test_isInsideZone_angle();
     test_isInsideZone_edge_cases();
     std::cout << "All ZoneManager tests passed!" << std::endl;
+    return 0;
 }
