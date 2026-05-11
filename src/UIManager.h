@@ -588,7 +588,115 @@ public:
                 int ty = tft.height() + 180 * sinf(tr);
                 uint8_t alpha = 255 - ((a * 255) / 30);
                 uint16_t trailCol = sprite.alphaBlend(alpha, sweepColor, themeBg);
-                sprite.drawLine(tft.width() / 2, tft.height(), tx, ty, trailCol);
+                sprite.drawLine(120, 320, tx, ty, trailCol);
+            }
+        }
+    }
+
+
+private:
+    void drawTargetTrail(int i, uint8_t currentAlpha, uint16_t baseColor) {
+        if (trailLength > 0) {
+            for (int h = 0; h < trailLength; h++) {
+                int hx = (int)targetHistoryX[i][h];
+                int hy = (int)targetHistoryY[i][h];
+                if (hx > 0 && hy > 0) {
+                    uint8_t t_alpha = (currentAlpha * (trailLength - h)) / trailLength;
+                    uint16_t tColor = sprite.alphaBlend(t_alpha, baseColor, themeBg);
+                    int tr = max(1, 4 - (h / 2));
+                    sprite.fillCircle(hx, hy, tr, tColor);
+                }
+            }
+        }
+    }
+
+    void drawTargetWarning(int i, int cx, int cy, uint8_t currentAlpha) {
+        if (zoneManager.isWarning(i)) {
+            float pulse = (sinf(millis() / 150.0f) + 1.0f) * 0.5f;
+            uint8_t blendRatio = (uint8_t)(pulse * 255.0f);
+            uint16_t blendColor = sprite.alphaBlend(blendRatio, themeDanger, themeWarning);
+            uint16_t wCol = sprite.alphaBlend(currentAlpha, blendColor, themeBg);
+            int pr = 8 + (int)(pulse * 2.0f);
+            sprite.drawCircle(cx, cy, pr, wCol);
+        }
+        float danger = zoneManager.getTargetDangerLevel(i);
+        if (danger > 0.01f) {
+            uint16_t dangerColor = sprite.alphaBlend((uint8_t)(danger * 255.0f), themeDanger, themeWarning);
+            uint16_t wCol = sprite.alphaBlend(currentAlpha, dangerColor, themeBg);
+
+            float pulseSpeed = 300.0f - (danger * 200.0f);
+            // ⚡ Bolt: Use single-precision sinf() to avoid implicit double conversion
+            // inside 30Hz display rendering loop, saving CPU cycles on ESP32 FPU.
+            float pulse = (sinf(millis() / pulseSpeed) + 1.0f) * 0.5f;
+            int r = 6 + (int)(pulse * 4.0f * danger);
+
+            sprite.drawCircle(cx, cy, r, wCol);
+        }
+    }
+
+    void drawTargetIcon(int i, int cx, int cy, uint16_t color) {
+        if (targetIcon == ICON_CIRCLE) {
+            sprite.fillCircle(cx, cy, 4, color);
+            if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 5, TFT_WHITE);
+        }
+        else if (targetIcon == ICON_SQUARE) {
+            sprite.fillRect(cx - 3, cy - 3, 7, 7, color);
+            if (!targetCoasting[i]) sprite.drawRect(cx - 4, cy - 4, 9, 9, TFT_WHITE);
+        }
+        else if (targetIcon == ICON_TRIANGLE) {
+            sprite.fillTriangle(cx, cy - 5, cx - 4, cy + 3, cx + 4, cy + 3, color);
+            if (!targetCoasting[i]) sprite.drawTriangle(cx, cy - 6, cx - 5, cy + 4, cx + 5, cy + 4, TFT_WHITE);
+        }
+        else if (targetIcon == ICON_SMART) {
+            sprite.drawCircle(cx, cy, 3, color);
+            if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 4, TFT_WHITE);
+
+            int absSpd = abs(rawTargetSpeed[i]);
+            float rawDx = targetCurrentX[i] - targetHistoryX[i][2];
+            float rawDy = targetCurrentY[i] - targetHistoryY[i][2];
+
+            if (absSpd > 10 && (fabsf(rawDx) > 0.5f || fabsf(rawDy) > 0.5f)) {
+                float len = sqrtf(rawDx*rawDx + rawDy*rawDy);
+                float nx = rawDx / len;
+                float ny = rawDy / len;
+                smoothVecX[i] = (smoothVecX[i] * 0.7f) + (nx * 0.3f);
+                smoothVecY[i] = (smoothVecY[i] * 0.7f) + (ny * 0.3f);
+                smoothSpeed[i] = (smoothSpeed[i] * 0.8f) + ((float)absSpd * 0.2f);
+            } else {
+                smoothSpeed[i] *= 0.8f;
+            }
+
+            if (smoothSpeed[i] > 5.0f) {
+                float stickLen = 5.0f + (smoothSpeed[i] / 10.0f);
+                if (stickLen > 25.0f) stickLen = 25.0f;
+                float sLen = sqrtf(smoothVecX[i]*smoothVecX[i] + smoothVecY[i]*smoothVecY[i]);
+                if (sLen > 0.01f) {
+                    float nSvx = smoothVecX[i] / sLen;
+                    float nSvy = smoothVecY[i] / sLen;
+                    int ex = cx + (int)(nSvx * stickLen);
+                    int ey = cy + (int)(nSvy * stickLen);
+                    sprite.drawLine(cx, cy, ex, ey, color);
+
+                    // ⚡ Bolt: Replace atan2f and cosf/sinf with fixed vector rotation.
+                    // nSvx and nSvy are already the normalized direction vector.
+                    // We can rotate this vector by +/- 0.5 radians using angle addition constants.
+                    // cos(0.5) ≈ 0.87758256f, sin(0.5) ≈ 0.47942554f
+                    constexpr float cos_05 = 0.87758256f;
+                    constexpr float sin_05 = 0.47942554f;
+
+                    // Rotate counter-clockwise (-0.5 radians)
+                    int ax1 = ex - (int)(4.0f * (nSvx * cos_05 + nSvy * sin_05));
+                    int ay1 = ey - (int)(4.0f * (nSvy * cos_05 - nSvx * sin_05));
+
+                    // Rotate clockwise (+0.5 radians)
+                    int ax2 = ex - (int)(4.0f * (nSvx * cos_05 - nSvy * sin_05));
+                    int ay2 = ey - (int)(4.0f * (nSvy * cos_05 + nSvx * sin_05));
+
+                    sprite.drawLine(ex, ey, ax1, ay1, color);
+                    sprite.drawLine(ex, ey, ax2, ay2, color);
+                }
+            } else {
+                sprite.fillCircle(cx, cy, 2, color);
             }
         }
     }
