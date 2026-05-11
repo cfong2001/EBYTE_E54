@@ -252,7 +252,16 @@ void loop() {
         configManager.exportConfig(ui);
     } else if (act == 3) {
         // Confirmed fallback
+        configManager.confirmFallback();
         Serial.println("New config confirmed.");
+    } else if (act == 4) {
+        if (configManager.isFallbackPending()) {
+            Serial.println("Applying imported config. Restarting...");
+            delay(1000);
+            ESP.restart();
+        } else {
+            ui.state = STATE_MENU;
+        }
     }
 
     if (ui.state == STATE_IMPORTING) {

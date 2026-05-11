@@ -61,8 +61,10 @@ public:
             return false;
         }
 
-        // Backup current to fallback
-        backupToFallback();
+        // Backup current to fallback only if not already pending
+        if (!isFallbackPending()) {
+            backupToFallback();
+        }
 
         // Write new config to main
         prefs.begin("radar_ui", false);
@@ -100,9 +102,7 @@ public:
         prefs.putBool("fb_pend", true);
         prefs.end();
 
-        Serial.println("Import successful. Restarting...");
-        delay(1000);
-        ESP.restart();
+        Serial.println("Import applied to memory. Waiting for user action...");
         return true;
     }
 
@@ -166,6 +166,11 @@ public:
         prefs.putInt("fuzzT", fuzzT);
         prefs.putInt("histW", histW);
         prefs.end();
+
+        prefs.begin("radar_sys", false);
+        prefs.putBool("fb_pend", false);
+        prefs.putInt("fb_boots", 0);
+        prefs.end();
     }
 
     void restoreFromFallback() {
@@ -228,17 +233,46 @@ public:
         prefs.putInt("fuzzT", fuzzT);
         prefs.putInt("histW", histW);
         prefs.end();
+
+        prefs.begin("radar_sys", false);
+        prefs.putBool("fb_pend", false);
+        prefs.putInt("fb_boots", 0);
+        prefs.end();
+    }
+
+    bool isFallbackPending() {
+        prefs.begin("radar_sys", true);
+        bool pending = prefs.getBool("fb_pend", false);
+        prefs.end();
+        return pending;
+    }
+
+    void confirmFallback() {
+        prefs.begin("radar_sys", false);
+        prefs.putBool("fb_pend", false);
+        prefs.putInt("fb_boots", 0);
+        prefs.end();
     }
 
     bool checkFallback() {
         prefs.begin("radar_sys", false);
         bool pending = prefs.getBool("fb_pend", false);
         if (pending) {
-            // Clear flag so we don't boot loop if they confirm
-            prefs.putBool("fb_pend", false);
+            int boots = prefs.getInt("fb_boots", 0);
+            boots++;
+            prefs.putInt("fb_boots", boots);
+            prefs.end();
+
+            if (boots >= 2) {
+                Serial.println("Boot loop detected in fallback! Reverting configs...");
+                restoreFromFallback();
+                delay(1000);
+                ESP.restart();
+            }
+            return true;
         }
         prefs.end();
-        return pending;
+        return false;
     }
 };
 
