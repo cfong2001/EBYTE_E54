@@ -3,11 +3,6 @@
 # Full screen display with data-driven sweep
 
 import time, math
-
-# Pre-computed trigonometric lookup tables for UI rendering
-COS_TABLE = tuple(math.cos(math.radians(i)) for i in range(360))
-SIN_TABLE = tuple(math.sin(math.radians(i)) for i in range(360))
-
 import board, busio, neopixel
 from shared.ui_utils import draw_dotted_circle, map_xy
 import adafruit_ssd1306
@@ -67,12 +62,10 @@ def draw_display():
             angle = math.atan2(-y_mm, -x_mm)
             angle_deg = math.degrees(angle) + 90
             if 0 <= angle_deg <= 180:
-                idx = int(round(angle_deg - 90)) % 360
-                cos_a = COS_TABLE[idx]
-                sin_a = SIN_TABLE[idx]
                 for r in range(0, RADII[-1] + 1, 2):
-                    x = int(CX + r * cos_a)
-                    y = int(CY + r * sin_a)
+                    a = math.radians(angle_deg - 90)
+                    x = int(CX + r * math.cos(a))
+                    y = int(CY + r * math.sin(a))
                     if 0 <= x < 128 and 0 <= y < 64:
                         oled.pixel(x, y, 1)
         

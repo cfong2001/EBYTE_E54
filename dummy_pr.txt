@@ -1,6 +1,0 @@
-Title: 🧹 [code health] Refactor preferences copy in ConfigManager
-
-🎯 **What:** Extracted duplicate preference copying logic into helper functions `copyUINamespace` and `copyZoneNamespace`.
-💡 **Why:** Significantly reduces code duplication and the potential for bugs when updating settings schemas, thereby improving readability and maintainability.
-✅ **Verification:** Ran test suites to confirm no functionality regressions. Manually verified file modifications using `git diff`.
-✨ **Result:** A cleaner `ConfigManager.h` class that adheres to DRY principles.

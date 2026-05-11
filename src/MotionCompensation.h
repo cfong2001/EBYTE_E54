@@ -1,4 +1,5 @@
 #ifndef MOTION_COMPENSATION_H
+#include <algorithm>
 #define MOTION_COMPENSATION_H
 
 #include <Arduino.h>
@@ -120,7 +121,7 @@ public:
         for (int i=0; i<3; i++) {
             if (state[i].active && state[i].isAnchor) { cx += state[i].x; count++; }
         }
-        return count > 0 ? (int16_t)(cx / count) : 0;
+        return count > 0 ? std::lround(cx / count) : 0;
     }
 
     int16_t getAnchorY() const {
@@ -128,7 +129,7 @@ public:
         for (int i=0; i<3; i++) {
             if (state[i].active && state[i].isAnchor) { cy += state[i].y; count++; }
         }
-        return count > 0 ? (int16_t)(cy / count) : 0;
+        return count > 0 ? std::lround(cy / count) : 0;
     }
 
     // Expose velocity and state data for advanced prediction UI interpolation
@@ -264,36 +265,6 @@ private:
         }
     }
 
-    void applyMahalanobisGating(int i, float dt, float& stab_x, float& stab_y, float px, float py) {
-        // Mahalanobis Gating (Handheld Ghost Rejection)
-        if (state[i].active) {
-            float maxAllowedDist = 3000.0f; // 3 meters fallback
-            // A person running at 10m/s (olympic sprinter) could cover 1m in 0.1s.
-            // We gate at 1.5 * max theoretical speed distance for the given dt
-            float maxSpeedAllowed = 15000.0f; // mm/s
-            maxAllowedDist = maxSpeedAllowed * dt;
-            // Add a base noise floor to prevent over-gating when dt is extremely small (e.g. fast consecutive frames)
-            float baseNoiseFloor = 200.0f; // mm (20cm minimum gate radius)
-            if (maxAllowedDist < baseNoiseFloor) {
-                maxAllowedDist = baseNoiseFloor;
-            }
-
-            float dx = stab_x - state[i].x;
-            float dy = stab_y - state[i].y;
-            float distMovedSq = dx*dx + dy*dy;
-
-            // If target dropped out briefly but reappears within gating distance, reset drop counter
-            state[i].framesLost = 0;
-
-            if (distMovedSq > maxAllowedDist * maxAllowedDist) {
-                // Reject this target frame (likely a teleporting ghost)
-                // Hold position using predicted coordinates
-                stab_x = px;
-                stab_y = py;
-            }
-        }
-    }
-
     void stabilizeAndUpdate(float dt, const RadarTarget targets[3], const float P_x[3], const float P_y[3], int numAnchors, float Cp_x, float Cp_y, float Cq_x, float Cq_y, float cosT, float sinT, RadarTarget compensated[3]) {
         for (int i = 0; i < 3; i++) {
             compensated[i] = targets[i];
@@ -314,10 +285,36 @@ private:
                     stab_y = Cp_y + vQy_rot;
                 }
 
-                applyMahalanobisGating(i, dt, stab_x, stab_y, P_x[i], P_y[i]);
+                // Mahalanobis Gating (Handheld Ghost Rejection)
+                if (state[i].active) {
+                    float maxAllowedDist = 3000.0f; // 3 meters fallback
+                    // A person running at 10m/s (olympic sprinter) could cover 1m in 0.1s.
+                    // We gate at 1.5 * max theoretical speed distance for the given dt
+                    float maxSpeedAllowed = 15000.0f; // mm/s
+                    maxAllowedDist = maxSpeedAllowed * dt;
+                    // Add a base noise floor to prevent over-gating when dt is extremely small (e.g. fast consecutive frames)
+                    float baseNoiseFloor = 200.0f; // mm (20cm minimum gate radius)
+                    if (maxAllowedDist < baseNoiseFloor) {
+                        maxAllowedDist = baseNoiseFloor;
+                    }
 
-                compensated[i].x = (int16_t)stab_x;
-                compensated[i].y = (int16_t)stab_y;
+                    float dx = stab_x - state[i].x;
+                    float dy = stab_y - state[i].y;
+                    float distMovedSq = dx*dx + dy*dy;
+
+                    // If target dropped out briefly but reappears within gating distance, reset drop counter
+                    state[i].framesLost = 0;
+
+                    if (distMovedSq > maxAllowedDist * maxAllowedDist) {
+                        // Reject this target frame (likely a teleporting ghost)
+                        // Hold position using predicted coordinates
+                        stab_x = P_x[i];
+                        stab_y = P_y[i];
+                    }
+                }
+
+                compensated[i].x = std::lround(stab_x);
+                compensated[i].y = std::lround(stab_y);
                 compensated[i].active = true;
                 compensated[i].isCoasting = false;
 
@@ -336,9 +333,9 @@ private:
                     state[i].y = py;
 
                     // Provide a synthetic compensated target to UI
-                    compensated[i].x = (int16_t)px;
-                    compensated[i].y = (int16_t)py;
-                    compensated[i].speed = (int16_t)sqrtf(state[i].velX*state[i].velX + state[i].velY*state[i].velY);
+                    compensated[i].x = std::lround(px);
+                    compensated[i].y = std::lround(py);
+                    compensated[i].speed = std::lround(sqrtf(state[i].velX*state[i].velX + state[i].velY*state[i].velY));
                     compensated[i].active = true;
                     compensated[i].resolution = 0; // indicates interpolated frame
                     compensated[i].isCoasting = true;
@@ -474,8 +471,7 @@ private:
             // High resolution (low value) = high confidence = high gain
             if (rawTarget.resolution > 0) {
                  float resWeight = 250.0f / (float)rawTarget.resolution;
-                 if (resWeight > 2.0f) resWeight = 2.0f;
-                 if (resWeight < 0.5f) resWeight = 0.5f;
+                 resWeight = std::clamp(resWeight, 0.5f, 2.0f);
                  alpha = min(1.0f, alpha * resWeight);
                  beta *= resWeight;
                  gamma *= resWeight;
@@ -490,10 +486,8 @@ private:
             state[i].accY = state[i].accY + (gamma * residualY / dt_sq_half);
 
             float maxAcc = 5000.0f;
-            if (state[i].accX > maxAcc) state[i].accX = maxAcc;
-            if (state[i].accX < -maxAcc) state[i].accX = -maxAcc;
-            if (state[i].accY > maxAcc) state[i].accY = maxAcc;
-            if (state[i].accY < -maxAcc) state[i].accY = -maxAcc;
+            state[i].accX = std::clamp(state[i].accX, -maxAcc, maxAcc);
+            state[i].accY = std::clamp(state[i].accY, -maxAcc, maxAcc);
 
             // Update circular history buffer with final determined state
             state[i].historyX[state[i].historyHead] = state[i].x;
