@@ -1,4 +1,9 @@
-💡 What: Replaced dynamically evaluated `math.cos` and `math.sin` functions with pre-computed tuple lookup tables (`COS_TABLE` and `SIN_TABLE`).
-🎯 Why: Evaluating trigonometric math inside high-frequency UI rendering loops (such as drawing dotted rings, crosshairs, and sweep lines) is computationally expensive on constrained Python microcontrollers.
-📊 Impact: Measured ~27% loop speedup by pre-computing indices (`idx = int(round(angle)) % 360`) and hoisting calculations out of inner loops.
-🔬 Measurement: Verified performance gain using baseline `test_perf_2.py` benchmark scripts and confirmed functionality via `test_all_modules.py`.
+**💡 What:** Refactored the contextual tooltip selection logic in `src/UIManager.h` for dynamic menus (`PAGE_ZONES` and `PAGE_DEV`) to use explicit string prefix matching (`items[menuSelection].startsWith(...)`) instead of hardcoded array integers.
+
+**🎯 Why:** Dynamic hardware menus (like custom zones or developer options hidden behind a risk prompt) frequently shift the array index of their items based on varying lengths or user states. Using hardcoded index mappings (`if (menuSelection == 1)`) caused incorrect or mismatched tooltips to render when hovering over menu items, leading to a confusing and broken user experience.
+
+**📸 Before/After:**
+*   **Before:** Hardcoded index mappings tied tooltips to array positions, meaning if the 'Warn Zone' options expanded, the 'Dead Zone' tooltip would mistakenly appear over a 'Warn Zone' property.
+*   **After:** Tooltip content dynamically matches the physical string rendered on screen, remaining fully context-aware regardless of menu length or shifting items.
+
+**♿ Accessibility:** Greatly lowers cognitive load by ensuring that contextual instructions and help text explicitly match the option currently being edited. Prevents "UI traps" where misleading instructions trick users into modifying the wrong system value.

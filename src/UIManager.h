@@ -1159,8 +1159,8 @@ public:
                 else if (menuSelection == 7) { sprite.print("Toggle the background"); sprite.setCursor(15, 175); sprite.print("radar grid visibility."); }
                 else if (menuSelection == 8) { sprite.print("Toggle the startup"); sprite.setCursor(15, 175); sprite.print("calibration animation."); }
             } else if (activePage == PAGE_ZONES) {
-                if (menuSelection == 0) { sprite.print("Return to the"); sprite.setCursor(15, 175); sprite.print("main config menu."); }
-                else if (menuSelection == 1) { sprite.print("Select warning zone preset."); }
+                if (items[menuSelection].startsWith("<- Back")) { sprite.print("Return to the"); sprite.setCursor(15, 175); sprite.print("main config menu."); }
+                else if (items[menuSelection].startsWith("Warn Zone") || items[menuSelection].startsWith("Dead Zone")) { sprite.print("Select warning/dead zone preset."); }
                 else { sprite.print("Adjust zone boundaries"); sprite.setCursor(15, 175); sprite.print("and sensitivity."); }
             } else if (activePage == PAGE_DATA) {
                 if (menuSelection == 0) { sprite.print("Return to the"); sprite.setCursor(15, 175); sprite.print("main config menu."); }
@@ -1170,14 +1170,14 @@ public:
                 else if (menuSelection == 4) { sprite.print("Adjust motion smoothing"); sprite.setCursor(15, 175); sprite.print("interpolation amount."); }
                 else if (menuSelection == 5) { sprite.print("Force clear and reset"); sprite.setCursor(15, 175); sprite.print("all target tracking."); }
             } else if (activePage == PAGE_DEV) {
-                if (menuSelection == 0) { sprite.print("Return to the"); sprite.setCursor(15, 175); sprite.print("main config menu."); }
-                else if (menuSelection == 1) { sprite.print("Unlock advanced"); sprite.setCursor(15, 175); sprite.print("developer options."); }
-                else if (menuSelection == 2) { sprite.print("Toggle target motion"); sprite.setCursor(15, 175); sprite.print("prediction during dropout."); }
-                else if (menuSelection == 3) { sprite.print("Toggle raw byte printing"); sprite.setCursor(15, 175); sprite.print("over serial connection."); }
-                else if (menuSelection == 4) { sprite.print("Visualize motion standard"); sprite.setCursor(15, 175); sprite.print("deviation on screen."); }
-                else if (menuSelection == 5) { sprite.print("Wipe all preferences"); sprite.setCursor(15, 175); sprite.print("and reset the device."); }
-                else if (menuSelection == 6) { sprite.print("Export the current config"); sprite.setCursor(15, 175); sprite.print("as a JSON string."); }
-                else if (menuSelection == 7) { sprite.print("Import a JSON config"); sprite.setCursor(15, 175); sprite.print("string from serial."); }
+                if (items[menuSelection].startsWith("<- Back")) { sprite.print("Return to the"); sprite.setCursor(15, 175); sprite.print("main config menu."); }
+                else if (items[menuSelection].startsWith("Accept Risk?")) { sprite.print("Unlock advanced"); sprite.setCursor(15, 175); sprite.print("developer options."); }
+                else if (items[menuSelection].startsWith("Motion Comp")) { sprite.print("Toggle target motion"); sprite.setCursor(15, 175); sprite.print("prediction during dropout."); }
+                else if (items[menuSelection].startsWith("Passthrough")) { sprite.print("Toggle raw byte printing"); sprite.setCursor(15, 175); sprite.print("over serial connection."); }
+                else if (items[menuSelection].startsWith("Show StdDev")) { sprite.print("Visualize motion standard"); sprite.setCursor(15, 175); sprite.print("deviation on screen."); }
+                else if (items[menuSelection].startsWith("[ FACTORY RESET ]")) { sprite.print("Wipe all preferences"); sprite.setCursor(15, 175); sprite.print("and reset the device."); }
+                else if (items[menuSelection].startsWith("[ EXPORT CONFIG ]")) { sprite.print("Export the current config"); sprite.setCursor(15, 175); sprite.print("as a JSON string."); }
+                else if (items[menuSelection].startsWith("[ IMPORT CONFIG ]")) { sprite.print("Import a JSON config"); sprite.setCursor(15, 175); sprite.print("string from serial."); }
                 else { sprite.print("Advanced dev option."); }
             } else {
                 sprite.print("Adjust this setting to");

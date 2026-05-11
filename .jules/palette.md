@@ -71,3 +71,6 @@
 ## 2026-06-25 - Context-Specific Menu Tooltips
 **Learning:** Providing a generic fallback string like "Adjust this setting to change device behavior" across an entire hardware menu significantly increases cognitive load, as users have to guess the impact of technical options (like "Fuzzing Threshold" or "Interpolation"). Furthermore, splitting a single sentence's logic across multiple menu index selections (e.g. `idx==0` -> "Adjust themes,", `idx==1` -> "and visual icons") causes the tooltip to look broken if the user only hovers on `idx==1`.
 **Action:** When implementing an embedded help/tooltip overlay for a hardware dial menu, ensure every single menu item (or logical grouping of related items) has a complete, contextually relevant explanation formatted properly for the screen constraints. Avoid sentence fragmentation across indices.
+## 2024-05-18 - Avoid Brittle Index Matching in Dynamic Menus
+**Learning:** For dynamic hardware UI menus (like custom zones or conditional dev options) where item indices shift based on varying lengths, avoiding brittle index-based matching for rendering tooltips is crucial.
+**Action:** Use string pattern matching on the menu elements (e.g., `items[menuSelection].startsWith()`) to ensure tooltips remain specific and contextually accurate when menus change size.
