@@ -3,11 +3,6 @@
 # Inspired by RobSmithDev's alienmotiontracker rendering
 
 import time, math
-
-# Pre-computed trigonometric lookup tables for UI rendering
-COS_TABLE = tuple(math.cos(math.radians(i)) for i in range(360))
-SIN_TABLE = tuple(math.sin(math.radians(i)) for i in range(360))
-
 import board, busio, neopixel
 from shared.ui_utils import draw_dotted_circle, map_xy
 import adafruit_ssd1306
@@ -124,10 +119,9 @@ def draw_blip_with_fade(sx, sy, radius, brightness):
         glow_radius = radius + 2
         steps = int(glow_radius * 6.28)
         for i in range(0, steps, 2):
-            angle_deg = (i / steps) * 360
-            idx = int(round(angle_deg)) % 360
-            x = int(sx + glow_radius * COS_TABLE[idx])
-            y = int(sy + glow_radius * SIN_TABLE[idx])
+            a = (i / steps) * 2 * math.pi
+            x = int(sx + glow_radius * math.cos(a))
+            y = int(sy + glow_radius * math.sin(a))
             if 0 <= x < 128 and 0 <= y < 64:
                 oled.pixel(x, y, 1)
 
@@ -141,13 +135,11 @@ def draw_sweep_lines():
         angle_deg = math.degrees(angle) + 90
         
         if 0 <= angle_deg <= 180:
-            # Thin line from center outward (hoisted math)
-            idx = int(round(angle_deg - 90)) % 360
-            cos_a = COS_TABLE[idx]
-            sin_a = SIN_TABLE[idx]
+            # Thin line from center outward
             for r in range(0, RADII[-1] + 1, 4):
-                x = int(CX + r * cos_a)
-                y = int(CY + r * sin_a)
+                a = math.radians(angle_deg - 90)
+                x = int(CX + r * math.cos(a))
+                y = int(CY + r * math.sin(a))
                 if 0 <= x < 128 and 0 <= y < 64:
                     oled.pixel(x, y, 1)
 

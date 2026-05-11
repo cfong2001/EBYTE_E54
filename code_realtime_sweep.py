@@ -3,11 +3,6 @@
 # Advanced protocol (0xAA 0x55)
 
 import time, math
-
-# Pre-computed trigonometric lookup tables for UI rendering
-COS_TABLE = tuple(math.cos(math.radians(i)) for i in range(360))
-SIN_TABLE = tuple(math.sin(math.radians(i)) for i in range(360))
-
 import board, busio, neopixel
 from shared.ui_utils import draw_dotted_circle, map_xy
 import adafruit_ssd1306
@@ -68,9 +63,9 @@ def draw_sweep_to_target(x_mm, y_mm):
     
     if 0 <= angle_deg <= 180:
         # Draw line from center to max range in target direction
-        idx = int(round(angle_deg - 90)) % 360
-        cos_a = COS_TABLE[idx]
-        sin_a = SIN_TABLE[idx]
+        angle = math.radians(angle_deg - 90)
+        cos_a = math.cos(angle)
+        sin_a = math.sin(angle)
         for r in range(0, RADII[-1] + 1, 2):
             x = int(CX + r * cos_a)
             y = int(CY + r * sin_a)
