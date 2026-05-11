@@ -1,5 +1,3 @@
-#ifndef UIMANAGER_H
-#define UIMANAGER_H
 #ifndef UI_MANAGER_H
 #define UI_MANAGER_H
 
@@ -56,62 +54,8 @@ enum TargetIcon {
     ICON_SMART
 };
 
-
-class UIManager;
-
-class IView {
-public:
-    virtual ~IView() {}
-    virtual void handleMenuClick(UIManager* ui) = 0;
-    virtual void executeMenuEdit(UIManager* ui, int dir) = 0;
-    virtual void populateMenuPage(UIManager* ui, char items[][32], int& numItems) = 0;
-};
-
-
-class MainMenuView : public IView {
-public:
-    void handleMenuClick(UIManager* ui) override;
-    void executeMenuEdit(UIManager* ui, int dir) override;
-    void populateMenuPage(UIManager* ui, char items[][32], int& numItems) override;
-};
-
-class VisualsMenuView : public IView {
-public:
-    void handleMenuClick(UIManager* ui) override;
-    void executeMenuEdit(UIManager* ui, int dir) override;
-    void populateMenuPage(UIManager* ui, char items[][32], int& numItems) override;
-};
-
-class ZonesMenuView : public IView {
-public:
-    void handleMenuClick(UIManager* ui) override;
-    void executeMenuEdit(UIManager* ui, int dir) override;
-    void populateMenuPage(UIManager* ui, char items[][32], int& numItems) override;
-};
-
-class DataMenuView : public IView {
-public:
-    void handleMenuClick(UIManager* ui) override;
-    void executeMenuEdit(UIManager* ui, int dir) override;
-    void populateMenuPage(UIManager* ui, char items[][32], int& numItems) override;
-};
-
-class DevMenuView : public IView {
-public:
-    void handleMenuClick(UIManager* ui) override;
-    void executeMenuEdit(UIManager* ui, int dir) override;
-    void populateMenuPage(UIManager* ui, char items[][32], int& numItems) override;
-};
-
 class UIManager {
 public:
-    IView* mainMenuView;
-    IView* visualsMenuView;
-    IView* zonesMenuView;
-    IView* dataMenuView;
-    IView* devMenuView;
-    IView* activeView;
-
     ZoneManager zoneManager;
     Preferences preferences;
     bool devRiskAccepted = false;
@@ -120,14 +64,7 @@ public:
     bool showStdDev = false;
     int uiTextSize = 1;
 
-    UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
-        mainMenuView = new MainMenuView();
-        visualsMenuView = new VisualsMenuView();
-        zonesMenuView = new ZonesMenuView();
-        dataMenuView = new DataMenuView();
-        devMenuView = new DevMenuView();
-        activeView = mainMenuView;
-
+    explicit UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
         state = STATE_BOOT;
         activePage = PAGE_MAIN;
         menuSelection = 0;
@@ -153,9 +90,9 @@ public:
 
         for (int i=0; i<3; i++) {
             lastTargetActive[i] = false;
-            targetCurrentX[i] = tft.width() / 2.0f;
+            targetCurrentX[i] = 120.0f;
             targetCurrentY[i] = 240.0f;
-            lastDrawnX[i] = tft.width() / 2;
+            lastDrawnX[i] = 120;
             lastDrawnY[i] = 240;
 
             rawTargetX[i] = 0;
@@ -168,50 +105,106 @@ public:
             targetStdDev[i] = 0.0f;
 
             for (int h=0; h<10; h++) {
-                targetHistoryX[i][h] = tft.width() / 2.0f;
+                targetHistoryX[i][h] = 120.0f;
                 targetHistoryY[i][h] = 240.0f;
             }
         }
     }
 
+
+
+
+    // Structure to map preferences strings to integer values
+    struct IntPrefMapping {
+        const char* key;
+        int* valuePtr;
+        int defaultVal;
+    };
+
+    // Structure to map preferences strings to boolean values
+    struct BoolPrefMapping {
+        const char* key;
+        bool* valuePtr;
+        bool defaultVal;
+    };
+
     void loadSettings() {
         preferences.begin("radar_ui", false);
-        theme = (ThemeStyle)preferences.getInt("theme", THEME_ALIEN);
-        targetIcon = (TargetIcon)preferences.getInt("icon", ICON_SMART);
-        sweepLineEnabled = preferences.getBool("sweep", true);
-        trailLength = preferences.getInt("trails", 5);
-        gridEnabled = preferences.getBool("grid", true);
-        startupAnimEnabled = preferences.getBool("startup", true);
-        simulatedSweep = preferences.getBool("simSwp", false);
-        showStdDev = preferences.getBool("showStd", false);
 
-        telemetryMode = (TelemetryMode)preferences.getInt("tData", TELEMETRY_OFF);
-        uiTextSize = preferences.getInt("textSize", 1);
-        sensitivity = preferences.getInt("sens", 5);
-        locationAveraging = preferences.getInt("locAvg", 5);
-        interpolationAmount = (float)preferences.getInt("interp", 5) * 0.1f;
+        int tempTheme, tempIcon, tempTelemetryMode, tempInterp;
+        IntPrefMapping intMappings[] = {
+            {"theme", &tempTheme, THEME_ALIEN},
+            {"icon", &tempIcon, ICON_SMART},
+            {"trails", &trailLength, 5},
+            {"tData", &tempTelemetryMode, TELEMETRY_OFF},
+            {"textSize", &uiTextSize, 1},
+            {"sens", &sensitivity, 5},
+            {"locAvg", &locationAveraging, 5},
+            {"interp", &tempInterp, 5}
+        };
+
+        BoolPrefMapping boolMappings[] = {
+            {"sweep", &sweepLineEnabled, true},
+            {"grid", &gridEnabled, true},
+            {"startup", &startupAnimEnabled, true},
+            {"simSwp", &simulatedSweep, false},
+            {"showStd", &showStdDev, false}
+        };
+
+        for (const auto& mapping : intMappings) {
+            *(mapping.valuePtr) = preferences.getInt(mapping.key, mapping.defaultVal);
+        }
+
+        for (const auto& mapping : boolMappings) {
+            *(mapping.valuePtr) = preferences.getBool(mapping.key, mapping.defaultVal);
+        }
+
+        theme = (ThemeStyle)tempTheme;
+        targetIcon = (TargetIcon)tempIcon;
+        telemetryMode = (TelemetryMode)tempTelemetryMode;
+        interpolationAmount = (float)tempInterp / 10.0f;
+
         preferences.end();
     }
 
     void saveSettings() {
         preferences.begin("radar_ui", false);
-        preferences.putInt("theme", theme);
-        preferences.putInt("icon", targetIcon);
-        preferences.putBool("sweep", sweepLineEnabled);
-        preferences.putInt("trails", trailLength);
-        preferences.putBool("grid", gridEnabled);
-        preferences.putBool("startup", startupAnimEnabled);
-        preferences.putBool("simSwp", simulatedSweep);
-        preferences.putBool("showStd", showStdDev);
 
-        preferences.putInt("tData", telemetryMode);
-        preferences.putInt("textSize", uiTextSize);
-        preferences.putInt("sens", sensitivity);
-        preferences.putInt("locAvg", locationAveraging);
-        int interDisp = (int)(interpolationAmount * 10.0f + 0.5f);
-        preferences.putInt("interp", interDisp);
+        int tempTheme = theme;
+        int tempIcon = targetIcon;
+        int tempTelemetryMode = telemetryMode;
+        int tempInterp = (int)(interpolationAmount * 10.0f + 0.5f);
+
+        IntPrefMapping intMappings[] = {
+            {"theme", &tempTheme, 0},
+            {"icon", &tempIcon, 0},
+            {"trails", &trailLength, 0},
+            {"tData", &tempTelemetryMode, 0},
+            {"textSize", &uiTextSize, 0},
+            {"sens", &sensitivity, 0},
+            {"locAvg", &locationAveraging, 0},
+            {"interp", &tempInterp, 0}
+        };
+
+        BoolPrefMapping boolMappings[] = {
+            {"sweep", &sweepLineEnabled, false},
+            {"grid", &gridEnabled, false},
+            {"startup", &startupAnimEnabled, false},
+            {"simSwp", &simulatedSweep, false},
+            {"showStd", &showStdDev, false}
+        };
+
+        for (const auto& mapping : intMappings) {
+            preferences.putInt(mapping.key, *(mapping.valuePtr));
+        }
+
+        for (const auto& mapping : boolMappings) {
+            preferences.putBool(mapping.key, *(mapping.valuePtr));
+        }
+
         preferences.end();
     }
+
 
     void init() {
         zoneManager.loadSettings();
@@ -258,6 +251,7 @@ public:
     }
 
     void handleEncoder(int dir) {
+        showTooltip = false;
         if (state == STATE_GUIDE) {
             guidePage += dir;
             if (guidePage < 0) guidePage = 0;
@@ -276,11 +270,15 @@ public:
 
     void handleButtonLongPress() {
         if (state == STATE_MENU) {
-            showTooltip = true;
+            showTooltip = !showTooltip;
         }
     }
 
     void handleButton() {
+        if (showTooltip) {
+            showTooltip = false;
+            return;
+        }
 
         if (state == STATE_IMPORTING) {
             state = STATE_MENU; // Cancel import
@@ -305,10 +303,10 @@ public:
     void setTargetMotion(int index, float vx, float vy, float ax, float ay, float stdDev = 0.0f) {
         if (index >= 0 && index < 3) {
             // Convert mm/s to screen pixels
-            targetVelX[index] = vx * (tft.width() / 2) / 5000;
-            targetVelY[index] = -vy * tft.width() / 5000; // Y is inverted on screen
-            targetAccX[index] = ax * (tft.width() / 2) / 5000;
-            targetAccY[index] = -ay * tft.width() / 5000;
+            targetVelX[index] = vx * 120 / 5000;
+            targetVelY[index] = -vy * 240 / 5000; // Y is inverted on screen
+            targetAccX[index] = ax * 120 / 5000;
+            targetAccY[index] = -ay * 240 / 5000;
         }
     }
 
@@ -328,8 +326,8 @@ public:
                 if (absSpeed < sensitivity && sensitivity > 1) {
                     targetActive[i] = false;
                 } else {
-                    targetGoalX[i] = (tft.width() / 2) + (targets[i].x * (tft.width() / 2) / 5000);
-                    targetGoalY[i] = tft.height() - (targets[i].y * tft.height() / 5000);
+                    targetGoalX[i] = 120 + (targets[i].x * 120 / 5000);
+                    targetGoalY[i] = 320 - (targets[i].y * 320 / 5000);
 
                     rawTargetX[i] = targets[i].x;
                     rawTargetY[i] = targets[i].y;
@@ -393,11 +391,11 @@ public:
             sprite.print("Zones highlight targets.");
 
             // Draw a mini radar zone
-            sprite.drawCircle(tft.width() / 2, tft.height() / 2, 40, themeWarning);
+            sprite.drawCircle(120, 160, 40, themeWarning);
             sprite.setCursor(10, 80); sprite.setTextColor(themeWarning, themeBg);
             sprite.print("Warning Zone (Amber)");
 
-            sprite.drawCircle(tft.width() / 2, tft.height() / 2, 20, themeDanger);
+            sprite.drawCircle(120, 160, 20, themeDanger);
             sprite.setCursor(10, 100); sprite.setTextColor(themeDanger, themeBg);
             sprite.print("Dead Zone (Hidden)");
 
@@ -436,8 +434,8 @@ public:
 
         if (theme == THEME_MINIMAL) {
             if (gridEnabled) {
-                sprite.drawCircle(tft.width() / 2, tft.width(), 180, 0x18E3);
-                sprite.fillCircle(tft.width() / 2, tft.width(), 4, 0x18E3);
+                sprite.drawCircle(120, 240, 180, 0x18E3);
+                sprite.fillCircle(120, 240, 4, 0x18E3);
             }
         } else {
             drawRadarBackground();
@@ -455,7 +453,7 @@ public:
         }
 
         if (!anyActive) {
-            float pulse = (sinf(millis() * 0.00125f) + 1.0f) * 0.5f;
+            float pulse = (sinf(millis() / 800.0f) + 1.0f) * 0.5f;
             uint16_t emptyColor = sprite.alphaBlend((uint8_t)(pulse * 150.0f) + 50, themePrimary, themeBg);
             sprite.setTextColor(emptyColor, themeBg);
             sprite.setTextSize(uiTextSize);
@@ -468,10 +466,17 @@ public:
         if (state == STATE_MENU || state == STATE_MENU_EDIT) {
             drawMenuOverlay();
         } else if (state == STATE_IMPORTING) {
-            sprite.fillRect(10, 100, 220, 40, themeWarning);
-            sprite.setTextColor(themeBg, themeWarning);
+            float pulse = (sinf(millis() / 300.0f) + 1.0f) * 0.5f;
+            uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 155.0f) + 100, themeWarning, themeBg);
+            sprite.fillRect(10, 100, 220, 40, pulseColor);
+            sprite.setTextColor(themeBg, pulseColor);
             sprite.setCursor(20, 110);
-            sprite.print("WAITING FOR CONFIG...");
+
+            int dots = (millis() / 500) % 4;
+            String dotStr = "";
+            for(int d=0; d<dots; d++) dotStr += ".";
+            sprite.print("WAITING FOR CONFIG" + dotStr + "   ");
+
             sprite.setCursor(20, 125);
             sprite.print("[PRESS BUTTON TO CANCEL]");
         } else if (state == STATE_FALLBACK) {
@@ -584,11 +589,109 @@ public:
             uint16_t sweepColor = (theme == THEME_ALIEN) ? themePrimary : TFT_DARKGREY;
             for (int a = 0; a < 30; a += 2) {
                 float tr = (sweepAngle - a - 180) * 0.0174533f;
-                int tx = (tft.width() / 2) + 180 * cosf(tr);
-                int ty = tft.height() + 180 * sinf(tr);
+                int tx = 120 + 180 * cosf(tr);
+                int ty = 320 + 180 * sinf(tr);
                 uint8_t alpha = 255 - ((a * 255) / 30);
                 uint16_t trailCol = sprite.alphaBlend(alpha, sweepColor, themeBg);
-                sprite.drawLine(tft.width() / 2, tft.height(), tx, ty, trailCol);
+                sprite.drawLine(120, 320, tx, ty, trailCol);
+            }
+        }
+    }
+
+
+private:
+    void drawTargetTrail(int i, uint8_t currentAlpha, uint16_t baseColor) {
+        if (trailLength > 0) {
+            for (int h = 0; h < trailLength; h++) {
+                int hx = (int)targetHistoryX[i][h];
+                int hy = (int)targetHistoryY[i][h];
+                if (hx > 0 && hy > 0) {
+                    uint8_t t_alpha = (currentAlpha * (trailLength - h)) / trailLength;
+                    uint16_t tColor = sprite.alphaBlend(t_alpha, baseColor, themeBg);
+                    int tr = max(1, 4 - (h / 2));
+                    sprite.fillCircle(hx, hy, tr, tColor);
+                }
+            }
+        }
+    }
+
+    void drawTargetWarning(int i, int cx, int cy, uint8_t currentAlpha) {
+        if (zoneManager.isWarning(i)) {
+            float pulse = (sinf(millis() / 150.0f) + 1.0f) * 0.5f;
+            uint8_t blendRatio = (uint8_t)(pulse * 255.0f);
+            uint16_t blendColor = sprite.alphaBlend(blendRatio, themeDanger, themeWarning);
+            uint16_t wCol = sprite.alphaBlend(currentAlpha, blendColor, themeBg);
+            int pr = 8 + (int)(pulse * 2.0f);
+            sprite.drawCircle(cx, cy, pr, wCol);
+        }
+        float danger = zoneManager.getTargetDangerLevel(i);
+        if (danger > 0.01f) {
+            uint16_t dangerColor = sprite.alphaBlend((uint8_t)(danger * 255.0f), themeDanger, themeWarning);
+            uint16_t wCol = sprite.alphaBlend(currentAlpha, dangerColor, themeBg);
+
+            float pulseSpeed = 300.0f - (danger * 200.0f);
+            // ⚡ Bolt: Use single-precision sinf() to avoid implicit double conversion
+            // inside 30Hz display rendering loop, saving CPU cycles on ESP32 FPU.
+            float pulse = (sinf(millis() / pulseSpeed) + 1.0f) * 0.5f;
+            int r = 6 + (int)(pulse * 4.0f * danger);
+
+            sprite.drawCircle(cx, cy, r, wCol);
+        }
+    }
+
+    void drawTargetIcon(int i, int cx, int cy, uint16_t color) {
+        if (targetIcon == ICON_CIRCLE) {
+            sprite.fillCircle(cx, cy, 4, color);
+            if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 5, TFT_WHITE);
+        }
+        else if (targetIcon == ICON_SQUARE) {
+            sprite.fillRect(cx - 3, cy - 3, 7, 7, color);
+            if (!targetCoasting[i]) sprite.drawRect(cx - 4, cy - 4, 9, 9, TFT_WHITE);
+        }
+        else if (targetIcon == ICON_TRIANGLE) {
+            sprite.fillTriangle(cx, cy - 5, cx - 4, cy + 3, cx + 4, cy + 3, color);
+            if (!targetCoasting[i]) sprite.drawTriangle(cx, cy - 6, cx - 5, cy + 4, cx + 5, cy + 4, TFT_WHITE);
+        }
+        else if (targetIcon == ICON_SMART) {
+            sprite.drawCircle(cx, cy, 3, color);
+            if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 4, TFT_WHITE);
+
+            int absSpd = abs(rawTargetSpeed[i]);
+            float rawDx = targetCurrentX[i] - targetHistoryX[i][2];
+            float rawDy = targetCurrentY[i] - targetHistoryY[i][2];
+
+            if (absSpd > 10 && (fabsf(rawDx) > 0.5f || fabsf(rawDy) > 0.5f)) {
+                float len = sqrtf(rawDx*rawDx + rawDy*rawDy);
+                float nx = rawDx / len;
+                float ny = rawDy / len;
+                smoothVecX[i] = (smoothVecX[i] * 0.7f) + (nx * 0.3f);
+                smoothVecY[i] = (smoothVecY[i] * 0.7f) + (ny * 0.3f);
+                smoothSpeed[i] = (smoothSpeed[i] * 0.8f) + ((float)absSpd * 0.2f);
+            } else {
+                smoothSpeed[i] *= 0.8f;
+            }
+
+            if (smoothSpeed[i] > 5.0f) {
+                float stickLen = 5.0f + (smoothSpeed[i] / 10.0f);
+                if (stickLen > 25.0f) stickLen = 25.0f;
+                float sLen = sqrtf(smoothVecX[i]*smoothVecX[i] + smoothVecY[i]*smoothVecY[i]);
+                if (sLen > 0.01f) {
+                    float nSvx = smoothVecX[i] / sLen;
+                    float nSvy = smoothVecY[i] / sLen;
+                    int ex = cx + (int)(nSvx * stickLen);
+                    int ey = cy + (int)(nSvy * stickLen);
+                    sprite.drawLine(cx, cy, ex, ey, color);
+
+                    float arrowAngle = atan2f(nSvy, nSvx);
+                    int ax1 = ex - (int)(4 * cosf(arrowAngle - 0.5f));
+                    int ay1 = ey - (int)(4 * sinf(arrowAngle - 0.5f));
+                    int ax2 = ex - (int)(4 * cosf(arrowAngle + 0.5f));
+                    int ay2 = ey - (int)(4 * sinf(arrowAngle + 0.5f));
+                    sprite.drawLine(ex, ey, ax1, ay1, color);
+                    sprite.drawLine(ex, ey, ax2, ay2, color);
+                }
+            } else {
+                sprite.fillCircle(cx, cy, 2, color);
             }
         }
     }
@@ -612,105 +715,21 @@ public:
             uint8_t currentAlpha = (uint8_t)(simAlpha[i] * 255.0f);
             uint16_t color = sprite.alphaBlend(currentAlpha, baseColor, themeBg);
 
-            if (trailLength > 0) {
-                for (int h = 0; h < trailLength; h++) {
-                    int hx = (int)targetHistoryX[i][h];
-                    int hy = (int)targetHistoryY[i][h];
-                    if (hx > 0 && hy > 0) {
-                        uint8_t t_alpha = (currentAlpha * (trailLength - h)) / trailLength;
-                        uint16_t tColor = sprite.alphaBlend(t_alpha, baseColor, themeBg);
-                        int tr = max(1, 4 - (h / 2));
-                        sprite.fillCircle(hx, hy, tr, tColor);
-                    }
-                }
-            }
+            drawTargetTrail(i, currentAlpha, baseColor);
 
             // Draw StdDev Visualization Circle
             if (showStdDev && targetStdDev[i] > 1.0f) {
                 // Convert millimeter stdDev to screen pixels (approx 120 pixels per 5000 mm)
-                float screenRadius = targetStdDev[i] * (120.0f * 0.0002f);
+                float screenRadius = targetStdDev[i] * (120.0f / 5000.0f);
                 if (screenRadius < 2.0f) screenRadius = 2.0f;
-                if (screenRadius > 120.0f) screenRadius = tft.width() / 2.0f;
+                if (screenRadius > 120.0f) screenRadius = 120.0f;
                 uint16_t devColor = sprite.alphaBlend(100, baseColor, themeBg); // subtle wireframe
                 sprite.drawCircle(cx, cy, (int)screenRadius, devColor);
             }
 
-            if (zoneManager.isWarning(i)) {
-                float pulse = (sinf(millis() * 0.0066667f) + 1.0f) * 0.5f;
-                uint8_t blendRatio = (uint8_t)(pulse * 255.0f);
-                uint16_t blendColor = sprite.alphaBlend(blendRatio, themeDanger, themeWarning);
-                uint16_t wCol = sprite.alphaBlend(currentAlpha, blendColor, themeBg);
-                int pr = 8 + (int)(pulse * 2.0f);
-                sprite.drawCircle(cx, cy, pr, wCol);
-            }
-            float danger = zoneManager.getTargetDangerLevel(i);
-            if (danger > 0.01f) {
-                uint16_t dangerColor = sprite.alphaBlend((uint8_t)(danger * 255.0f), themeDanger, themeWarning);
-                uint16_t wCol = sprite.alphaBlend(currentAlpha, dangerColor, themeBg);
+            drawTargetWarning(i, cx, cy, currentAlpha);
 
-                float pulseSpeed = 300.0f - (danger * 200.0f);
-                // ⚡ Bolt: Use single-precision sinf() to avoid implicit double conversion
-                // inside 30Hz display rendering loop, saving CPU cycles on ESP32 FPU.
-                float pulse = (sinf(millis() / pulseSpeed) + 1.0f) * 0.5f;
-                int r = 6 + (int)(pulse * 4.0f * danger);
-
-                sprite.drawCircle(cx, cy, r, wCol);
-            }
-
-            if (targetIcon == ICON_CIRCLE) {
-                sprite.fillCircle(cx, cy, 4, color);
-                if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 5, TFT_WHITE);
-            }
-            else if (targetIcon == ICON_SQUARE) {
-                sprite.fillRect(cx - 3, cy - 3, 7, 7, color);
-                if (!targetCoasting[i]) sprite.drawRect(cx - 4, cy - 4, 9, 9, TFT_WHITE);
-            }
-            else if (targetIcon == ICON_TRIANGLE) {
-                sprite.fillTriangle(cx, cy - 5, cx - 4, cy + 3, cx + 4, cy + 3, color);
-                if (!targetCoasting[i]) sprite.drawTriangle(cx, cy - 6, cx - 5, cy + 4, cx + 5, cy + 4, TFT_WHITE);
-            }
-            else if (targetIcon == ICON_SMART) {
-                sprite.drawCircle(cx, cy, 3, color);
-                if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 4, TFT_WHITE);
-
-                int absSpd = abs(rawTargetSpeed[i]);
-                float rawDx = targetCurrentX[i] - targetHistoryX[i][2];
-                float rawDy = targetCurrentY[i] - targetHistoryY[i][2];
-
-                if (absSpd > 10 && (fabsf(rawDx) > 0.5f || fabsf(rawDy) > 0.5f)) {
-                    float len = sqrtf(rawDx*rawDx + rawDy*rawDy);
-                    float nx = rawDx / len;
-                    float ny = rawDy / len;
-                    smoothVecX[i] = (smoothVecX[i] * 0.7f) + (nx * 0.3f);
-                    smoothVecY[i] = (smoothVecY[i] * 0.7f) + (ny * 0.3f);
-                    smoothSpeed[i] = (smoothSpeed[i] * 0.8f) + ((float)absSpd * 0.2f);
-                } else {
-                    smoothSpeed[i] *= 0.8f;
-                }
-
-                if (smoothSpeed[i] > 5.0f) {
-                    float stickLen = 5.0f + (smoothSpeed[i] * 0.1f);
-                    if (stickLen > 25.0f) stickLen = 25.0f;
-                    float sLen = sqrtf(smoothVecX[i]*smoothVecX[i] + smoothVecY[i]*smoothVecY[i]);
-                    if (sLen > 0.01f) {
-                        float nSvx = smoothVecX[i] / sLen;
-                        float nSvy = smoothVecY[i] / sLen;
-                        int ex = cx + (int)(nSvx * stickLen);
-                        int ey = cy + (int)(nSvy * stickLen);
-                        sprite.drawLine(cx, cy, ex, ey, color);
-
-                        float arrowAngle = atan2f(nSvy, nSvx);
-                        int ax1 = ex - (int)(4 * cosf(arrowAngle - 0.5f));
-                        int ay1 = ey - (int)(4 * sinf(arrowAngle - 0.5f));
-                        int ax2 = ex - (int)(4 * cosf(arrowAngle + 0.5f));
-                        int ay2 = ey - (int)(4 * sinf(arrowAngle + 0.5f));
-                        sprite.drawLine(ex, ey, ax1, ay1, color);
-                        sprite.drawLine(ex, ey, ax2, ay2, color);
-                    }
-                } else {
-                    sprite.fillCircle(cx, cy, 2, color);
-                }
-            }
+            drawTargetIcon(i, cx, cy, color);
 
             if (theme != THEME_ALIEN && telemetryMode != TELEMETRY_OFF) {
                 sprite.setTextColor(color, themeBg);
@@ -718,19 +737,19 @@ public:
                 sprite.setCursor(cx + 8, cy - 12);
 
                 if (telemetryMode == TELEMETRY_DIST_ANG) {
-                    float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) * 0.001f;
+                    float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) / 1000.0f;
                     int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 180.0f / PI);
                     sprite.printf("%.1fm %d", dist_m, angle);
                     sprite.printf("%.1fm %ddeg", dist_m, angle);
                 } else if (telemetryMode == TELEMETRY_VELOCITY) {
-                    float speed_ms = (float)rawTargetSpeed[i] * 0.1f;
+                    float speed_ms = (float)rawTargetSpeed[i] / 10.0f;
                     sprite.printf("%.1fm/s", speed_ms);
                 } else if (telemetryMode == TELEMETRY_RAW) {
                     sprite.printf("%dmm,%dmm", rawTargetX[i], rawTargetY[i]);
                 } else if (telemetryMode == TELEMETRY_ALL) {
-                    float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) * 0.001f;
+                    float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) / 1000.0f;
                     int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 180.0f / PI);
-                    float speed_ms = (float)rawTargetSpeed[i] * 0.1f;
+                    float speed_ms = (float)rawTargetSpeed[i] / 10.0f;
                     sprite.printf("T%d %.1fm %d", i+1, dist_m, angle);
                     sprite.printf("T%d %.1fm %ddeg", i+1, dist_m, angle);
                     sprite.setCursor(cx + 8, cy - 2);
@@ -783,7 +802,6 @@ public:
 
 private:
     TFT_eSPI& tft;
-public:
     TFT_eSprite sprite;
 public:
 public:
@@ -859,15 +877,15 @@ public:
                 if (sweepDeg > 360) sweepDeg = 360;
                 for (int a = -180; a < -180 + sweepDeg; a += 5) {
                     float rad = a * 0.0174533f;
-                    sprite.drawPixel((tft.width() / 2) + r * cosf(rad), tft.width() + r * sinf(rad), gridColor);
+                    sprite.drawPixel(120 + r * cosf(rad), 240 + r * sinf(rad), gridColor);
                 }
             }
         }
 
         if (maxR > 0) {
-            sprite.drawLine(tft.width() / 2, tft.width(), tft.width() / 2, tft.width() - maxR, gridColor);
-            sprite.drawLine(tft.width() / 2, tft.width(), (tft.width() / 2) - maxR, tft.width(), gridColor);
-            sprite.drawLine(tft.width() / 2, tft.width(), (tft.width() / 2) + maxR, tft.width(), gridColor);
+            sprite.drawLine(120, 240, 120, 240 - maxR, gridColor);
+            sprite.drawLine(120, 240, 120 - maxR, 240, gridColor);
+            sprite.drawLine(120, 240, 120 + maxR, 240, gridColor);
         }
 
         sprite.setTextColor(themePrimary, themeBg);
@@ -892,7 +910,7 @@ public:
             float rad = (a - 90) * 0.0174533f;
             float cosA = cosf(rad);
             float sinA = sinf(rad);
-            sprite.drawLine((tft.width() / 2) + minR*cosA, tft.width() + minR*sinA, (tft.width() / 2) + maxR*cosA, tft.width() + maxR*sinA, color);
+            sprite.drawLine(120 + minR*cosA, 240 + minR*sinA, 120 + maxR*cosA, 240 + maxR*sinA, color);
         }
     }
 
@@ -919,143 +937,157 @@ public:
         gridColor = sprite.alphaBlend(80, gridColor, themeBg); // Dimmer lines
         if (gridEnabled) {
             // Tactical crosshair
-            sprite.drawLine(0, tft.width() / 2, tft.width(), tft.width() / 2, gridColor);
-            sprite.drawLine(tft.width() / 2, 16, tft.width() / 2, tft.height() - 16, gridColor); // Avoid drawing over top/bottom bars
+            sprite.drawLine(0, 120, 240, 120, gridColor);
+            sprite.drawLine(120, 16, 120, 304, gridColor); // Avoid drawing over top/bottom bars
 
             // Faint concentric circles
             for (int r = 40; r <= 100; r += 30) {
-                sprite.drawRect((tft.width() / 2) - r, (tft.width() / 2) - r, r * 2, r * 2, sprite.alphaBlend(50, themePrimary, themeBg));
+                sprite.drawRect(120 - r, 120 - r, r * 2, r * 2, sprite.alphaBlend(50, themePrimary, themeBg));
             }
             if (theme == THEME_ALIEN) {
-                for (int r=60; r<=180; r+=60) {
-                    for (int a=0; a<=180; a+=5) {
-                        float rad = (a - 180) * 0.0174533f;
-                        sprite.drawPixel((tft.width() / 2) + r * cosf(rad), tft.width() + r * sinf(rad), gridColor);
+                // ⚡ Bolt: Loop hoisting for trigonometry optimizations
+                for (int a=0; a<=180; a+=5) {
+                    float rad = (a - 180) * 0.0174533f;
+                    float c = cosf(rad);
+                    float s = sinf(rad);
+                    for (int r=60; r<=180; r+=60) {
+                        sprite.drawPixel(120 + r * c, 240 + r * s, gridColor);
                     }
                 }
             } else {
-                sprite.drawRect(60, 180, tft.width() / 2, tft.width() / 2, gridColor);
-                sprite.drawRect(0, tft.width() / 2, tft.width(), tft.width(), gridColor);
+                sprite.drawRect(60, 180, 120, 120, gridColor);
+                sprite.drawRect(0, 120, 240, 240, gridColor);
             }
 
             // Ticks along axes
             for (int r = 30; r <= 90; r += 30) {
-                sprite.drawLine((tft.width() / 2) - 3, (tft.width() / 2) - r, (tft.width() / 2) + 3, (tft.width() / 2) - r, gridColor); // Vertical axis ticks
-                sprite.drawLine((tft.width() / 2) - r, (tft.width() / 2) - 3, (tft.width() / 2) - r, (tft.width() / 2) + 3, gridColor); // Horizontal axis ticks
-                sprite.drawLine((tft.width() / 2) + r, (tft.width() / 2) - 3, (tft.width() / 2) + r, (tft.width() / 2) + 3, gridColor);
+                sprite.drawLine(120 - 3, 120 - r, 120 + 3, 120 - r, gridColor); // Vertical axis ticks
+                sprite.drawLine(120 - r, 120 - 3, 120 - r, 120 + 3, gridColor); // Horizontal axis ticks
+                sprite.drawLine(120 + r, 120 - 3, 120 + r, 120 + 3, gridColor);
             }
         }
     }
 
 
-    void populateMainMenu(char items[][32], int& numItems) {
+    void populateMainMenu(String* items, int& numItems) {
         sprite.setTextColor(themePrimary, themeBg);
         sprite.setCursor(15, 5); sprite.print("CONFIG MENU");
 
-        snprintf(items[numItems++], 32, "%s", "VISUAL SETTINGS");
-        snprintf(items[numItems++], 32, "%s", "  [DISPLAY/HUD]");
-        snprintf(items[numItems++], 32, "%s", "ZONE CONFIG");
-        snprintf(items[numItems++], 32, "%s", "  [BOUNDARIES]");
-        snprintf(items[numItems++], 32, "%s", "TARGET DATA");
-        snprintf(items[numItems++], 32, "%s", "  [GAIN/FILTER]");
-        snprintf(items[numItems++], 32, "%s", "DEV OPTIONS");
-        snprintf(items[numItems++], 32, "%s", "USER GUIDE");
-        snprintf(items[numItems++], 32, "%s", "[ Exit Menu ]");
+        items[numItems++] = "VISUAL SETTINGS";
+        items[numItems++] = "  [DISPLAY/HUD]";
+        items[numItems++] = "ZONE CONFIG";
+        items[numItems++] = "  [BOUNDARIES]";
+        items[numItems++] = "TARGET DATA";
+        items[numItems++] = "  [GAIN/FILTER]";
+        items[numItems++] = "DEV OPTIONS";
+        items[numItems++] = "USER GUIDE";
+        items[numItems++] = "[ Exit Menu ]";
     }
 
-    void populateVisualsMenu(char items[][32], int& numItems) {
+    void populateVisualsMenu(String* items, int& numItems) {
         sprite.setTextColor(themePrimary, themeBg);
         sprite.setCursor(15, 5); sprite.print("--- VISUAL SETTINGS ---");
 
-        const char* themeStr = (theme == THEME_STANDARD) ? "Standard" : (theme == THEME_ALIEN ? "Alien" : "Minimal");
-        const char* iconStr = (targetIcon == ICON_CIRCLE) ? "CIRCLE" :
+        String themeStr = (theme == THEME_STANDARD) ? "Standard" : (theme == THEME_ALIEN ? "Alien" : "Minimal");
+        String iconStr = (targetIcon == ICON_CIRCLE) ? "CIRCLE" :
                          (targetIcon == ICON_SQUARE) ? "SQUARE" :
                          (targetIcon == ICON_TRIANGLE) ? "TRIANGLE" : "SMART";
-        snprintf(items[numItems++], 32, "%s", "<- Back");
-        snprintf(items[numItems++], 32, "Theme: %s", themeStr);
-        snprintf(items[numItems++], 32, "Icon: %s", iconStr);
-        snprintf(items[numItems++], 32, "Text Size: %d", uiTextSize);
-        snprintf(items[numItems++], 32, "Sweep Line: %s", sweepLineEnabled ? "ON" : "OFF");
-        snprintf(items[numItems++], 32, "Sweep Mode: %s", simulatedSweep ? "SIMULATED" : "VISUAL");
-        snprintf(items[numItems++], 32, "Trails: %d", trailLength);
-        snprintf(items[numItems++], 32, "Grid: %s", gridEnabled ? "ON" : "OFF");
-        snprintf(items[numItems++], 32, "Boot Anim: %s", startupAnimEnabled ? "ON" : "OFF");
+        items[numItems++] = "<- Back";
+        items[numItems++] = "Theme: " + themeStr;
+        items[numItems++] = "Icon: " + iconStr;
+        items[numItems++] = "Text Size: " + String(uiTextSize);
+        items[numItems++] = "Sweep Line: " + String(sweepLineEnabled ? "ON" : "OFF");
+        items[numItems++] = "Sweep Mode: " + String(simulatedSweep ? "SIMULATED" : "VISUAL");
+        items[numItems++] = "Trails: " + String(trailLength);
+        items[numItems++] = "Grid: " + String(gridEnabled ? "ON" : "OFF");
+        items[numItems++] = "Boot Anim: " + String(startupAnimEnabled ? "ON" : "OFF");
     }
 
-    void populateZonesMenu(char items[][32], int& numItems) {
+    void populateZonesMenu(String* items, int& numItems) {
         sprite.setTextColor(themePrimary, themeBg);
         sprite.setCursor(15, 5); sprite.print("--- ZONE CONFIG ---");
 
-        const char* warnStr = (zoneManager.getWarnPreset() == ZONE_OFF) ? "OFF" :
+        String warnStr = (zoneManager.getWarnPreset() == ZONE_OFF) ? "OFF" :
                          (zoneManager.getWarnPreset() == ZONE_CLOSE) ? "CLOSE" :
                          (zoneManager.getWarnPreset() == ZONE_MEDIUM) ? "MED" :
                          (zoneManager.getWarnPreset() == ZONE_FAR) ? "FAR" : "CUSTOM";
 
-        const char* deadStr = (zoneManager.getDeadPreset() == ZONE_OFF) ? "OFF" :
+        String deadStr = (zoneManager.getDeadPreset() == ZONE_OFF) ? "OFF" :
                          (zoneManager.getDeadPreset() == ZONE_CLOSE) ? "CLOSE" :
                          (zoneManager.getDeadPreset() == ZONE_MEDIUM) ? "MED" :
                          (zoneManager.getDeadPreset() == ZONE_FAR) ? "FAR" : "CUSTOM";
 
-        snprintf(items[numItems++], 32, "%s", "<- Back");
-        snprintf(items[numItems++], 32, "Warn Zone: %s", warnStr);
+        items[numItems++] = "<- Back";
+        items[numItems++] = "Warn Zone: " + warnStr;
         if (zoneManager.getWarnPreset() == ZONE_CUSTOM) {
-            snprintf(items[numItems++], 32, " W-MinD: %dmm", zoneManager.getWarnCustom().minDist);
-            snprintf(items[numItems++], 32, " W-MaxD: %dmm", zoneManager.getWarnCustom().maxDist);
-            snprintf(items[numItems++], 32, " W-MinA: %ddeg", zoneManager.getWarnCustom().minAngle);
-            snprintf(items[numItems++], 32, " W-MaxA: %ddeg", zoneManager.getWarnCustom().maxAngle);
+            items[numItems++] = " W-MinD: " + String(zoneManager.getWarnCustom().minDist) + "mm";
+            items[numItems++] = " W-MaxD: " + String(zoneManager.getWarnCustom().maxDist) + "mm";
+            items[numItems++] = " W-MinA: " + String(zoneManager.getWarnCustom().minAngle) + "deg";
+            items[numItems++] = " W-MaxA: " + String(zoneManager.getWarnCustom().maxAngle) + "deg";
         }
         if (zoneManager.getWarnPreset() != ZONE_OFF) {
-            snprintf(items[numItems++], 32, "Warn Fuzz: %d%%", zoneManager.getFuzzingThreshold());
-            snprintf(items[numItems++], 32, "Warn Time: %dms", zoneManager.getHistoryWindow() * 100);
+            items[numItems++] = "Warn Fuzz: " + String(zoneManager.getFuzzingThreshold()) + "%";
+            items[numItems++] = "Warn Time: " + String(zoneManager.getHistoryWindow() * 100) + "ms";
         }
 
-        snprintf(items[numItems++], 32, "Dead Zone: %s", deadStr);
+        items[numItems++] = "Dead Zone: " + deadStr;
         if (zoneManager.getDeadPreset() == ZONE_CUSTOM) {
-            snprintf(items[numItems++], 32, " D-MinD: %dmm", zoneManager.getDeadCustom().minDist);
-            snprintf(items[numItems++], 32, " D-MaxD: %dmm", zoneManager.getDeadCustom().maxDist);
-            snprintf(items[numItems++], 32, " D-MinA: %ddeg", zoneManager.getDeadCustom().minAngle);
-            snprintf(items[numItems++], 32, " D-MaxA: %ddeg", zoneManager.getDeadCustom().maxAngle);
+            items[numItems++] = " D-MinD: " + String(zoneManager.getDeadCustom().minDist) + "mm";
+            items[numItems++] = " D-MaxD: " + String(zoneManager.getDeadCustom().maxDist) + "mm";
+            items[numItems++] = " D-MinA: " + String(zoneManager.getDeadCustom().minAngle) + "deg";
+            items[numItems++] = " D-MaxA: " + String(zoneManager.getDeadCustom().maxAngle) + "deg";
         }
     }
 
-    void populateDataMenu(char items[][32], int& numItems) {
+    void populateDataMenu(String* items, int& numItems) {
         sprite.setTextColor(themePrimary, themeBg);
         sprite.setCursor(15, 5); sprite.print("--- TARGET DATA ---");
 
-        const char* tDataStr = (telemetryMode == TELEMETRY_OFF) ? "OFF" :
+        String tDataStr = (telemetryMode == TELEMETRY_OFF) ? "OFF" :
                           (telemetryMode == TELEMETRY_DIST_ANG) ? "DIST/ANG" :
                           (telemetryMode == TELEMETRY_VELOCITY) ? "SPEED" :
                           (telemetryMode == TELEMETRY_RAW) ? "RAW X/Y" : "ALL";
         int interDisp = (int)(interpolationAmount * 10.0f + 0.5f);
 
-        snprintf(items[numItems++], 32, "%s", "<- Back");
-        snprintf(items[numItems++], 32, "Telemetry: %s", tDataStr);
-        snprintf(items[numItems++], 32, "Sensitivity: %d cm/s", sensitivity);
-        snprintf(items[numItems++], 32, "Loc Avg: %d", locationAveraging);
-        snprintf(items[numItems++], 32, "Smoothing: %d", interDisp);
-        snprintf(items[numItems++], 32, "%s", "[ Reset Tracking ]");
+        items[numItems++] = "<- Back";
+        items[numItems++] = "Telemetry: " + tDataStr;
+        items[numItems++] = "Sensitivity: " + String(sensitivity) + " cm/s";
+        items[numItems++] = "Loc Avg: " + String(locationAveraging) + " frames";
+        items[numItems++] = "Smoothing: " + String(interDisp) + "%";
+        items[numItems++] = "[ Reset Tracking ]";
     }
 
-    void populateDevMenu(char items[][32], int& numItems) {
+    void populateDevMenu(String* items, int& numItems) {
         sprite.setTextColor(themeDanger, themeBg);
         sprite.setCursor(15, 5); sprite.print("--- DEV OPTIONS ---");
 
-        snprintf(items[numItems++], 32, "%s", "<- Back");
-        snprintf(items[numItems++], 32, "Accept Risk? %s", devRiskAccepted ? "YES" : "NO");
+        items[numItems++] = "<- Back";
+        items[numItems++] = "Accept Risk? " + String(devRiskAccepted ? "YES" : "NO");
         if (devRiskAccepted) {
-            snprintf(items[numItems++], 32, "Motion Comp: %s", motionCompEnabled ? "ON" : "OFF");
-            snprintf(items[numItems++], 32, "Passthrough: %s", passthroughMode ? "ON" : "OFF");
-            snprintf(items[numItems++], 32, "Show StdDev: %s", showStdDev ? "ON" : "OFF");
-            snprintf(items[numItems++], 32, "%s", "[ FACTORY RESET ]");
-            snprintf(items[numItems++], 32, "%s", "[ EXPORT CONFIG ]");
-            snprintf(items[numItems++], 32, "%s", "[ IMPORT CONFIG ]");
+            items[numItems++] = "Motion Comp: " + String(motionCompEnabled ? "ON" : "OFF");
+            items[numItems++] = "Passthrough: " + String(passthroughMode ? "ON" : "OFF");
+            items[numItems++] = "Show StdDev: " + String(showStdDev ? "ON" : "OFF");
+            items[numItems++] = "[ FACTORY RESET ]";
+            items[numItems++] = "[ EXPORT CONFIG ]";
+            items[numItems++] = "[ IMPORT CONFIG ]";
         }
     }
 
-    void populateMenuPage(char items[][32], int& numItems) {
-        if (activeView) activeView->populateMenuPage(this, items, numItems);
+    void populateMenuPage(String* items, int& numItems) {
+        if (activePage == PAGE_MAIN) {
+            populateMainMenu(items, numItems);
+        } else if (activePage == PAGE_VISUALS) {
+            populateVisualsMenu(items, numItems);
+        } else if (activePage == PAGE_ZONES) {
+            populateZonesMenu(items, numItems);
+        } else if (activePage == PAGE_DATA) {
+            populateDataMenu(items, numItems);
+        } else if (activePage == PAGE_DEV) {
+            populateDevMenu(items, numItems);
+        }
     }
-    void drawMenuItems(char items[][32], int numItems) {
+
+    void drawMenuItems(String* items, int numItems) {
         maxMenuSelection = numItems - 1;
 
         int startIdx = max(0, menuSelection - 2);
@@ -1108,7 +1140,7 @@ public:
             sprite.print("INFO: ");
             sprite.setCursor(15, 160);
 
-            // Simple logic to display something based on item
+            // Contextual tooltip logic for all menus
             if (activePage == PAGE_MAIN) {
                 if (menuSelection == 0 || menuSelection == 1) { sprite.print("Adjust visual themes,"); sprite.setCursor(15, 175); sprite.print("icons, and UI settings."); }
                 else if (menuSelection == 2 || menuSelection == 3) { sprite.print("Configure tracking boundaries"); sprite.setCursor(15, 175); sprite.print("and warning zones."); }
@@ -1174,7 +1206,7 @@ public:
         if (menuOverlayY < 200) return;
 
         sprite.setTextSize(uiTextSize);
-        static char items[24][32];
+        static String items[24];
         int numItems = 0;
 
         populateMenuPage(items, numItems);
@@ -1182,159 +1214,155 @@ public:
     }
 
     void handleMenuClick() {
-        if (activeView) activeView->handleMenuClick(this);
-        if (activePage == PAGE_MAIN) activeView = mainMenuView;
-        else if (activePage == PAGE_VISUALS) activeView = visualsMenuView;
-        else if (activePage == PAGE_ZONES) activeView = zonesMenuView;
-        else if (activePage == PAGE_DATA) activeView = dataMenuView;
-        else if (activePage == PAGE_DEV) activeView = devMenuView;
+        if (activePage == PAGE_MAIN) {
+            if (menuSelection == 0 || menuSelection == 1) { activePage = PAGE_VISUALS; menuSelection = 0; }
+            else if (menuSelection == 2 || menuSelection == 3) { activePage = PAGE_ZONES; menuSelection = 0; }
+            else if (menuSelection == 4 || menuSelection == 5) { activePage = PAGE_DATA; menuSelection = 0; }
+            else if (menuSelection == 6) { activePage = PAGE_DEV; menuSelection = 0; }
+            else if (menuSelection == 7) { state = STATE_GUIDE; guidePage = 0; }
+            else if (menuSelection == 8) { state = STATE_RADAR_VIEW; }
+        }
+        else if (activePage == PAGE_VISUALS) {
+            if (menuSelection == 0) { activePage = PAGE_MAIN; menuSelection = 0; }
+            else { state = STATE_MENU_EDIT; }
+        }
+        else if (activePage == PAGE_ZONES) {
+            if (menuSelection == 0) { activePage = PAGE_MAIN; menuSelection = 0; }
+            else { state = STATE_MENU_EDIT; }
+        }
+        else if (activePage == PAGE_DEV) {
+            if (menuSelection == 0) { activePage = PAGE_MAIN; menuSelection = 0; }
+            else if (menuSelection == maxMenuSelection - 1 && devRiskAccepted) { actionRequested = 2; state = STATE_RADAR_VIEW; }
+            else if (menuSelection == maxMenuSelection && devRiskAccepted) { state = STATE_IMPORTING; }
+            else { state = STATE_MENU_EDIT; }
+        }
+        else if (activePage == PAGE_DATA) {
+            if (menuSelection == 0) { activePage = PAGE_MAIN; menuSelection = 0; }
+            else if (menuSelection == maxMenuSelection) { actionRequested = 1; state = STATE_RADAR_VIEW; }
+            else { state = STATE_MENU_EDIT; }
+        }
     }
+
+    void executeVisualsMenuEdit(int dir, int& idx) {
+        if (idx++ == menuSelection) {
+            int t = (int)theme + dir;
+            if (t > 2) t = 0; if (t < 0) t = 2;
+            theme = (ThemeStyle)t;
+            if (theme == THEME_ALIEN) { sweepLineEnabled = true; trailLength = 8; gridEnabled = true; }
+            else if (theme == THEME_MINIMAL) { sweepLineEnabled = false; trailLength = 0; gridEnabled = true; }
+            else { sweepLineEnabled = true; trailLength = 3; gridEnabled = true; }
+            return;
+        }
+        if (idx++ == menuSelection) {
+            int ic = (int)targetIcon + dir;
+            if (ic > 3) ic = 0; if (ic < 0) ic = 3;
+            targetIcon = (TargetIcon)ic;
+            return;
+        }
+        if (idx++ == menuSelection) { uiTextSize += dir; if (uiTextSize < 1) uiTextSize = 1; if (uiTextSize > 2) uiTextSize = 2; return; }
+        if (idx++ == menuSelection) { sweepLineEnabled = !sweepLineEnabled; return; }
+        if (idx++ == menuSelection) { simulatedSweep = !simulatedSweep; return; }
+        if (idx++ == menuSelection) { trailLength += dir; if (trailLength < 0) trailLength = 0; if (trailLength > 10) trailLength = 10; return; }
+        if (idx++ == menuSelection) { gridEnabled = !gridEnabled; return; }
+        if (idx++ == menuSelection) { startupAnimEnabled = !startupAnimEnabled; return; }
+    }
+
+    void executeZonesMenuEdit(int dir, int& idx) {
+        if (idx++ == menuSelection) {
+            int p = (int)zoneManager.getWarnPreset() + dir;
+            if (p > 4) p = 0; if (p < 0) p = 4;
+            zoneManager.setWarnPreset((ZonePreset)p);
+            return;
+        }
+        if (zoneManager.getWarnPreset() == ZONE_CUSTOM) {
+            RadialZone z = zoneManager.getWarnCustom();
+            if (idx++ == menuSelection) { z.minDist += dir * 100; if(z.minDist < 0) z.minDist=0; zoneManager.setWarnCustom(z); return; }
+            if (idx++ == menuSelection) { z.maxDist += dir * 100; if(z.maxDist < z.minDist) z.maxDist=z.minDist; zoneManager.setWarnCustom(z); return; }
+            if (idx++ == menuSelection) { z.minAngle += dir * 5; if(z.minAngle < -90) z.minAngle=-90; zoneManager.setWarnCustom(z); return; }
+            if (idx++ == menuSelection) { z.maxAngle += dir * 5; if(z.maxAngle > 90) z.maxAngle=90; zoneManager.setWarnCustom(z); return; }
+        }
+        if (zoneManager.getWarnPreset() != ZONE_OFF) {
+            if (idx++ == menuSelection) {
+                int f = zoneManager.getFuzzingThreshold() + dir * 5;
+                if (f < 0) f = 0; if (f > 100) f = 100;
+                zoneManager.setFuzzingThreshold(f);
+                return;
+            }
+            if (idx++ == menuSelection) {
+                zoneManager.setHistoryWindow(zoneManager.getHistoryWindow() + dir);
+                return;
+            }
+        }
+        if (idx++ == menuSelection) {
+            int p = (int)zoneManager.getDeadPreset() + dir;
+            if (p > 4) p = 0; if (p < 0) p = 4;
+            zoneManager.setDeadPreset((ZonePreset)p);
+            return;
+        }
+        if (zoneManager.getDeadPreset() == ZONE_CUSTOM) {
+            RadialZone z = zoneManager.getDeadCustom();
+            if (idx++ == menuSelection) { z.minDist += dir * 100; if(z.minDist < 0) z.minDist=0; zoneManager.setDeadCustom(z); return; }
+            if (idx++ == menuSelection) { z.maxDist += dir * 100; if(z.maxDist < z.minDist) z.maxDist=z.minDist; zoneManager.setDeadCustom(z); return; }
+            if (idx++ == menuSelection) { z.minAngle += dir * 5; if(z.minAngle < -90) z.minAngle=-90; zoneManager.setDeadCustom(z); return; }
+            if (idx++ == menuSelection) { z.maxAngle += dir * 5; if(z.maxAngle > 90) z.maxAngle=90; zoneManager.setDeadCustom(z); return; }
+        }
+    }
+
+    void executeDevMenuEdit(int dir, int& idx) {
+        if (idx++ == menuSelection) { devRiskAccepted = !devRiskAccepted; return; }
+        if (devRiskAccepted) {
+            if (idx++ == menuSelection) { motionCompEnabled = !motionCompEnabled; return; }
+            if (idx++ == menuSelection) { passthroughMode = !passthroughMode; return; }
+            if (idx++ == menuSelection) { showStdDev = !showStdDev; return; }
+            if (idx++ == menuSelection) {
+                sprite.fillSprite(themeDanger);
+                sprite.setTextColor(TFT_WHITE);
+                sprite.setCursor(10, 100);
+                sprite.print("WIPING PREFERENCES...");
+                sprite.pushSprite(0, 0);
+                preferences.clear();
+                delay(1000);
+                ESP.restart();
+                return;
+            }
+            idx++; // EXPORT
+            idx++; // IMPORT
+        }
+    }
+
+    void executeDataMenuEdit(int dir, int& idx) {
+        if (idx++ == menuSelection) {
+            int tm = (int)telemetryMode + dir;
+            if (tm > 4) tm = 0; if (tm < 0) tm = 4;
+            telemetryMode = (TelemetryMode)tm;
+            return;
+        }
+        if (idx++ == menuSelection) { sensitivity += dir; if (sensitivity < 1) sensitivity = 10; if (sensitivity > 10) sensitivity = 10; return; }
+        if (idx++ == menuSelection) { locationAveraging += dir; if (locationAveraging < 1) locationAveraging = 1; if (locationAveraging > 10) locationAveraging = 10; return; }
+        if (idx++ == menuSelection) {
+            interpolationAmount += (dir * 0.1f);
+            if (interpolationAmount < 0.1f) interpolationAmount = 0.1f;
+            if (interpolationAmount > 1.05f) interpolationAmount = 1.0f;
+            return;
+        }
+    }
+
     void executeMenuEdit(int dir) {
-        if (activeView) activeView->executeMenuEdit(this, dir);
+        int idx = 1; // 0 is always <- Back
+
+        if (activePage == PAGE_VISUALS) {
+            executeVisualsMenuEdit(dir, idx);
+        }
+        else if (activePage == PAGE_ZONES) {
+            executeZonesMenuEdit(dir, idx);
+        }
+        else if (activePage == PAGE_DEV) {
+            executeDevMenuEdit(dir, idx);
+        }
+        else if (activePage == PAGE_DATA) {
+            executeDataMenuEdit(dir, idx);
+        }
     }
 };
-
-#endif
-
-
-inline void MainMenuView::handleMenuClick(UIManager* ui) {
-    if (ui->menuSelection == 0 || ui->menuSelection == 1) { ui->activePage = PAGE_VISUALS; ui->menuSelection = 0; }
-    else if (ui->menuSelection == 2 || ui->menuSelection == 3) { ui->activePage = PAGE_ZONES; ui->menuSelection = 0; }
-    else if (ui->menuSelection == 4 || ui->menuSelection == 5) { ui->activePage = PAGE_DATA; ui->menuSelection = 0; }
-    else if (ui->menuSelection == 6) { ui->activePage = PAGE_DEV; ui->menuSelection = 0; }
-    else if (ui->menuSelection == 7) { ui->state = STATE_GUIDE; ui->guidePage = 0; }
-    else if (ui->menuSelection == 8) { ui->state = STATE_RADAR_VIEW; }
-}
-inline void MainMenuView::executeMenuEdit(UIManager* ui, int dir) {}
-inline void MainMenuView::populateMenuPage(UIManager* ui, char items[][32], int& numItems) { ui->populateMainMenu(items, numItems); }
-
-inline void VisualsMenuView::handleMenuClick(UIManager* ui) {
-    if (ui->menuSelection == 0) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
-    else { ui->state = STATE_MENU_EDIT; }
-}
-inline void VisualsMenuView::executeMenuEdit(UIManager* ui, int dir) {
-    int idx = 1;
-    if (idx++ == ui->menuSelection) {
-        int t = (int)ui->theme + dir;
-        if (t > 2) t = 0; if (t < 0) t = 2;
-        ui->theme = (ThemeStyle)t;
-        if (ui->theme == THEME_ALIEN) { ui->sweepLineEnabled = true; ui->trailLength = 8; ui->gridEnabled = true; }
-        else if (ui->theme == THEME_MINIMAL) { ui->sweepLineEnabled = false; ui->trailLength = 0; ui->gridEnabled = true; }
-        else { ui->sweepLineEnabled = true; ui->trailLength = 3; ui->gridEnabled = true; }
-        return;
-    }
-    if (idx++ == ui->menuSelection) {
-        int ic = (int)ui->targetIcon + dir;
-        if (ic > 3) ic = 0; if (ic < 0) ic = 3;
-        ui->targetIcon = (TargetIcon)ic;
-        return;
-    }
-    if (idx++ == ui->menuSelection) { ui->uiTextSize += dir; if (ui->uiTextSize < 1) ui->uiTextSize = 1; if (ui->uiTextSize > 2) ui->uiTextSize = 2; return; }
-    if (idx++ == ui->menuSelection) { ui->sweepLineEnabled = !ui->sweepLineEnabled; return; }
-    if (idx++ == ui->menuSelection) { ui->simulatedSweep = !ui->simulatedSweep; return; }
-    if (idx++ == ui->menuSelection) { ui->trailLength += dir; if (ui->trailLength < 0) ui->trailLength = 0; if (ui->trailLength > 10) ui->trailLength = 10; return; }
-    if (idx++ == ui->menuSelection) { ui->gridEnabled = !ui->gridEnabled; return; }
-    if (idx++ == ui->menuSelection) { ui->startupAnimEnabled = !ui->startupAnimEnabled; return; }
-}
-inline void VisualsMenuView::populateMenuPage(UIManager* ui, char items[][32], int& numItems) { ui->populateVisualsMenu(items, numItems); }
-
-inline void ZonesMenuView::handleMenuClick(UIManager* ui) {
-    if (ui->menuSelection == 0) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
-    else { ui->state = STATE_MENU_EDIT; }
-}
-inline void ZonesMenuView::executeMenuEdit(UIManager* ui, int dir) {
-    int idx = 1;
-    if (idx++ == ui->menuSelection) {
-        int p = (int)ui->zoneManager.getWarnPreset() + dir;
-        if (p > 4) p = 0; if (p < 0) p = 4;
-        ui->zoneManager.setWarnPreset((ZonePreset)p);
-        return;
-    }
-    if (ui->zoneManager.getWarnPreset() == ZONE_CUSTOM) {
-        RadialZone z = ui->zoneManager.getWarnCustom();
-        if (idx++ == ui->menuSelection) { z.minDist += dir * 100; if(z.minDist < 0) z.minDist=0; ui->zoneManager.setWarnCustom(z); return; }
-        if (idx++ == ui->menuSelection) { z.maxDist += dir * 100; if(z.maxDist < z.minDist) z.maxDist=z.minDist; ui->zoneManager.setWarnCustom(z); return; }
-        if (idx++ == ui->menuSelection) { z.minAngle += dir * 5; if(z.minAngle < -90) z.minAngle=-90; ui->zoneManager.setWarnCustom(z); return; }
-        if (idx++ == ui->menuSelection) { z.maxAngle += dir * 5; if(z.maxAngle > 90) z.maxAngle=90; ui->zoneManager.setWarnCustom(z); return; }
-    }
-    if (ui->zoneManager.getWarnPreset() != ZONE_OFF) {
-        if (idx++ == ui->menuSelection) {
-            int f = ui->zoneManager.getFuzzingThreshold() + dir * 5;
-            if (f < 0) f = 0; if (f > 100) f = 100;
-            ui->zoneManager.setFuzzingThreshold(f);
-            return;
-        }
-        if (idx++ == ui->menuSelection) {
-            ui->zoneManager.setHistoryWindow(ui->zoneManager.getHistoryWindow() + dir);
-            return;
-        }
-    }
-    if (idx++ == ui->menuSelection) {
-        int p = (int)ui->zoneManager.getDeadPreset() + dir;
-        if (p > 4) p = 0; if (p < 0) p = 4;
-        ui->zoneManager.setDeadPreset((ZonePreset)p);
-        return;
-    }
-    if (ui->zoneManager.getDeadPreset() == ZONE_CUSTOM) {
-        RadialZone z = ui->zoneManager.getDeadCustom();
-        if (idx++ == ui->menuSelection) { z.minDist += dir * 100; if(z.minDist < 0) z.minDist=0; ui->zoneManager.setDeadCustom(z); return; }
-        if (idx++ == ui->menuSelection) { z.maxDist += dir * 100; if(z.maxDist < z.minDist) z.maxDist=z.minDist; ui->zoneManager.setDeadCustom(z); return; }
-        if (idx++ == ui->menuSelection) { z.minAngle += dir * 5; if(z.minAngle < -90) z.minAngle=-90; ui->zoneManager.setDeadCustom(z); return; }
-        if (idx++ == ui->menuSelection) { z.maxAngle += dir * 5; if(z.maxAngle > 90) z.maxAngle=90; ui->zoneManager.setDeadCustom(z); return; }
-    }
-}
-inline void ZonesMenuView::populateMenuPage(UIManager* ui, char items[][32], int& numItems) { ui->populateZonesMenu(items, numItems); }
-
-inline void DataMenuView::handleMenuClick(UIManager* ui) {
-    if (ui->menuSelection == 0) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
-    else if (ui->menuSelection == ui->maxMenuSelection) { ui->actionRequested = 1; ui->state = STATE_RADAR_VIEW; }
-    else { ui->state = STATE_MENU_EDIT; }
-}
-inline void DataMenuView::executeMenuEdit(UIManager* ui, int dir) {
-    int idx = 1;
-    if (idx++ == ui->menuSelection) {
-        int tm = (int)ui->telemetryMode + dir;
-        if (tm > 4) tm = 0; if (tm < 0) tm = 4;
-        ui->telemetryMode = (TelemetryMode)tm;
-        return;
-    }
-    if (idx++ == ui->menuSelection) { ui->sensitivity += dir; if (ui->sensitivity < 1) ui->sensitivity = 10; if (ui->sensitivity > 10) ui->sensitivity = 10; return; }
-    if (idx++ == ui->menuSelection) { ui->locationAveraging += dir; if (ui->locationAveraging < 1) ui->locationAveraging = 1; if (ui->locationAveraging > 10) ui->locationAveraging = 10; return; }
-    if (idx++ == ui->menuSelection) {
-        ui->interpolationAmount += (dir * 0.1f);
-        if (ui->interpolationAmount < 0.1f) ui->interpolationAmount = 0.1f;
-        if (ui->interpolationAmount > 1.05f) ui->interpolationAmount = 1.0f;
-        return;
-    }
-}
-inline void DataMenuView::populateMenuPage(UIManager* ui, char items[][32], int& numItems) { ui->populateDataMenu(items, numItems); }
-
-inline void DevMenuView::handleMenuClick(UIManager* ui) {
-    if (ui->menuSelection == 0) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
-    else if (ui->menuSelection == ui->maxMenuSelection - 1 && ui->devRiskAccepted) { ui->actionRequested = 2; ui->state = STATE_RADAR_VIEW; }
-    else if (ui->menuSelection == ui->maxMenuSelection && ui->devRiskAccepted) { ui->state = STATE_IMPORTING; }
-    else { ui->state = STATE_MENU_EDIT; }
-}
-inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
-    int idx = 1;
-    if (idx++ == ui->menuSelection) { ui->devRiskAccepted = !ui->devRiskAccepted; return; }
-    if (ui->devRiskAccepted) {
-        if (idx++ == ui->menuSelection) { ui->motionCompEnabled = !ui->motionCompEnabled; return; }
-        if (idx++ == ui->menuSelection) { ui->passthroughMode = !ui->passthroughMode; return; }
-        if (idx++ == ui->menuSelection) { ui->showStdDev = !ui->showStdDev; return; }
-        if (idx++ == ui->menuSelection) {
-            ui->sprite.fillSprite(0xFDB5); // themeDanger
-            ui->sprite.setTextColor(TFT_WHITE);
-            ui->sprite.setCursor(10, 100);
-            ui->sprite.print("WIPING PREFERENCES...");
-            ui->sprite.pushSprite(0, 0);
-            ui->preferences.clear();
-            delay(1000);
-            ESP.restart();
-            return;
-        }
-    }
-}
-inline void DevMenuView::populateMenuPage(UIManager* ui, char items[][32], int& numItems) { ui->populateDevMenu(items, numItems); }
 
 #endif

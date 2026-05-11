@@ -9,6 +9,11 @@ from shared.ui_utils import draw_dotted_circle
 import adafruit_ssd1306
 import neopixel
 import math
+
+# Pre-computed trigonometric lookup tables for UI rendering
+COS_TABLE = tuple(math.cos(math.radians(i)) for i in range(360))
+SIN_TABLE = tuple(math.sin(math.radians(i)) for i in range(360))
+
 from utils import s16_le
 
 # Initialize hardware
@@ -37,10 +42,12 @@ pixel.fill((10, 10, 0))  # Yellow = detecting
 
 def draw_angle_markers(cx, cy):
     for angle_deg in [0, 45, 90, 135, 180]:
-        rad = math.radians(angle_deg - 90)
+        idx = int(round(angle_deg - 90)) % 360
+        cos_a = COS_TABLE[idx]
+        sin_a = SIN_TABLE[idx]
         for r in range(R_MAX - 4, R_MAX + 1):
-            x = int(cx + r * math.cos(rad))
-            y = int(cy + r * math.sin(rad))
+            x = int(cx + r * cos_a)
+            y = int(cy + r * sin_a)
             if 0 <= x < 128 and 0 <= y < 64:
                 oled.pixel(x, y, 1)
 
@@ -54,9 +61,9 @@ def draw_target(x, y, target_idx, age):
     
     if target_idx == 0:  # Primary - filled circle with glow
         for angle in range(0, 360, 30):
-            rad = math.radians(angle)
-            gx = int(x + 4 * math.cos(rad))
-            gy = int(y + 4 * math.sin(rad))
+            table_idx = int(round(angle)) % 360
+            gx = int(x + 4 * COS_TABLE[table_idx])
+            gy = int(y + 4 * SIN_TABLE[table_idx])
             if 0 <= gx < 128 and 0 <= gy < 64:
                 oled.pixel(gx, gy, 1)
         
@@ -69,9 +76,9 @@ def draw_target(x, y, target_idx, age):
     
     elif target_idx == 1:  # Secondary - hollow circle
         for angle in range(0, 360, 45):
-            rad = math.radians(angle)
-            gx = int(x + 2 * math.cos(rad))
-            gy = int(y + 2 * math.sin(rad))
+            idx = int(round(angle)) % 360
+            gx = int(x + 2 * COS_TABLE[idx])
+            gy = int(y + 2 * SIN_TABLE[idx])
             if 0 <= gx < 128 and 0 <= gy < 64:
                 oled.pixel(gx, gy, 1)
     
@@ -99,10 +106,12 @@ def draw_radar_screen():
     
     # Draw rotating sweep line
     sweep_angle = (sweep_angle + 8) % 180
-    rad = math.radians(sweep_angle - 90)
+    idx = int(round(sweep_angle - 90)) % 360
+    cos_a = COS_TABLE[idx]
+    sin_a = SIN_TABLE[idx]
     for r in range(0, R_MAX + 1, 2):
-        x = int(CX + r * math.cos(rad))
-        y = int(CY + r * math.sin(rad))
+        x = int(CX + r * cos_a)
+        y = int(CY + r * sin_a)
         if 0 <= x < 128 and 0 <= y < 64:
             oled.pixel(x, y, 1)
     
@@ -129,9 +138,9 @@ def draw_radar_screen():
             if 0 <= angle_deg <= 180:
                 r = int((dist_mm / MAX_RANGE) * R_MAX)
                 
-                screen_rad = math.radians(angle_deg - 90)
-                px = int(CX + r * math.cos(screen_rad))
-                py = int(CY + r * math.sin(screen_rad))
+                idx = int(round(angle_deg - 90)) % 360
+                px = int(CX + r * COS_TABLE[idx])
+                py = int(CY + r * SIN_TABLE[idx])
                 
                 draw_target(px, py, t_idx, age)
     

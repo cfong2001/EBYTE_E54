@@ -40,65 +40,98 @@ public:
         }
     }
 
+
+
+
+    struct IntPrefMapping {
+        const char* key;
+        int* valuePtr;
+        int defaultVal;
+    };
+
     void loadSettings() {
         preferences.begin("radar_zones", false);
-        warnPreset = (ZonePreset)preferences.getInt("warnP", ZONE_OFF);
-        deadPreset = (ZonePreset)preferences.getInt("deadP", ZONE_OFF);
-        warnCustom.minDist = preferences.getInt("wC_minD", 1000);
-        warnCustom.maxDist = preferences.getInt("wC_maxD", 3000);
-        warnCustom.minAngle = preferences.getInt("wC_minA", -30);
-        warnCustom.maxAngle = preferences.getInt("wC_maxA", 30);
-        deadCustom.minDist = preferences.getInt("dC_minD", 0);
-        deadCustom.maxDist = preferences.getInt("dC_maxD", 1000);
-        deadCustom.minAngle = preferences.getInt("dC_minA", -90);
-        deadCustom.maxAngle = preferences.getInt("dC_maxA", 90);
-        fuzzingThreshold = preferences.getInt("fuzzT", 50);
-        historyWindow = preferences.getInt("histW", 10);
+
+        int tempWarnP, tempDeadP;
+        IntPrefMapping intMappings[] = {
+            {"warnP", &tempWarnP, ZONE_OFF},
+            {"deadP", &tempDeadP, ZONE_OFF},
+            {"wC_minD", &warnCustom.minDist, 1000},
+            {"wC_maxD", &warnCustom.maxDist, 3000},
+            {"wC_minA", &warnCustom.minAngle, -30},
+            {"wC_maxA", &warnCustom.maxAngle, 30},
+            {"dC_minD", &deadCustom.minDist, 0},
+            {"dC_maxD", &deadCustom.maxDist, 1000},
+            {"dC_minA", &deadCustom.minAngle, -90},
+            {"dC_maxA", &deadCustom.maxAngle, 90},
+            {"fuzzT", &fuzzingThreshold, 50},
+            {"histW", &historyWindow, 10}
+        };
+
+        for (const auto& mapping : intMappings) {
+            *(mapping.valuePtr) = preferences.getInt(mapping.key, mapping.defaultVal);
+        }
+
+        warnPreset = (ZonePreset)tempWarnP;
+        deadPreset = (ZonePreset)tempDeadP;
+
         preferences.end();
     }
 
     void saveSettings() {
         preferences.begin("radar_zones", false);
-        preferences.putInt("warnP", warnPreset);
-        preferences.putInt("deadP", deadPreset);
-        preferences.putInt("wC_minD", warnCustom.minDist);
-        preferences.putInt("wC_maxD", warnCustom.maxDist);
-        preferences.putInt("wC_minA", warnCustom.minAngle);
-        preferences.putInt("wC_maxA", warnCustom.maxAngle);
-        preferences.putInt("dC_minD", deadCustom.minDist);
-        preferences.putInt("dC_maxD", deadCustom.maxDist);
-        preferences.putInt("dC_minA", deadCustom.minAngle);
-        preferences.putInt("dC_maxA", deadCustom.maxAngle);
-        preferences.putInt("fuzzT", fuzzingThreshold);
-        preferences.putInt("histW", historyWindow);
+
+        int tempWarnP = warnPreset;
+        int tempDeadP = deadPreset;
+
+        IntPrefMapping intMappings[] = {
+            {"warnP", &tempWarnP, 0},
+            {"deadP", &tempDeadP, 0},
+            {"wC_minD", &warnCustom.minDist, 0},
+            {"wC_maxD", &warnCustom.maxDist, 0},
+            {"wC_minA", &warnCustom.minAngle, 0},
+            {"wC_maxA", &warnCustom.maxAngle, 0},
+            {"dC_minD", &deadCustom.minDist, 0},
+            {"dC_maxD", &deadCustom.maxDist, 0},
+            {"dC_minA", &deadCustom.minAngle, 0},
+            {"dC_maxA", &deadCustom.maxAngle, 0},
+            {"fuzzT", &fuzzingThreshold, 0},
+            {"histW", &historyWindow, 0}
+        };
+
+        for (const auto& mapping : intMappings) {
+            preferences.putInt(mapping.key, *(mapping.valuePtr));
+        }
+
         preferences.end();
     }
 
-    void setWarnPreset(ZonePreset p) { warnPreset = p; flagDirty(); }
-    void setDeadPreset(ZonePreset p) { deadPreset = p; flagDirty(); }
-    void setWarnCustom(RadialZone z) { warnCustom = z; flagDirty(); }
-    void setDeadCustom(RadialZone z) { deadCustom = z; flagDirty(); }
-    void setFuzzingThreshold(int percent) { fuzzingThreshold = percent; flagDirty(); }
+
+    void setWarnPreset(ZonePreset p) { warnPreset = p; saveSettings(); }
+    void setDeadPreset(ZonePreset p) { deadPreset = p; saveSettings(); }
+    void setWarnCustom(RadialZone z) { warnCustom = z; saveSettings(); }
+    void setDeadCustom(RadialZone z) { deadCustom = z; saveSettings(); }
+    void setFuzzingThreshold(int percent) { fuzzingThreshold = percent; saveSettings(); }
     void setHistoryWindow(int frames) {
         if (frames > 30) frames = 30;
         if (frames < 1) frames = 1;
         historyWindow = frames;
-        flagDirty();
+        saveSettings();
     }
 
 
 
-    ZonePreset getWarnPreset() { return warnPreset; }
-    ZonePreset getDeadPreset() { return deadPreset; }
-    RadialZone getWarnCustom() { return warnCustom; }
-    RadialZone getDeadCustom() { return deadCustom; }
-    int getFuzzingThreshold() { return fuzzingThreshold; }
-    int getHistoryWindow() { return historyWindow; }
+    ZonePreset getWarnPreset() const { return warnPreset; }
+    ZonePreset getDeadPreset() const { return deadPreset; }
+    RadialZone getWarnCustom() const { return warnCustom; }
+    RadialZone getDeadCustom() const { return deadCustom; }
+    int getFuzzingThreshold() const { return fuzzingThreshold; }
+    int getHistoryWindow() const { return historyWindow; }
 
-    RadialZone getActiveWarnZone() { return getZoneFromPreset(warnPreset, warnCustom); }
-    RadialZone getActiveDeadZone() { return getZoneFromPreset(deadPreset, deadCustom); }
+    RadialZone getActiveWarnZone() const { return getZoneFromPreset(warnPreset, warnCustom); }
+    RadialZone getActiveDeadZone() const { return getZoneFromPreset(deadPreset, deadCustom); }
 
-    bool isInsideZone(int16_t x, int16_t y, RadialZone z) {
+    bool isInsideZone(int16_t x, int16_t y, RadialZone z) const {
         if (x == 0 && y == 0) return false;
         long distSq = (long)x*x + (long)y*y;
         long minDistSq = (long)z.minDist * z.minDist;
@@ -113,7 +146,7 @@ public:
         return true;
     }
 
-    bool isDead(int16_t x, int16_t y) {
+    bool isDead(int16_t x, int16_t y) const {
         if (deadPreset == ZONE_OFF) return false;
         return isInsideZone(x, y, getActiveDeadZone());
     }
@@ -135,7 +168,7 @@ public:
         }
     }
 
-    bool isWarning(int targetId) {
+    bool isWarning(int targetId) const {
         if (warnPreset == ZONE_OFF) return false;
         if (historyCount[targetId] == 0) return false;
         int hits = 0;
@@ -148,7 +181,7 @@ public:
         return (percent >= fuzzingThreshold);
     }
 
-    float getTargetDangerLevel(int targetId) {
+    float getTargetDangerLevel(int targetId) const {
         if (warnPreset == ZONE_OFF) return 0.0f;
         if (historyCount[targetId] == 0) return 0.0f;
 
@@ -164,14 +197,14 @@ public:
         float danger = 1.0f;
 
         if (fuzzingThreshold > 0) {
-            danger = percent / ((float)fuzzingThreshold * 0.01f);
+            danger = percent / ((float)fuzzingThreshold / 100.0f);
         }
 
         if (danger > 1.0f) danger = 1.0f;
         return danger;
     }
 
-    float getDangerLevel() {
+    float getDangerLevel() const {
         if (warnPreset == ZONE_OFF) return 0.0f;
         float maxDanger = 0.0f;
         for (int i=0; i<3; i++) {
@@ -179,22 +212,6 @@ public:
             if (danger > maxDanger) maxDanger = danger;
         }
         return maxDanger;
-    }
-
-
-    bool isDirty = false;
-    unsigned long lastDirtyTime = 0;
-
-    void flagDirty() {
-        isDirty = true;
-        lastDirtyTime = millis();
-    }
-
-    void handleDeferredSave() {
-        if (isDirty && (millis() - lastDirtyTime > 2000)) {
-            saveSettings();
-            isDirty = false;
-        }
     }
 
 private:
@@ -207,7 +224,7 @@ private:
     bool warnHistory[3][30];
     int historyCount[3];
 
-    RadialZone getZoneFromPreset(ZonePreset p, RadialZone custom) {
+    RadialZone getZoneFromPreset(ZonePreset p, RadialZone custom) const {
         switch(p) {
             case ZONE_CLOSE:  return {0, 2000, -90, 90};
             case ZONE_MEDIUM: return {2000, 4000, -90, 90};
