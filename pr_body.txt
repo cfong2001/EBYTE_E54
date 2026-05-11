@@ -1,4 +1,0 @@
-💡 What: Replaced dynamically evaluated `math.cos` and `math.sin` functions with pre-computed tuple lookup tables (`COS_TABLE` and `SIN_TABLE`).
-🎯 Why: Evaluating trigonometric math inside high-frequency UI rendering loops (such as drawing dotted rings, crosshairs, and sweep lines) is computationally expensive on constrained Python microcontrollers.
-📊 Impact: Measured ~27% loop speedup by pre-computing indices (`idx = int(round(angle)) % 360`) and hoisting calculations out of inner loops.
-🔬 Measurement: Verified performance gain using baseline `test_perf_2.py` benchmark scripts and confirmed functionality via `test_all_modules.py`.
