@@ -31,12 +31,7 @@ The standard wiring configuration is as follows. Note that these may vary depend
 **Input Devices:**
 - Encoder Pin A -> GPIO 25
 - Encoder Pin B -> GPIO 26
-- Main Button (PIN_BUTTON) -> GPIO 32
-- Secondary Button (PIN_KEY0) -> GPIO 33 (Handles menu exits and cycles themes on radar view)
-
-**Onboard Buttons (ESP32-WROVER-IE-TB):**
-- BOOT Button -> GPIO 0 (Must be LOW to enter flashing mode)
-- EN Button -> CHIP_PU (Hardware Reset)
+- Main Button -> GPIO 27
 
 ## Folder Overview
 

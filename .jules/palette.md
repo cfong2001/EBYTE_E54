@@ -45,22 +45,15 @@
 ## 2024-05-03 - Menu Back button and Customizable UI Text Size
 **Learning:** Raw string manipulation (e.g., using just `<` for a back arrow) isn't as polished or readable on tiny screens as explicitly forming an arrow `<-`, and hardcoding standard text sizes prevents users with varying setups from properly reading UI menus. TFT fonts lack standard Unicode glyphs without extra heavy library dependencies, so ASCII composite arrows are best for compatibility.
 **Action:** Always offer custom scaling (`uiTextSize` parameter bounded to practical limits like 1-2) mapped directly to hardware rendering functions, while saving preferences dynamically. Use `<-` for backward arrows when Unicode coverage on TFTs isn't guaranteed.
-## 2026-05-03 - [Soft Lockout Prevention via Fallback UI]
-**Learning:** Modifying core settings via JSON injections could render the system inoperable if the new settings conflict with hardware (like changing UI sizes or themes uncontrollably). Implementing a `STATE_FALLBACK` UI that temporarily applies settings and requires physical button confirmation to persist them prevents headless lockouts.
-**Action:** Always implement a physical timeout/confirmation layer for remote configuration changes to prevent "bricking" headless devices.
-## 2026-05-04 - [Visualizing Tracker Uncertainty]
-**Learning:** When targets are momentarily lost by the sensor, running an invisible mathematical "coasting" or "forward prediction" filter is critical for stability. However, failing to communicate this drop in confidence to the user makes the UI feel untrustworthy if the target eventually jumps when it reacquires.
-**Action:** When a tracking target enters a "coasting" or "predicted" state without live sensor backing, visually alter the UI representation (e.g., removing the hard white stroke/outline from the target's shape) to subtly communicate to the user that the entity's exact position is currently an estimation.
-
-## 2026-05-21 - [List Context & Multistep Indicators]
-**Learning:** Menus exceeding the vertical space of hardware displays without any context indicators can lead to users feeling lost. Similarly, using repetitive raw text like "GUIDE 1/3", "GUIDE 2/3" accompanied by duplicate "Press next" instructions creates visual clutter.
-**Action:** For rotary encoder menus on small screens where items exceed vertical capacity, implement a visual scrollbar mapping the selection index to the total length. For multi-step modal guides, abstract repetitive text navigation and replace page counters with multi-dot progress indicators rendered natively via `drawCircle` and `fillCircle`.
-## 2026-06-25 - [Long List Navigation & Progress Indication]
-**Learning:** Users can easily lose context in long, paginated menus on small screens without visual anchors, and multi-step guide screens without progress indicators leave users uncertain of the total length.
-**Action:** When creating rotary encoder menus where `numItems` exceeds the screen's vertical capacity, always implement a visual scrollbar mapping the `startIdx` to the total length. For multi-screen modal guides, implement a simple multi-dot progress indicator (filled/unfilled circles) tied to the active page index to provide clear spatial context.
-## 2024-05-24 - Dynamic Theming and Hardcoded Colors
-**Learning:** Hardcoding standard display colors (like `TFT_BLACK` or `TFT_RED`) inside drawing routines breaks dynamic theming and custom color palettes, leading to unstyled bounding boxes or illegible text on non-standard backgrounds.
-**Action:** Always utilize the active design system's variables (e.g., `themeBg`, `themeDanger`, `themePrimary`) for both foregrounds and backgrounds, ensuring UI elements inherit colors contextually rather than forcing absolute values.
-## 2025-05-24 - Explicit Contextual Units
-**Learning:** Displaying raw, unitless numbers (e.g. `Sensitivity: 5` or `Anchor: 100, 200`) in hardware UI panels increases cognitive load and risks user misconfiguration. Users shouldn't have to guess if a value is in mm, cm/s, or degrees.
-**Action:** Always append explicit contextual measurement units (e.g., `mm`, `deg`, `cm/s`) directly to numerical values in configuration menus and telemetry readouts to ensure the interface is instantly intuitive.
+## 2026-05-03 - Added display rotation and positioning
+**Learning:** Hardcoded coordinates (like 120 and 240) in UI drawing code break when switching orientations or moving between square and rectangular screen profiles.
+**Action:** Replaced hardcoded boundaries and center points with dynamic math relying on `getScreenDimensions()` (e.g. `w/2`, `h`). Implemented flexible offset logic based on enum settings.
+## 2026-05-03 - Added display rotation and positioning
+**Learning:** Hardcoded coordinates (like 120 and 240) in UI drawing code break when switching orientations or moving between square and rectangular screen profiles.
+**Action:** Replaced hardcoded boundaries and center points with dynamic math relying on `getScreenDimensions()` (e.g. `w/2`, `h`). Implemented flexible offset logic based on enum settings.
+## 2026-05-20 - Contextual Empty States & Dynamic Hints (Extended)
+**Learning:** Hardcoded "pseudo-tab-bar" labels that don't accurately reflect hardware button actions cause significant confusion (e.g. `[VIEW] MENU` implies two buttons or touch areas, when there's only one encoder button). Furthermore, "UI traps" like tooltips that can be turned on but not dismissed create frustration.
+**Action:** Ensure hardware button label prompts on the screen dynamically update their text to explicitly match the exact action the single button performs in that context (e.g., `RADAR [MENU]`, `MENU [SELECT]`, `EDIT [SAVE]`). Always ensure that secondary UI states (like long-press tooltips) act as toggles (`!state`) rather than one-way setters.
+## 2026-05-11 - Web UI Upgrades for Hardware Interfaces
+**Learning:** Legacy web UI implementations running natively on IoT devices (like the ESP32) often use emojis and generic `<div>` tags to save memory, resulting in an unpolished and cluttered interface. By leveraging external UI design tools (like Stitch) and injecting lightweight tailwind/CSS styling with inline SVGs, the interface can be drastically improved to match the physical device's "Technical" aesthetic without ballooning the firmware memory footprint.
+**Action:** When updating hardware-served web interfaces, migrate from text/emoji elements to programmatic SVG and custom CSS properties, ensuring dynamic parameters (like coordinate mapping) correctly translate JSON payload values directly to visually mapped SVG points.
