@@ -1052,8 +1052,8 @@ public:
         items[numItems++] = "<- Back";
         items[numItems++] = "Telemetry: " + tDataStr;
         items[numItems++] = "Sensitivity: " + String(sensitivity) + " cm/s";
-        items[numItems++] = "Loc Avg: " + String(locationAveraging);
-        items[numItems++] = "Smoothing: " + String(interDisp);
+        items[numItems++] = "Loc Avg: " + String(locationAveraging) + " frames";
+        items[numItems++] = "Smoothing: " + String(interDisp) + "%";
         items[numItems++] = "[ Reset Tracking ]";
     }
 
@@ -1161,6 +1161,17 @@ public:
             } else if (activePage == PAGE_ZONES) {
                 if (menuSelection == 0) { sprite.print("Return to the"); sprite.setCursor(15, 175); sprite.print("main config menu."); }
                 else if (menuSelection == 1) { sprite.print("Select warning zone preset."); }
+                else if (items[menuSelection].startsWith(" W-MinD:")) { sprite.print("Set minimum warning"); sprite.setCursor(15, 175); sprite.print("zone distance."); }
+                else if (items[menuSelection].startsWith(" W-MaxD:")) { sprite.print("Set maximum warning"); sprite.setCursor(15, 175); sprite.print("zone distance."); }
+                else if (items[menuSelection].startsWith(" W-MinA:")) { sprite.print("Set minimum warning"); sprite.setCursor(15, 175); sprite.print("zone angle."); }
+                else if (items[menuSelection].startsWith(" W-MaxA:")) { sprite.print("Set maximum warning"); sprite.setCursor(15, 175); sprite.print("zone angle."); }
+                else if (items[menuSelection].startsWith("Warn Fuzz:")) { sprite.print("Adjust tracking buffer"); sprite.setCursor(15, 175); sprite.print("to prevent flickering."); }
+                else if (items[menuSelection].startsWith("Warn Time:")) { sprite.print("Set required time in zone"); sprite.setCursor(15, 175); sprite.print("before triggering warning."); }
+                else if (items[menuSelection].startsWith("Dead Zone:")) { sprite.print("Select dead zone preset."); }
+                else if (items[menuSelection].startsWith(" D-MinD:")) { sprite.print("Set minimum dead"); sprite.setCursor(15, 175); sprite.print("zone distance."); }
+                else if (items[menuSelection].startsWith(" D-MaxD:")) { sprite.print("Set maximum dead"); sprite.setCursor(15, 175); sprite.print("zone distance."); }
+                else if (items[menuSelection].startsWith(" D-MinA:")) { sprite.print("Set minimum dead"); sprite.setCursor(15, 175); sprite.print("zone angle."); }
+                else if (items[menuSelection].startsWith(" D-MaxA:")) { sprite.print("Set maximum dead"); sprite.setCursor(15, 175); sprite.print("zone angle."); }
                 else { sprite.print("Adjust zone boundaries"); sprite.setCursor(15, 175); sprite.print("and sensitivity."); }
             } else if (activePage == PAGE_DATA) {
                 if (menuSelection == 0) { sprite.print("Return to the"); sprite.setCursor(15, 175); sprite.print("main config menu."); }

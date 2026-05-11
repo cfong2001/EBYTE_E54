@@ -71,3 +71,7 @@
 ## 2026-06-25 - Context-Specific Menu Tooltips
 **Learning:** Providing a generic fallback string like "Adjust this setting to change device behavior" across an entire hardware menu significantly increases cognitive load, as users have to guess the impact of technical options (like "Fuzzing Threshold" or "Interpolation"). Furthermore, splitting a single sentence's logic across multiple menu index selections (e.g. `idx==0` -> "Adjust themes,", `idx==1` -> "and visual icons") causes the tooltip to look broken if the user only hovers on `idx==1`.
 **Action:** When implementing an embedded help/tooltip overlay for a hardware dial menu, ensure every single menu item (or logical grouping of related items) has a complete, contextually relevant explanation formatted properly for the screen constraints. Avoid sentence fragmentation across indices.
+
+## $(date +%Y-%m-%d) - Contextual Tooltips & Explicit Units
+**Learning:** In microcontroller hardware UI menus, generic fallback tooltips ("Adjust zone boundaries") and unitless parameters (`Loc Avg: 5`) create significant cognitive load and "UI traps" for users configuring complex spatial concepts like radar zones.
+**Action:** Always append explicit measurement units (e.g., ` frames`, `%`) to display values and use pattern matching (e.g., `String::startsWith()`) on dynamic menu strings to provide specific, contextual tooltips that explain exactly what each variable controls.
