@@ -68,3 +68,6 @@
 ## 2024-05-11 - Dynamic Menu Tooltips
 **Learning:** Hardcoding tooltip logic to specific menu indices causes bugs when menu options dynamically change (e.g. custom zone options appearing/disappearing).
 **Action:** Use string prefix matching (`startsWith`) on the generated menu text to display tooltips. It is much more robust against dynamic menus and allows adding contextual units to the explanation.
+## 2026-05-22 - Adding Continuous Visual Feedback to Blocking States
+**Learning:** For asynchronous blocking states (e.g., config importing or fallback states) on embedded hardware, static text can make the system appear frozen. Providing continuous visual feedback (like a pulsing background and animated dots) is critical to reassure users that the system is active.
+**Action:** When implementing blocking screens or loading states in `UIManager.h`, use `millis()` and `sinf()` to create simple animations without blocking the main loop or using heap-fragmenting strings.
