@@ -68,3 +68,6 @@
 ## 2024-05-11 - Dynamic Menu Tooltips
 **Learning:** Hardcoding tooltip logic to specific menu indices causes bugs when menu options dynamically change (e.g. custom zone options appearing/disappearing).
 **Action:** Use string prefix matching (`startsWith`) on the generated menu text to display tooltips. It is much more robust against dynamic menus and allows adding contextual units to the explanation.
+## 2025-05-12 - Progressive UX in Blocking States
+**Learning:** Hardcoded, static wait screens (like "WAITING FOR CONFIG" or "NEW CONFIG LOADED") in asynchronous or blocking states can make users wonder if the system has frozen, creating friction.
+**Action:** When handling async or fallback states in the UI, always provide continuous visual feedback, such as animated text dots (`millis() / 500 % 4`) or a pulsing background color (`sinf(millis() * 0.005f)`), to reassure the user that the system is active and processing.
