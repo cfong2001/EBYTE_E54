@@ -469,21 +469,32 @@ public:
         if (state == STATE_MENU || state == STATE_MENU_EDIT) {
             drawMenuOverlay();
         } else if (state == STATE_IMPORTING) {
-            sprite.fillRect(10, 100, 220, 40, themeWarning);
-            sprite.setTextColor(themeBg, themeWarning);
+            float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
+            uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeWarning, themeBg);
+            sprite.fillRect(10, 100, 220, 40, pulseColor);
+            sprite.setTextColor(themeBg, pulseColor);
             sprite.setCursor(20, 110);
-            sprite.print("WAITING FOR CONFIG...");
+
+            int dots = (millis() / 500) % 4;
+            const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
+            sprite.printf("WAITING FOR CONFIG%-3s", dotStr);
+
             sprite.setCursor(20, 125);
             sprite.print("[PRESS BUTTON TO APPLY]");
         } else if (state == STATE_FALLBACK) {
-            sprite.fillRect(10, 90, 220, 60, themeDanger);
-            sprite.setTextColor(TFT_WHITE, themeDanger);
+            float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
+            uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeDanger, themeBg);
+            sprite.fillRect(10, 90, 220, 60, pulseColor);
+            sprite.setTextColor(TFT_WHITE, pulseColor);
             sprite.setCursor(20, 100);
             sprite.print("NEW CONFIG LOADED");
             sprite.setCursor(20, 115);
             sprite.print("PRESS BUTTON TO KEEP");
             sprite.setCursor(20, 130);
-            sprite.print("OR WAIT TO REVERT...");
+
+            int dots = (millis() / 500) % 4;
+            const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
+            sprite.printf("OR WAIT TO REVERT%-3s", dotStr);
         }
 
         tft.startWrite();
