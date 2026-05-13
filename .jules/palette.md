@@ -64,6 +64,9 @@
 ## 2025-05-24 - Explicit Contextual Units
 **Learning:** Displaying raw, unitless numbers (e.g. `Sensitivity: 5` or `Anchor: 100, 200`) in hardware UI panels increases cognitive load and risks user misconfiguration. Users shouldn't have to guess if a value is in mm, cm/s, or degrees.
 **Action:** Always append explicit contextual measurement units (e.g., `mm`, `deg`, `cm/s`) directly to numerical values in configuration menus and telemetry readouts to ensure the interface is instantly intuitive.
+## 2024-05-18 - Avoid Brittle Index Matching in Dynamic Menus
+**Learning:** For dynamic hardware UI menus (like custom zones or conditional dev options) where item indices shift based on varying lengths, avoiding brittle index-based matching for rendering tooltips is crucial.
+**Action:** Use string pattern matching on the menu elements (e.g., `items[menuSelection].startsWith()`) to ensure tooltips remain specific and contextually accurate when menus change size.
 
 ## 2024-05-11 - Dynamic Menu Tooltips
 **Learning:** Hardcoding tooltip logic to specific menu indices causes bugs when menu options dynamically change (e.g. custom zone options appearing/disappearing).
