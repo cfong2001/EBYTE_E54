@@ -54,6 +54,7 @@
 ## 2026-05-20 - Contextual Empty States & Dynamic Hints (Extended)
 **Learning:** Hardcoded "pseudo-tab-bar" labels that don't accurately reflect hardware button actions cause significant confusion (e.g. `[VIEW] MENU` implies two buttons or touch areas, when there's only one encoder button). Furthermore, "UI traps" like tooltips that can be turned on but not dismissed create frustration.
 **Action:** Ensure hardware button label prompts on the screen dynamically update their text to explicitly match the exact action the single button performs in that context (e.g., `RADAR [MENU]`, `MENU [SELECT]`, `EDIT [SAVE]`). Always ensure that secondary UI states (like long-press tooltips) act as toggles (`!state`) rather than one-way setters.
+
 ## 2026-05-11 - [Broadcast Server UI Kinetics]
 **Learning:** Linear CSS transitions (`transition: linear`) coupled with slow interval refresh rates (e.g. 5Hz/200ms) make real-time data visualizers feel sluggish and unpolished.
 **Action:** When designing kinetic data displays (like radar dots or charts in a web UI), utilize standard UI easing curves (like `cubic-bezier(0.4, 0, 0.2, 1)`) and double the update frequency (e.g. to 10Hz/100ms) to create snappy, hardware-accelerated movements that feel authoritative and professional rather than laggy.
