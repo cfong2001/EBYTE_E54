@@ -833,6 +833,7 @@ private:
                         // Rotate clockwise (+0.5 radians)
                         int ax2 = ex - (int)(4.0f * (nSvx * cos_05 - nSvy * sin_05));
                         int ay2 = ey - (int)(4.0f * (nSvy * cos_05 + nSvx * sin_05));
+
                         sprite.drawLine(ex, ey, ax1, ay1, color);
                         sprite.drawLine(ex, ey, ax2, ay2, color);
                     }
