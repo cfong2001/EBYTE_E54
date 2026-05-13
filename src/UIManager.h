@@ -808,11 +808,20 @@ private:
                         int ey = cy + (int)(nSvy * stickLen);
                         sprite.drawLine(cx, cy, ex, ey, color);
 
-                        float arrowAngle = atan2f(nSvy, nSvx);
-                        int ax1 = ex - (int)(4 * cosf(arrowAngle - 0.5f));
-                        int ay1 = ey - (int)(4 * sinf(arrowAngle - 0.5f));
-                        int ax2 = ex - (int)(4 * cosf(arrowAngle + 0.5f));
-                        int ay2 = ey - (int)(4 * sinf(arrowAngle + 0.5f));
+                        // ⚡ Bolt: Replace atan2f and cosf/sinf with fixed vector rotation.
+                        // nSvx and nSvy are already the normalized direction vector.
+                        // We can rotate this vector by +/- 0.5 radians using angle addition constants.
+                        // cos(0.5) ≈ 0.87758256f, sin(0.5) ≈ 0.47942554f
+                        constexpr float cos_05 = 0.87758256f;
+                        constexpr float sin_05 = 0.47942554f;
+
+                        // Rotate counter-clockwise (-0.5 radians)
+                        int ax1 = ex - (int)(4.0f * (nSvx * cos_05 + nSvy * sin_05));
+                        int ay1 = ey - (int)(4.0f * (nSvy * cos_05 - nSvx * sin_05));
+
+                        // Rotate clockwise (+0.5 radians)
+                        int ax2 = ex - (int)(4.0f * (nSvx * cos_05 - nSvy * sin_05));
+                        int ay2 = ey - (int)(4.0f * (nSvy * cos_05 + nSvx * sin_05));
                         sprite.drawLine(ex, ey, ax1, ay1, color);
                         sprite.drawLine(ex, ey, ax2, ay2, color);
                     }
@@ -829,7 +838,6 @@ private:
                 if (telemetryMode == TELEMETRY_DIST_ANG) {
                     float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) * 0.001f;
                     int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 180.0f / PI);
-                    sprite.printf("%.1fm %d", dist_m, angle);
                     sprite.printf("%.1fm %ddeg", dist_m, angle);
                 } else if (telemetryMode == TELEMETRY_VELOCITY) {
                     float speed_ms = (float)rawTargetSpeed[i] * 0.1f;
@@ -840,7 +848,6 @@ private:
                     float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) * 0.001f;
                     int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 180.0f / PI);
                     float speed_ms = (float)rawTargetSpeed[i] * 0.1f;
-                    sprite.printf("T%d %.1fm %d", i+1, dist_m, angle);
                     sprite.printf("T%d %.1fm %ddeg", i+1, dist_m, angle);
                     sprite.setCursor(cx + 8, cy - 2);
                     sprite.printf("%.1fm/s", speed_ms);
