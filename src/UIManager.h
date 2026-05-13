@@ -283,7 +283,8 @@ public:
     void handleButton() {
 
         if (state == STATE_IMPORTING) {
-            state = STATE_MENU; // Cancel import
+            actionRequested = 4; // Apply batched changes
+            state = STATE_MENU;
         } else if (state == STATE_FALLBACK) {
             actionRequested = 3; // Confirm fallback
             state = STATE_RADAR_VIEW;
@@ -473,7 +474,7 @@ public:
             sprite.setCursor(20, 110);
             sprite.print("WAITING FOR CONFIG...");
             sprite.setCursor(20, 125);
-            sprite.print("[PRESS BUTTON TO CANCEL]");
+            sprite.print("[PRESS BUTTON TO APPLY]");
         } else if (state == STATE_FALLBACK) {
             sprite.fillRect(10, 90, 220, 60, themeDanger);
             sprite.setTextColor(TFT_WHITE, themeDanger);
@@ -807,11 +808,20 @@ private:
                         int ey = cy + (int)(nSvy * stickLen);
                         sprite.drawLine(cx, cy, ex, ey, color);
 
-                        float arrowAngle = atan2f(nSvy, nSvx);
-                        int ax1 = ex - (int)(4 * cosf(arrowAngle - 0.5f));
-                        int ay1 = ey - (int)(4 * sinf(arrowAngle - 0.5f));
-                        int ax2 = ex - (int)(4 * cosf(arrowAngle + 0.5f));
-                        int ay2 = ey - (int)(4 * sinf(arrowAngle + 0.5f));
+                        // ⚡ Bolt: Replace atan2f and cosf/sinf with fixed vector rotation.
+                        // nSvx and nSvy are already the normalized direction vector.
+                        // We can rotate this vector by +/- 0.5 radians using angle addition constants.
+                        // cos(0.5) ≈ 0.87758256f, sin(0.5) ≈ 0.47942554f
+                        constexpr float cos_05 = 0.87758256f;
+                        constexpr float sin_05 = 0.47942554f;
+
+                        // Rotate counter-clockwise (-0.5 radians)
+                        int ax1 = ex - (int)(4.0f * (nSvx * cos_05 + nSvy * sin_05));
+                        int ay1 = ey - (int)(4.0f * (nSvy * cos_05 - nSvx * sin_05));
+
+                        // Rotate clockwise (+0.5 radians)
+                        int ax2 = ex - (int)(4.0f * (nSvx * cos_05 - nSvy * sin_05));
+                        int ay2 = ey - (int)(4.0f * (nSvy * cos_05 + nSvx * sin_05));
                         sprite.drawLine(ex, ey, ax1, ay1, color);
                         sprite.drawLine(ex, ey, ax2, ay2, color);
                     }
@@ -828,7 +838,6 @@ private:
                 if (telemetryMode == TELEMETRY_DIST_ANG) {
                     float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) * 0.001f;
                     int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 180.0f / PI);
-                    sprite.printf("%.1fm %d", dist_m, angle);
                     sprite.printf("%.1fm %ddeg", dist_m, angle);
                 } else if (telemetryMode == TELEMETRY_VELOCITY) {
                     float speed_ms = (float)rawTargetSpeed[i] * 0.1f;
@@ -839,7 +848,6 @@ private:
                     float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) * 0.001f;
                     int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 180.0f / PI);
                     float speed_ms = (float)rawTargetSpeed[i] * 0.1f;
-                    sprite.printf("T%d %.1fm %d", i+1, dist_m, angle);
                     sprite.printf("T%d %.1fm %ddeg", i+1, dist_m, angle);
                     sprite.setCursor(cx + 8, cy - 2);
                     sprite.printf("%.1fm/s", speed_ms);
@@ -1216,20 +1224,80 @@ public:
             sprite.print("INFO: ");
             sprite.setCursor(15, 160);
 
-            // Simple logic to display something based on item
-            if (activePage == PAGE_MAIN) {
-                if (menuSelection == 0) sprite.print("Adjust visual themes,");
-                else if (menuSelection == 1) sprite.print("icons, and display settings.");
-                else if (menuSelection == 2) sprite.print("Configure warning and");
-                else if (menuSelection == 3) sprite.print("dead zones.");
-                else if (menuSelection == 4) sprite.print("Adjust raw telemetry");
-                else if (menuSelection == 5) sprite.print("filtering options.");
-                else if (menuSelection == 6) sprite.print("Return to radar view.");
-                else sprite.print("Select an option.");
+            String selItem = String(items[menuSelection]);
+
+            if (selItem.startsWith("<- Back")) {
+                sprite.print("Return to previous menu.");
+            } else if (selItem.startsWith("VISUAL SETTINGS")) {
+                sprite.print("Colors, icons, & layout.");
+            } else if (selItem.startsWith("ZONE CONFIG")) {
+                sprite.print("Warning & dead zones.");
+            } else if (selItem.startsWith("TARGET DATA")) {
+                sprite.print("Data processing & limits.");
+            } else if (selItem.startsWith("DEV OPTIONS")) {
+                sprite.print("Advanced & experimental.");
+            } else if (selItem.startsWith("USER GUIDE")) {
+                sprite.print("Help & instructions.");
+            } else if (selItem.startsWith("[ Exit Menu ]")) {
+                sprite.print("Return to radar view.");
+            } else if (selItem.startsWith("Theme:")) {
+                sprite.print("Change color palette.");
+            } else if (selItem.startsWith("Icon:")) {
+                sprite.print("Change target marker.");
+            } else if (selItem.startsWith("Text Size:")) {
+                sprite.print("UI text scale (1-2).");
+            } else if (selItem.startsWith("Sweep Line:")) {
+                sprite.print("Toggle scanning line.");
+            } else if (selItem.startsWith("Sweep Mode:")) {
+                sprite.print("Simulated vs physical.");
+            } else if (selItem.startsWith("Trails:")) {
+                sprite.print("Target history length.");
+            } else if (selItem.startsWith("Grid:")) {
+                sprite.print("Toggle background grid.");
+            } else if (selItem.startsWith("Boot Anim:")) {
+                sprite.print("Toggle startup sequence.");
+            } else if (selItem.startsWith("Warn Zone:")) {
+                sprite.print("Visual alert area.");
+            } else if (selItem.startsWith(" W-MinD:") || selItem.startsWith(" D-MinD:")) {
+                sprite.print("Minimum distance (mm).");
+            } else if (selItem.startsWith(" W-MaxD:") || selItem.startsWith(" D-MaxD:")) {
+                sprite.print("Maximum distance (mm).");
+            } else if (selItem.startsWith(" W-MinA:") || selItem.startsWith(" D-MinA:")) {
+                sprite.print("Left-most angle (deg).");
+            } else if (selItem.startsWith(" W-MaxA:") || selItem.startsWith(" D-MaxA:")) {
+                sprite.print("Right-most angle (deg).");
+            } else if (selItem.startsWith("Warn Fuzz:")) {
+                sprite.print("Boundary tolerance (%).");
+            } else if (selItem.startsWith("Warn Time:")) {
+                sprite.print("Time to trigger alert.");
+            } else if (selItem.startsWith("Dead Zone:")) {
+                sprite.print("Ignore targets area.");
+            } else if (selItem.startsWith("Telemetry:")) {
+                sprite.print("On-screen target data.");
+            } else if (selItem.startsWith("Sensitivity:")) {
+                sprite.print("Min target speed (cm/s).");
+            } else if (selItem.startsWith("Loc Avg:")) {
+                sprite.print("Position smoothing frames.");
+            } else if (selItem.startsWith("Smoothing:")) {
+                sprite.print("Movement interpolation.");
+            } else if (selItem.startsWith("[ Reset Tracking ]")) {
+                sprite.print("Clear all targets.");
+            } else if (selItem.startsWith("Accept Risk?")) {
+                sprite.print("Enable advanced features?");
+            } else if (selItem.startsWith("Motion Comp:")) {
+                sprite.print("Compensate for host movement.");
+            } else if (selItem.startsWith("Passthrough:")) {
+                sprite.print("Raw UART to serial.");
+            } else if (selItem.startsWith("Show StdDev:")) {
+                sprite.print("Display data variance.");
+            } else if (selItem.startsWith("[ FACTORY RESET ]")) {
+                sprite.print("Erase all settings.");
+            } else if (selItem.startsWith("[ EXPORT CONFIG ]")) {
+                sprite.print("Save settings to SD.");
+            } else if (selItem.startsWith("[ IMPORT CONFIG ]")) {
+                sprite.print("Load settings from SD.");
             } else {
-                sprite.print("Adjust this setting to");
-                sprite.setCursor(15, 175);
-                sprite.print("change device behavior.");
+                sprite.print("Adjust setting value.");
             }
         }
     }

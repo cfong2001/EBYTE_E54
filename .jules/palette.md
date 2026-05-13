@@ -67,3 +67,7 @@
 ## 2024-05-18 - Avoid Brittle Index Matching in Dynamic Menus
 **Learning:** For dynamic hardware UI menus (like custom zones or conditional dev options) where item indices shift based on varying lengths, avoiding brittle index-based matching for rendering tooltips is crucial.
 **Action:** Use string pattern matching on the menu elements (e.g., `items[menuSelection].startsWith()`) to ensure tooltips remain specific and contextually accurate when menus change size.
+
+## 2024-05-11 - Dynamic Menu Tooltips
+**Learning:** Hardcoding tooltip logic to specific menu indices causes bugs when menu options dynamically change (e.g. custom zone options appearing/disappearing).
+**Action:** Use string prefix matching (`startsWith`) on the generated menu text to display tooltips. It is much more robust against dynamic menus and allows adding contextual units to the explanation.
