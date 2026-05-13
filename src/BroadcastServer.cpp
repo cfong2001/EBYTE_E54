@@ -45,397 +45,104 @@ void BroadcastServer::setupRoutes() {
         String html = R"rawliteral(
 <!DOCTYPE html>
 
-<html class="dark" lang="en"><script src="https://cdn.tailwindcss.com"></script>
-<head>
+<html class="dark" lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&amp;family=Geist:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<title>SYS_RADAR_01 - ESP32 INTERFACE</title>
 <style>
-    .material-symbols-outlined {
-      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-    }
-    /* Custom scanline effect for technical feel */
-    .scanline {
-      width: 100%;
-      height: 2px;
-      background: rgba(0, 218, 243, 0.1);
-      position: absolute;
-      top: 0;
-      z-index: 10;
-      pointer-events: none;
-    }
-    .radar-sweep {
-      transform-origin: center;
-      animation: sweep 4s linear infinite;
-    }
-    @keyframes sweep {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-    .blip-pulse {
-      animation: pulse 2s ease-out infinite;
-    }
-    @keyframes pulse {
-      0% { r: 2; opacity: 1; }
-      100% { r: 8; opacity: 0; }
-    }
-  </style>
-<script id="tailwind-config">
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          "colors": {
-            "inverse-surface": "#e2e2e8",
-            "on-primary-container": "#00626e",
-            "inverse-on-surface": "#2f3035",
-            "tertiary-container": "#ffc67a",
-            "error": "#ffb4ab",
-            "on-background": "#e2e2e8",
-            "on-tertiary": "#452b00",
-            "on-secondary": "#053900",
-            "on-tertiary-container": "#7b5000",
-            "outline": "#849396",
-            "on-primary-fixed": "#001f24",
-            "inverse-primary": "#006875",
-            "on-primary": "#00363d",
-            "surface-container-lowest": "#0c0e12",
-            "surface-container-low": "#1a1c20",
-            "secondary-fixed-dim": "#2ae500",
-            "on-surface": "#e2e2e8",
-            "primary-container": "#00e5ff",
-            "on-tertiary-fixed-variant": "#633f00",
-            "on-primary-fixed-variant": "#004f58",
-            "surface-tint": "#00daf3",
-            "on-error": "#690005",
-            "on-surface-variant": "#bac9cc",
-            "on-secondary-fixed-variant": "#095300",
-            "background": "#111318",
-            "secondary-container": "#2ff801",
-            "error-container": "#93000a",
-            "surface-container-high": "#282a2e",
-            "secondary-fixed": "#79ff5b",
-            "primary-fixed-dim": "#00daf3",
-            "outline-variant": "#3b494c",
-            "on-tertiary-fixed": "#291800",
-            "tertiary-fixed": "#ffddb4",
-            "on-secondary-fixed": "#022100",
-            "secondary": "#d7ffc5",
-            "on-secondary-container": "#0f6d00",
-            "surface-container": "#1e2024",
-            "primary": "#c3f5ff",
-            "surface-bright": "#37393e",
-            "surface": "#111318",
-            "on-error-container": "#ffdad6",
-            "primary-fixed": "#9cf0ff",
-            "surface-dim": "#111318",
-            "tertiary": "#ffe9d1",
-            "tertiary-fixed-dim": "#ffb955",
-            "surface-variant": "#333539",
-            "surface-container-highest": "#333539"
-          },
-          "borderRadius": {
-            "DEFAULT": "0.25rem",
-            "lg": "0.5rem",
-            "xl": "0.75rem",
-            "full": "9999px"
-          },
-          "spacing": {
-            "gutter": "16px",
-            "container-max-width": "1920px",
-            "unit": "4px",
-            "panel-gap": "8px",
-            "margin-edge": "24px"
-          },
-          "fontFamily": {
-            "data-lg": ["JetBrains Mono"],
-            "display-lg": ["Geist"],
-            "telemetry-sm": ["JetBrains Mono"],
-            "data-md": ["JetBrains Mono"],
-            "label-caps": ["JetBrains Mono"],
-            "headline-md": ["Geist"]
-          },
-          "fontSize": {
-            "data-lg": ["18px", {"lineHeight": "1.4", "letterSpacing": "0em", "fontWeight": "500"}],
-            "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}],
-            "telemetry-sm": ["10px", {"lineHeight": "12px", "letterSpacing": "0.05em", "fontWeight": "400"}],
-            "data-md": ["14px", {"lineHeight": "1.4", "letterSpacing": "0em", "fontWeight": "400"}],
-            "label-caps": ["11px", {"lineHeight": "12px", "letterSpacing": "0.1em", "fontWeight": "700"}],
-            "headline-md": ["24px", {"lineHeight": "1.2", "letterSpacing": "0.01em", "fontWeight": "600"}]
-          }
-        }
-      }
-    }
-  </script>
-<style>
-    body {
-      min-height: max(884px, 100dvh);
-    }
-  </style>
+        body { margin: 0; background: #121315; color: #00dbe9; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        .radar-box { position: relative; width: 300px; height: 300px; border: 1px solid #3b494c; border-radius: 50%; padding: 10px; box-shadow: inset 0 0 20px #00dbe922; }
+        svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+        .grid { stroke: #00dbe9; stroke-width: 0.5; stroke-opacity: 0.3; fill: none; }
+        .sweep { fill: conic-gradient(from 0deg, #00dbe944, transparent); transform-origin: center; animation: rotate 4s linear infinite; }
+        .readouts { margin-top: 24px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; width: 300px; }
+        .target { border: 1px solid #3b494c; padding: 8px; font-size: 10px; letter-spacing: 1px; text-align: center; background: #1a1c20; }
+        .target span { display: block; font-weight: bold; color: #e2e2e8; margin-top: 4px; }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .blip { fill: #00dbe9; filter: drop-shadow(0 0 3px #00dbe9); }
+    </style>
 
-<script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            'surface-container-low': '#1a1c20',
-            'outline-variant': '#3b494c',
-            'on-surface-variant': '#bac9cc',
-            'primary-fixed-dim': '#00daf3',
-            'secondary-fixed-dim': '#2ae500',
-            'primary': '#c3f5ff',
-            'primary-container': '#00e5ff',
-            'on-surface': '#e2e2e8',
-            'background': '#111318',
-            'surface-container-lowest': '#0c0e12'
-          },
-          fontFamily: {
-            'label-caps': ['JetBrains Mono', 'monospace'],
-            'data-lg': ['JetBrains Mono', 'monospace'],
-            'data-md': ['JetBrains Mono', 'monospace'],
-            'telemetry-sm': ['JetBrains Mono', 'monospace']
-          },
-          spacing: {
-            'gutter': '16px',
-            'panel-gap': '8px'
-          }
-        }
-      }
-    }
-  </script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
 
-    body {
-      background-color: #111318;
-      color: #e2e2e8;
-    }
-
-    .font-label-caps { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; line-height: 12px; }
-    .font-data-lg { font-size: 18px; font-weight: 500; letter-spacing: 0em; line-height: 1.4; }
-    .font-data-md { font-size: 14px; font-weight: 400; letter-spacing: 0em; line-height: 1.4; }
-    .font-telemetry-sm { font-size: 10px; font-weight: 400; letter-spacing: 0.05em; line-height: 12px; }
-
-    @keyframes pulse-ring {
-      0% { transform: scale(0.8); opacity: 0.8; }
-      100% { transform: scale(2.5); opacity: 0; }
-    }
-
-    .blip-pulse {
-      transform-origin: center;
-      animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-    }
-
-    @keyframes sweep {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .radar-sweep {
-      transform-origin: 100px 100px;
-      animation: sweep 4s linear infinite;
-    }
-  </style>
-</head>
-
-<body class="bg-background text-on-surface font-data-md selection:bg-primary-container/30 overflow-hidden">
-<!-- TOP APP BAR -->
-<header class="bg-background text-primary-fixed-dim font-headline-md text-headline-md docked full-width top-0 border-b border-outline-variant flex justify-between items-center w-full px-gutter h-14 z-50">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-primary-fixed-dim" data-icon="sensors">sensors</span>
-<span class="font-label-caps text-label-caps tracking-widest text-primary-fixed-dim">SYS_RADAR_01</span>
-</div>
-<div class="flex items-center gap-4">
-<div class="flex items-center gap-1.5 px-2 py-1 rounded bg-surface-container-high border border-outline-variant">
-<div class="w-1.5 h-1.5 bg-secondary-fixed-dim rounded-full shadow-[0_0_8px_#2ae500]"></div>
-<span class="font-label-caps text-[9px] uppercase tracking-tighter text-on-surface-variant">Live</span>
-</div>
-<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:bg-surface-container-high transition-colors p-1 rounded" data-icon="settings">settings</span>
-</div>
-</header>
-<!-- MAIN CANVAS -->
-<main class="relative h-[calc(100vh-120px)] w-full flex flex-col pt-4 overflow-hidden">
-<!-- SYSTEM STATUS STRIP -->
-<section class="px-gutter mb-4 grid grid-cols-2 gap-panel-gap">
-<div class="p-3 bg-surface-container-low border border-outline-variant flex flex-col gap-1">
-<span class="font-label-caps text-label-caps text-on-surface-variant">UPTIME</span>
-<span class="font-data-lg text-data-lg text-primary-fixed-dim tracking-tight">142:08:44:12</span>
-</div>
-<div class="p-3 bg-surface-container-low border border-outline-variant flex flex-col gap-1">
-<span class="font-label-caps text-label-caps text-on-surface-variant">SIGNAL_STR</span>
-<div class="flex items-end gap-1 h-6">
-<div class="w-1.5 h-1 bg-secondary-fixed-dim"></div>
-<div class="w-1.5 h-2 bg-secondary-fixed-dim"></div>
-<div class="w-1.5 h-3 bg-secondary-fixed-dim"></div>
-<div class="w-1.5 h-4 bg-secondary-fixed-dim"></div>
-<div class="w-1.5 h-5 bg-outline-variant"></div>
-<span class="font-data-md text-data-md text-primary ml-2">-42dBm</span>
-</div>
-</div>
-</section>
-<!-- RADAR SCANNER COMPONENT -->
-<section class="flex-1 flex items-center justify-center px-gutter relative">
-<div class="relative w-full max-w-[320px] aspect-square flex items-center justify-center">
-<!-- Background Glow -->
-<div class="absolute inset-0 bg-primary-fixed-dim/5 rounded-full blur-3xl"></div>
-<!-- SVG RADAR -->
-<svg class="w-full h-full drop-shadow-[0_0_15px_rgba(0,218,243,0.1)]" viewbox="0 0 200 200">
-<!-- Concentric Circles -->
-<circle class="text-outline-variant" cx="100" cy="100" fill="none" r="95" stroke="currentColor" stroke-width="0.5"></circle>
-<circle class="text-outline-variant" cx="100" cy="100" fill="none" r="75" stroke="currentColor" stroke-width="0.5"></circle>
-<circle class="text-outline-variant" cx="100" cy="100" fill="none" r="55" stroke="currentColor" stroke-width="0.5"></circle>
-<circle class="text-outline-variant" cx="100" cy="100" fill="none" r="35" stroke="currentColor" stroke-width="0.5"></circle>
-<circle class="text-outline-variant" cx="100" cy="100" fill="none" r="15" stroke="currentColor" stroke-width="0.5"></circle>
-<!-- Axes -->
-<line class="text-outline-variant" stroke="currentColor" stroke-width="0.5" x1="100" x2="100" y1="5" y2="195"></line>
-<line class="text-outline-variant" stroke="currentColor" stroke-width="0.5" x1="5" x2="195" y1="100" y2="100"></line>
-<!-- Degree Labels -->
-<text class="font-label-caps text-[4px] fill-on-surface-variant" text-anchor="middle" x="100" y="12">000</text>
-<text class="font-label-caps text-[4px] fill-on-surface-variant" text-anchor="start" x="188" y="101">090</text>
-<text class="font-label-caps text-[4px] fill-on-surface-variant" text-anchor="middle" x="100" y="192">180</text>
-<text class="font-label-caps text-[4px] fill-on-surface-variant" text-anchor="end" x="12" y="101">270</text>
-<!-- TARGET BLIPS -->
-<!-- T-01 -->
-<g transform="translate(130, 70)">
-<circle class="fill-primary-fixed-dim" r="1.5"></circle>
-<circle class="blip-pulse stroke-primary-fixed-dim fill-none" r="2" stroke-width="0.5"></circle>
-<text class="font-label-caps text-[5px] fill-primary-fixed-dim font-bold" x="3" y="-3">T-01</text>
+  </head>
+<body>
+<div class="radar-box">
+<svg viewbox="0 0 100 100">
+<!-- Grid Rings -->
+<circle class="grid" cx="50" cy="50" r="48"></circle>
+<circle class="grid" cx="50" cy="50" r="32"></circle>
+<circle class="grid" cx="50" cy="50" r="16"></circle>
+<!-- Axis -->
+<line class="grid" x1="0" x2="100" y1="50" y2="50"></line>
+<line class="grid" x1="50" x2="50" y1="0" y2="100"></line>
+<!-- Rotating Sweep -->
+<g style="transform-origin: 50px 50px; animation: rotate 4s linear infinite;">
+<path d="M 50 50 L 100 50 A 50 50 0 0 0 85.35 14.64 Z" fill="rgba(0, 219, 233, 0.2)"></path>
+<line stroke="#00dbe9" stroke-width="1" x1="50" x2="100" y1="50" y2="50"></line>
 </g>
-<!-- T-02 -->
-<g transform="translate(70, 140)">
-<circle class="fill-primary-fixed-dim" r="1.5"></circle>
-<circle class="blip-pulse stroke-primary-fixed-dim fill-none" r="2" stroke-width="0.5"></circle>
-<text class="font-label-caps text-[5px] fill-primary-fixed-dim font-bold" x="3" y="-3">T-02</text>
-</g>
-<!-- T-03 -->
-<g transform="translate(150, 160)">
-<circle class="fill-primary-fixed-dim" r="1.5"></circle>
-<circle class="blip-pulse stroke-primary-fixed-dim fill-none" r="2" stroke-width="0.5"></circle>
-<text class="font-label-caps text-[5px] fill-primary-fixed-dim font-bold" x="3" y="-3">T-03</text>
-</g>
-<!-- Sweep Gradient Animation -->
-<g class="radar-sweep">
-<path d="M 100 100 L 100 5 A 95 95 0 0 1 185 145 Z" fill="url(#sweepGradient)"></path>
-</g>
-<defs>
-<radialgradient cx="100" cy="100" gradientunits="userSpaceOnUse" id="sweepGradient" r="95">
-<stop offset="0%" stop-color="#00daf3" stop-opacity="0"></stop>
-<stop offset="100%" stop-color="#00daf3" stop-opacity="0.15"></stop>
-</radialgradient>
-</defs>
+<!-- Static Targets (Simulated) -->
+<circle class="blip" cx="70" cy="30" r="1.5"></circle>
+<circle class="blip" cx="35" cy="45" r="1.5"></circle>
+<circle class="blip" cx="60" cy="80" r="1.5"></circle>
 </svg>
-<!-- Center Point -->
-<div class="absolute w-2 h-2 bg-primary shadow-[0_0_10px_#00daf3] rotate-45 border border-background"></div>
-<!-- Peripheral UI markers -->
-<div class="absolute top-0 right-0 p-2 border-t border-r border-primary-fixed-dim/30 w-8 h-8"></div>
-<div class="absolute top-0 left-0 p-2 border-t border-l border-primary-fixed-dim/30 w-8 h-8"></div>
-<div class="absolute bottom-0 right-0 p-2 border-b border-r border-primary-fixed-dim/30 w-8 h-8"></div>
-<div class="absolute bottom-0 left-0 p-2 border-b border-l border-primary-fixed-dim/30 w-8 h-8"></div>
 </div>
-</section>
-<!-- DATA PANEL / TARGET LIST -->
-<section class="px-gutter pb-20 overflow-y-auto">
-<div class="flex items-center justify-between mb-3">
-<h2 class="font-label-caps text-label-caps text-primary-fixed-dim flex items-center gap-2">
-<span class="w-2 h-2 bg-primary-fixed-dim"></span>
-          TRACKED_ENTITIES [03]
-        </h2>
-<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">FREQ: 24.15GHz</span>
+<div class="readouts">
+<div class="target">
+            ID: T-01
+            <span id="t1-val">RNG: 42m</span>
 </div>
-<div class="space-y-panel-gap">
-<!-- Target Card 01 -->
-<div class="bg-surface-container-low border border-outline-variant p-3 flex justify-between items-center relative overflow-hidden group hover:border-primary-fixed-dim/50 transition-colors">
-<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary-fixed-dim"></div>
-<div class="flex flex-col gap-1">
-<span class="font-data-lg text-data-lg text-primary tracking-widest">T-01</span>
-<div class="flex gap-4">
-<div class="flex flex-col">
-<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase">Coord_XY</span>
-<span class="font-data-md text-data-md text-on-surface">14.2m / -8.5m</span>
+<div class="target">
+            ID: T-02
+            <span id="t2-val">RNG: 18m</span>
+</div>
+<div class="target">
+            ID: T-03
+            <span id="t3-val">RNG: 65m</span>
 </div>
 </div>
-</div>
-<div class="flex flex-col items-end gap-1">
-<div class="flex flex-col items-end">
-<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase">Velocity</span>
-<span class="font-data-md text-data-md text-secondary-fixed-dim">2.4 m/s</span>
-</div>
-<div class="flex flex-col items-end">
-<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase">Res</span>
-<span class="font-data-md text-data-md text-on-surface">0.15m</span>
-</div>
-</div>
-</div>
-<!-- Target Card 02 -->
-<div class="bg-surface-container-low border border-outline-variant p-3 flex justify-between items-center relative overflow-hidden group hover:border-primary-fixed-dim/50 transition-colors">
-<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary-fixed-dim"></div>
-<div class="flex flex-col gap-1">
-<span class="font-data-lg text-data-lg text-primary tracking-widest">T-02</span>
-<div class="flex gap-4">
-<div class="flex flex-col">
-<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase">Coord_XY</span>
-<span class="font-data-md text-data-md text-on-surface">-11.4m / 22.1m</span>
-</div>
-</div>
-</div>
-<div class="flex flex-col items-end gap-1">
-<div class="flex flex-col items-end">
-<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase">Velocity</span>
-<span class="font-data-md text-data-md text-secondary-fixed-dim">0.8 m/s</span>
-</div>
-<div class="flex flex-col items-end">
-<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase">Res</span>
-<span class="font-data-md text-data-md text-on-surface">0.15m</span>
-</div>
-</div>
-</div>
-<!-- Target Card 03 -->
-<div class="bg-surface-container-low border border-outline-variant p-3 flex justify-between items-center relative overflow-hidden group hover:border-primary-fixed-dim/50 transition-colors">
-<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary-fixed-dim"></div>
-<div class="flex flex-col gap-1">
-<span class="font-data-lg text-data-lg text-primary tracking-widest">T-03</span>
-<div class="flex gap-4">
-<div class="flex flex-col">
-<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase">Coord_XY</span>
-<span class="font-data-md text-data-md text-on-surface">32.8m / 4.1m</span>
-</div>
-</div>
-</div>
-<div class="flex flex-col items-end gap-1">
-<div class="flex flex-col items-end">
-<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase">Velocity</span>
-<span class="font-data-md text-data-md text-secondary-fixed-dim">1.2 m/s</span>
-</div>
-<div class="flex flex-col items-end">
-<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase">Res</span>
-<span class="font-data-md text-data-md text-on-surface">0.15m</span>
-</div>
-</div>
-</div>
-</div>
-</section>
-</main>
-<!-- BOTTOM NAV BAR -->
-<nav class="bg-surface-container-lowest text-primary-fixed-dim font-label-caps text-label-caps docked full-width bottom-0 border-t border-outline-variant flat no shadows fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-16 px-4">
-<button class="active:scale-95 transition-transform flex flex-col items-center gap-1 text-primary-fixed-dim bg-primary-container/10 rounded-lg p-2">
-<span class="material-symbols-outlined" data-icon="power_settings_new">power_settings_new</span>
-</button>
-<button class="active:scale-95 transition-transform flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary transition-colors p-2">
-<span class="material-symbols-outlined" data-icon="zoom_in">zoom_in</span>
-</button>
-<button class="active:scale-95 transition-transform flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary transition-colors p-2">
-<span class="material-symbols-outlined" data-icon="zoom_out">zoom_out</span>
-</button>
-<button class="active:scale-95 transition-transform flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary transition-colors p-2">
-<span class="material-symbols-outlined" data-icon="tune">tune</span>
-</button>
-<button class="active:scale-95 transition-transform flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary transition-colors p-2">
-<span class="material-symbols-outlined" data-icon="history">history</span>
-</button>
-</nav>
+<script>
+        const MAX_RANGE = 6000;
+        function updateData() {
+            fetch('/api/data')
+                .then(response => response.json())
+                .then(data => {
+                    let blips = document.querySelectorAll('svg > circle.blip');
+                    let readouts = [
+                        document.getElementById('t1-val'),
+                        document.getElementById('t2-val'),
+                        document.getElementById('t3-val')
+                    ];
+                    let targetsDivs = document.querySelectorAll('.target');
+
+                    for (let i = 0; i < 3; i++) {
+                        let t = data.targets[i] || {active: false};
+                        let blip = blips[i];
+                        let readout = readouts[i];
+                        let div = targetsDivs[i];
+
+                        if (t.active) {
+                            let xPct = 50 + ((t.x / (MAX_RANGE/2)) * 50);
+                            let yPct = 100 - ((t.y / MAX_RANGE) * 100);
+                            xPct = Math.max(0, Math.min(100, xPct));
+                            yPct = Math.max(0, Math.min(100, yPct));
+
+                            blip.setAttribute('cx', yPct); // rotated -90deg, swap axes for SVG view
+                            blip.setAttribute('cy', xPct);
+                            blip.style.display = 'block';
+
+                            readout.innerText = `X:${t.x} Y:${t.y}`;
+                            div.style.borderColor = '#00dbe9';
+                        } else {
+                            blip.style.display = 'none';
+                            readout.innerText = 'OFFLINE';
+                            div.style.borderColor = '#3b494c';
+                        }
+                    }
+                })
+                .catch(err => console.error(err));
+        }
+        setInterval(updateData, 200);
+        updateData();
+    </script>
 </body></html>
 )rawliteral";
         request->send(200, "text/html", html);
