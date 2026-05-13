@@ -56,12 +56,9 @@ def find_serial_port():
             return port
 
         print(f"Warning: {repr(port)} does not appear to be a valid or safe serial port path.")
-        while True:
-            action = input("Enter 'r' to retry, or 'q' to quit: ").strip().lower()
-            if action == 'q':
-                sys.exit(0)
-            elif action == 'r':
-                break
+        action = input("Enter 'r' to retry, or 'q' to quit: ").strip().lower()
+        if action == 'q':
+            sys.exit(0)
 
 def list_circuitpython_files(base_dir):
     """List available CircuitPython code files"""

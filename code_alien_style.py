@@ -5,7 +5,7 @@
 import board
 import busio
 import time
-from shared.ui_utils import draw_dotted_circle
+from shared.ui_utils import draw_dotted_circle, map_xy
 import adafruit_ssd1306
 import neopixel
 import math
