@@ -68,3 +68,6 @@
 ## 2024-05-11 - Dynamic Menu Tooltips
 **Learning:** Hardcoding tooltip logic to specific menu indices causes bugs when menu options dynamically change (e.g. custom zone options appearing/disappearing).
 **Action:** Use string prefix matching (`startsWith`) on the generated menu text to display tooltips. It is much more robust against dynamic menus and allows adding contextual units to the explanation.
+## 2024-05-13 - Asynchronous Operations & Blocking States UI
+**Learning:** For asynchronous hardware operations or blocking states (e.g., waiting for configuration or uploads), static text (e.g., "WAITING FOR CONFIG...") can leave users uncertain if the system is actively waiting or frozen. Continuous visual feedback is essential to reassure the user that the system is active.
+**Action:** Always provide continuous visual feedback (such as a pulsing background using `sinf` and animated text dots) for asynchronous hardware operations or blocking states. Drive these animations safely using non-blocking timing like `millis()` and avoid `String` concatenation to prevent heap fragmentation.
