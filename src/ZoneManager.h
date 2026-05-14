@@ -74,16 +74,16 @@ public:
         preferences.end();
     }
 
-    void setWarnPreset(ZonePreset p) { warnPreset = p; saveSettings(); }
-    void setDeadPreset(ZonePreset p) { deadPreset = p; saveSettings(); }
-    void setWarnCustom(RadialZone z) { warnCustom = z; saveSettings(); }
-    void setDeadCustom(RadialZone z) { deadCustom = z; saveSettings(); }
-    void setFuzzingThreshold(int percent) { fuzzingThreshold = percent; saveSettings(); }
+    void setWarnPreset(ZonePreset p) { warnPreset = p; flagDirty(); }
+    void setDeadPreset(ZonePreset p) { deadPreset = p; flagDirty(); }
+    void setWarnCustom(RadialZone z) { warnCustom = z; flagDirty(); }
+    void setDeadCustom(RadialZone z) { deadCustom = z; flagDirty(); }
+    void setFuzzingThreshold(int percent) { fuzzingThreshold = percent; flagDirty(); }
     void setHistoryWindow(int frames) {
         if (frames > 30) frames = 30;
         if (frames < 1) frames = 1;
         historyWindow = frames;
-        saveSettings();
+        flagDirty();
     }
 
 
@@ -164,7 +164,7 @@ public:
         float danger = 1.0f;
 
         if (fuzzingThreshold > 0) {
-            danger = percent / ((float)fuzzingThreshold / 100.0f);
+            danger = percent / ((float)fuzzingThreshold * 0.01f);
         }
 
         if (danger > 1.0f) danger = 1.0f;
@@ -179,6 +179,22 @@ public:
             if (danger > maxDanger) maxDanger = danger;
         }
         return maxDanger;
+    }
+
+
+    bool isDirty = false;
+    unsigned long lastDirtyTime = 0;
+
+    void flagDirty() {
+        isDirty = true;
+        lastDirtyTime = millis();
+    }
+
+    void handleDeferredSave() {
+        if (isDirty && (millis() - lastDirtyTime > 2000)) {
+            saveSettings();
+            isDirty = false;
+        }
     }
 
 private:
