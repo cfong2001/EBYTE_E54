@@ -981,13 +981,18 @@ public:
 
         uint16_t gridColor = (theme == THEME_ALIEN) ? themePrimary : themePrimary;
 
-        for (int r = 60; r <= 180; r += 60) {
-            if (maxR >= r) {
-                int sweepDeg = ((maxR - r) * 180) / 30;
-                if (sweepDeg > 360) sweepDeg = 360;
-                for (int a = -180; a < -180 + sweepDeg; a += 5) {
-                    float rad = a * 0.0174533f;
-                    sprite.drawPixel((tft.width() / 2) + r * cosf(rad), tft.width() + r * sinf(rad), gridColor);
+        // ⚡ Bolt: Hoist trigonometry out of radial rendering loops
+        for (int a = -180; a <= 180; a += 5) {
+            float rad = a * 0.0174533f;
+            float cosA = cosf(rad);
+            float sinA = sinf(rad);
+            for (int r = 60; r <= 180; r += 60) {
+                if (maxR >= r) {
+                    int sweepDeg = ((maxR - r) * 180) / 30;
+                    if (sweepDeg > 360) sweepDeg = 360;
+                    if (a < -180 + sweepDeg) {
+                        sprite.drawPixel((tft.width() / 2) + r * cosA, tft.width() + r * sinA, gridColor);
+                    }
                 }
             }
         }
@@ -1055,10 +1060,13 @@ public:
                 sprite.drawRect((tft.width() / 2) - r, (tft.width() / 2) - r, r * 2, r * 2, sprite.alphaBlend(50, themePrimary, themeBg));
             }
             if (theme == THEME_ALIEN) {
-                for (int r=60; r<=180; r+=60) {
-                    for (int a=0; a<=180; a+=5) {
-                        float rad = (a - 180) * 0.0174533f;
-                        sprite.drawPixel((tft.width() / 2) + r * cosf(rad), tft.width() + r * sinf(rad), gridColor);
+                // ⚡ Bolt: Hoist trigonometry out of radial rendering loops
+                for (int a=0; a<=180; a+=5) {
+                    float rad = (a - 180) * 0.0174533f;
+                    float cosA = cosf(rad);
+                    float sinA = sinf(rad);
+                    for (int r=60; r<=180; r+=60) {
+                        sprite.drawPixel((tft.width() / 2) + r * cosA, tft.width() + r * sinA, gridColor);
                     }
                 }
             } else {
