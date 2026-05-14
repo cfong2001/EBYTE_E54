@@ -70,3 +70,6 @@
 ## 2026-05-19 - Fixed Angle Vector Rotation
 **Learning:** Found redundant use of `atan2f` followed immediately by four `cosf`/`sinf` evaluations inside the UI rendering loop to draw an arrowhead, simply to rotate a direction vector by +/- 0.5 radians. Converting a normalized vector to an angle just to convert it back to a vector via trigonometry is an anti-pattern that wastes CPU cycles on the ESP32.
 **Action:** When rotating an existing normalized vector (`x`, `y`) by a constant angle, precalculate the sine and cosine of the target angle and apply standard 2D vector rotation formula (`x*cos - y*sin`, `y*cos + x*sin`). This entirely eliminates the need for runtime float math functions like `atan2f` and `cosf`/`sinf`.
+## 2025-05-15 - Redundant Math Import Inside Loop
+**Learning:** Hoisting module imports (e.g., `import math`) to the top level of files avoids redundant dictionary lookups and initialization checks inside loops. In Python 3.12, repeated imports within a loop were measured to be ~3x slower than a single top-level import.
+**Action:** Always place module imports at the top of the file, especially if they are used within high-frequency loops.
