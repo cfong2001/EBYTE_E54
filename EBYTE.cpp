@@ -215,10 +215,8 @@ void EBYTE::CompleteTask(unsigned long timeout) {
 	if (_AUX != -1) {
 		
 		while (digitalRead(_AUX) == LOW) {
-			//Serial.println("waiting for aux");
 			delay(2);
 			if ((millis() - t) > timeout){
-				//Serial.println("aux timeout");
 				break;
 			}
 		}
@@ -230,7 +228,6 @@ void EBYTE::CompleteTask(unsigned long timeout) {
 
 	}
 
-	// delay(PIN_RECOVER);
 }
 
 /*
@@ -509,28 +506,6 @@ method to save parameters to the module
 void EBYTE::SaveParameters(uint8_t val) {
 	
 	SetMode(MODE_PROGRAM);
-	/*
-	ClearBuffer();
-
-	
-	Serial.print("val: ");
-	Serial.println(val);
-
-	Serial.print("_AddressHigh: ");
-	Serial.println(_AddressHigh);
-
-	Serial.print("_AddressLow: ");
-	Serial.println(_AddressLow);
-
-	Serial.print("_Speed: ");
-	Serial.println(_Speed);
-
-	Serial.print("_Channel: ");
-	Serial.println(_Channel);
-
-	Serial.print("_Options: ");
-	Serial.println(_Options);
-	*/
 
 
 	_s->write(val);
@@ -664,10 +639,6 @@ bool EBYTE::ReadModelData() {
 	_Features = _Params[3];	
 	SetMode(EBYTE_MODE_NORMAL);
 	
-	//Serial.print("_Params[0] ");Serial.println(_Save);
-	//Serial.print("_Params[1] ");Serial.println(_Model);
-	//Serial.print("_Params[2] ");Serial.println(_Version);
-	//Serial.print("_Params[3] ");Serial.println(_Features);
 	
 		
 	if (0xC3 != _Save) {
@@ -694,13 +665,6 @@ bool EBYTE::ReadModelData() {
 			_Version = _Params[2];
 			_Features = _Params[3];	
 			SetMode(EBYTE_MODE_NORMAL);
-			//Serial.print("_Attempts ");Serial.println(_Attempts);
-			//Serial.print("_Params[0] ");Serial.println(_Params[0]);
-			//Serial.print("_Params[1] ");Serial.println(_Params[1]);
-			//Serial.print("_Params[2] ");Serial.println(_Params[2]);
-			//Serial.print("_Params[3] ");Serial.println(_Params[3]);
-			//Serial.print("_Params[4] ");Serial.println(_Params[4]);
-			//Serial.print("_Params[5] ");Serial.println(_Params[5]);
 			
 			
 			if (0xC3 == _Params[0]){
