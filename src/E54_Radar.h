@@ -9,14 +9,19 @@ struct RadarTarget {
     int16_t y;          // mm
     int16_t speed;      // cm/s
     uint16_t resolution; // mm
+    bool isCoasting;    // flag indicating the target is a predicted coasting frame during dropout
 };
 
 class E54_Radar {
 public:
     bool passthroughMode = false;
-    E54_Radar(HardwareSerial& serial) : radarSerial(serial) {}
+    E54_Radar(HardwareSerial& serial) : radarSerial(serial) {
+        passthroughMode = false;
+    }
 
     void begin(uint8_t rxPin, uint8_t txPin, long baudRate = 256000) {
+        // Optimization: Increase RX buffer size from default 256 to 1024 to prevent overflow and packet loss at high baud rates (256000)
+        radarSerial.setRxBufferSize(1024);
         radarSerial.begin(baudRate, SERIAL_8N1, rxPin, txPin);
     }
 
@@ -24,8 +29,14 @@ public:
         bool updated = false;
         while (radarSerial.available()) {
             uint8_t b = radarSerial.read();
+            rawByteCount++;
+            // Passively log first 60 bytes without stealing them from parser
+            if (!rawLogReady && rawByteCount <= 60) {
+                rawLogBuf[rawByteCount - 1] = b;
+                if (rawByteCount == 60) rawLogReady = true;
+            }
             if (passthroughMode && Serial) {
-                Serial.write(b);
+                Serial.printf("[%lu] %02X ", millis(), b);
             }
             if (processByte(b)) {
                 updated = true;
@@ -33,6 +44,18 @@ public:
         }
         return updated;
     }
+
+    uint32_t lastFrameTimestamp = 0;
+    uint32_t frameDeltaMicros = 0;
+
+    float getDeltaTimeSec() const {
+        if (frameDeltaMicros == 0) return 0.1f; // Default 10Hz fallback
+        return frameDeltaMicros / 1000000.0f;
+    }
+
+    uint32_t rawByteCount = 0; // Total raw bytes received — 0 means no UART activity
+    uint8_t  rawLogBuf[60];    // First 60 raw bytes captured for diagnostics
+    bool     rawLogReady = false; // True once 60 bytes have been captured
 
     RadarTarget targets[3];
 
@@ -82,6 +105,11 @@ private:
                 break;
             case TAIL_2:
                 if (b == 0xCC) {
+                    uint32_t now = micros();
+                    if (lastFrameTimestamp != 0) {
+                        frameDeltaMicros = now - lastFrameTimestamp;
+                    }
+                    lastFrameTimestamp = now;
                     parsePayload();
                     state = SYNC_1;
                     return true;
@@ -103,10 +131,12 @@ private:
 
             if (xRaw == 0 && yRaw == 0 && sRaw == 0 && rRaw == 0) {
                 targets[i].active = false;
+                targets[i].isCoasting = false;
                 continue;
             }
 
             targets[i].active = true;
+            targets[i].isCoasting = false; // Fresh data from hardware is never coasting
             targets[i].x = decodeValue(xRaw);
             targets[i].y = decodeValue(yRaw);
             targets[i].speed = decodeValue(sRaw);

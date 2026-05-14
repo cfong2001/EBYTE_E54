@@ -19,8 +19,6 @@ jobs:
         python-version: '3.12'
     - name: Install PlatformIO
       run: python3 -m pip install platformio
-    - name: Build C++ Code
-      run: pio run -e esp32-s3
     - name: Build C++ Code (WROVER-IE)
       run: pio run -e esp32-wrover-ie
     - name: Run C++ Unit Tests

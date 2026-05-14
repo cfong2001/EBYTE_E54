@@ -1,4 +1,5 @@
 #ifndef MOTION_COMPENSATION_H
+#include <algorithm>
 #define MOTION_COMPENSATION_H
 
 #include <Arduino.h>
@@ -29,13 +30,32 @@ public:
         float velY;
         float accX;
         float accY;
+
+        // Drop-out resilience
+        uint8_t framesLost;
+
+        // Historical trajectory buffer for MeshFlow-inspired optimization
+        static const int HISTORY_SIZE = 30;
+        float historyX[HISTORY_SIZE];
+        float historyY[HISTORY_SIZE];
+        int historyHead;
+        int historyCount;
+        float stdDev;
     };
 
     MotionCompensation() {}
 
     void init() {
         for (int i = 0; i < 3; i++) {
-            state[i] = {false, false, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+            state[i].active = false;
+            state[i].isAnchor = false;
+            state[i].x = 0; state[i].y = 0;
+            state[i].velX = 0; state[i].velY = 0;
+            state[i].accX = 0; state[i].accY = 0;
+            state[i].framesLost = 0;
+            state[i].historyHead = 0;
+            state[i].historyCount = 0;
+            state[i].stdDev = 0.0f;
         }
         frameCount = 0;
         baseSmoothingAlpha = 0.3; // Default
@@ -51,8 +71,7 @@ public:
         baseSmoothingGamma = baseSmoothingBeta * 0.1;
     }
 
-    void process(RadarTarget targets[3], RadarTarget compensated[3]) {
-        float dt = 0.1f; // Assuming ~10Hz update rate
+    void process(float dt, const RadarTarget targets[3], RadarTarget compensated[3]) {
 
         float P_x[3], P_y[3];
         predictStates(dt, targets, P_x, P_y);
@@ -68,7 +87,23 @@ public:
         float cosT = 1.0f, sinT = 0.0f;
         calculateTransform(targets, P_x, P_y, anchorIndices, numAnchors, Cp_x, Cp_y, Cq_x, Cq_y, cosT, sinT);
 
-        stabilizeAndUpdate(dt, targets, P_x, P_y, numAnchors, Cp_x, Cp_y, Cq_x, Cq_y, cosT, sinT, compensated);
+        // 2D Parametric Filtering: Apply Exponential Moving Average (EMA) to global rotational motion vectors.
+        // This separates active camera panning from high-frequency shakes as described in Section 2.1.2 of video stabilization literature.
+        float filterGain = 0.3f; // Lower = smoother, higher = more responsive to active movement
+        emaCosT = (1.0f - filterGain) * emaCosT + filterGain * cosT;
+        emaSinT = (1.0f - filterGain) * emaSinT + filterGain * sinT;
+
+        // Re-normalize the filtered quaternion/vector to prevent shrinking
+        float mag = sqrtf(emaCosT * emaCosT + emaSinT * emaSinT);
+        if (mag > 0.01f) {
+            emaCosT /= mag;
+            emaSinT /= mag;
+        } else {
+            emaCosT = 1.0f;
+            emaSinT = 0.0f;
+        }
+
+        stabilizeAndUpdate(dt, targets, P_x, P_y, numAnchors, Cp_x, Cp_y, Cq_x, Cq_y, emaCosT, emaSinT, compensated);
 
         frameCount++;
     }
@@ -86,7 +121,7 @@ public:
         for (int i=0; i<3; i++) {
             if (state[i].active && state[i].isAnchor) { cx += state[i].x; count++; }
         }
-        return count > 0 ? (int16_t)(cx / count) : 0;
+        return count > 0 ? std::lround(cx / count) : 0;
     }
 
     int16_t getAnchorY() const {
@@ -94,7 +129,7 @@ public:
         for (int i=0; i<3; i++) {
             if (state[i].active && state[i].isAnchor) { cy += state[i].y; count++; }
         }
-        return count > 0 ? (int16_t)(cy / count) : 0;
+        return count > 0 ? std::lround(cy / count) : 0;
     }
 
     // Expose velocity and state data for advanced prediction UI interpolation
@@ -103,6 +138,7 @@ public:
     float getTargetVelY(int i) const { return state[i].velY; }
     float getTargetAccX(int i) const { return state[i].accX; }
     float getTargetAccY(int i) const { return state[i].accY; }
+    float getTargetStdDev(int i) const { return state[i].stdDev; }
 
     void forceReset() { init(); }
 
@@ -249,18 +285,72 @@ private:
                     stab_y = Cp_y + vQy_rot;
                 }
 
-                compensated[i].x = (int16_t)stab_x;
-                compensated[i].y = (int16_t)stab_y;
+                // Mahalanobis Gating (Handheld Ghost Rejection)
+                if (state[i].active) {
+                    float maxAllowedDist = 3000.0f; // 3 meters fallback
+                    // A person running at 10m/s (olympic sprinter) could cover 1m in 0.1s.
+                    // We gate at 1.5 * max theoretical speed distance for the given dt
+                    float maxSpeedAllowed = 15000.0f; // mm/s
+                    maxAllowedDist = maxSpeedAllowed * dt;
+                    // Add a base noise floor to prevent over-gating when dt is extremely small (e.g. fast consecutive frames)
+                    float baseNoiseFloor = 200.0f; // mm (20cm minimum gate radius)
+                    if (maxAllowedDist < baseNoiseFloor) {
+                        maxAllowedDist = baseNoiseFloor;
+                    }
 
-                updateFilterState(i, dt, stab_x, stab_y, P_x[i], P_y[i]);
+                    float dx = stab_x - state[i].x;
+                    float dy = stab_y - state[i].y;
+                    float distMovedSq = dx*dx + dy*dy;
+
+                    // If target dropped out briefly but reappears within gating distance, reset drop counter
+                    state[i].framesLost = 0;
+
+                    if (distMovedSq > maxAllowedDist * maxAllowedDist) {
+                        // Reject this target frame (likely a teleporting ghost)
+                        // Hold position using predicted coordinates
+                        stab_x = P_x[i];
+                        stab_y = P_y[i];
+                    }
+                }
+
+                compensated[i].x = std::lround(stab_x);
+                compensated[i].y = std::lround(stab_y);
+                compensated[i].active = true;
+                compensated[i].isCoasting = false;
+
+                updateFilterState(i, dt, stab_x, stab_y, P_x[i], P_y[i], targets[i]);
             } else {
-                state[i].active = false;
-                state[i].isAnchor = false;
+                // Drop-out resilience logic
+                const uint8_t maxFramesLost = 10;
+                if (state[i].active && state[i].framesLost < maxFramesLost) {
+                    state[i].framesLost++;
+                    // Predict forward using last known velocity
+                    float px = P_x[i];
+                    float py = P_y[i];
+
+                    // Update state to use predicted coordinates to coast through dropouts
+                    state[i].x = px;
+                    state[i].y = py;
+
+                    // Provide a synthetic compensated target to UI
+                    compensated[i].x = std::lround(px);
+                    compensated[i].y = std::lround(py);
+                    compensated[i].speed = std::lround(sqrtf(state[i].velX*state[i].velX + state[i].velY*state[i].velY));
+                    compensated[i].active = true;
+                    compensated[i].resolution = 0; // indicates interpolated frame
+                    compensated[i].isCoasting = true;
+                } else {
+                    // Permanently drop after grace period
+                    state[i].active = false;
+                    state[i].isAnchor = false;
+                    compensated[i].active = false;
+                    compensated[i].isCoasting = false;
+                }
             }
         }
     }
 
-    void updateFilterState(int i, float dt, float stab_x, float stab_y, float px, float py) {
+    void updateFilterState(int i, float dt, float stab_x, float stab_y, float px, float py, const RadarTarget& rawTarget) {
         if (!state[i].active) {
             state[i].x = stab_x;
             state[i].y = stab_y;
@@ -269,16 +359,101 @@ private:
             state[i].accX = 0;
             state[i].accY = 0;
             state[i].active = true;
+            state[i].framesLost = 0;
+            state[i].historyCount = 0;
+            state[i].stdDev = 0.0f;
+            state[i].historyHead = 0;
         } else {
+            // Apply MeshFlow-inspired Gaussian window smoothing using historical data
+            float smoothX = stab_x;
+            float smoothY = stab_y;
+
+            if (state[i].historyCount > 0) {
+                float totalWeight = 1.0f; // Weight for the new coordinate
+                float sumX = stab_x * 1.0f;
+                float sumY = stab_y * 1.0f;
+
+                // Velocity-Adaptive Gaussian Window Size
+                // As per literature on temporal video stabilization (MeshFlow real-time adaptation),
+                // using a wide smoothing window induces heavy lag on moving objects.
+                // We dynamically scale the window size based on current velocity.
+                // The sensor natively outputs speed in cm/s. We convert to mm/s for scaling logic.
+                float currentSpeed = fabsf((float)rawTarget.speed * 10.0f);
+                float maxSpeed = 3000.0f; // 3 m/s (3000 mm/s) as upper bound for fast motion
+
+                // If stationary, use full history. If moving fast, collapse to very small window.
+                float window_size = (float)state[i].historyCount;
+                if (currentSpeed > 50.0f) { // Only shrink if moving more than noise floor
+                    float speedFactor = 1.0f - (currentSpeed / maxSpeed);
+                    if (speedFactor < 0.1f) speedFactor = 0.1f;
+                    window_size = window_size * speedFactor;
+                }
+
+                if (window_size > 1.0f) {
+                    float meanX = 0;
+                    float meanY = 0;
+
+                    for (int j = 0; j < state[i].historyCount; j++) {
+                        // Calculate index in circular buffer
+                        int histIdx = (state[i].historyHead - 1 - j + TargetState::HISTORY_SIZE) % TargetState::HISTORY_SIZE;
+
+                        float hX = state[i].historyX[histIdx];
+                        float hY = state[i].historyY[histIdx];
+
+                        meanX += hX;
+                        meanY += hY;
+
+                        // Time delta `r-t` corresponds to `j + 1` (how many frames ago)
+                        float r_t = (float)(j + 1);
+
+                        // To heavily weight recent frames when the window is small (moving target),
+                        // we also apply a baseline exponential time decay factor.
+                        float weight = expf((-9.0f * (r_t * r_t)) / (window_size * window_size));
+
+                        // Only add weight if it is statistically significant (speeds up loop and rejects stale data for fast targets)
+                        if (weight > 0.05f) {
+                            sumX += hX * weight;
+                            sumY += hY * weight;
+                            totalWeight += weight;
+                        }
+                    }
+                    smoothX = sumX / totalWeight;
+                    smoothY = sumY / totalWeight;
+
+                    // Calculate unweighted Standard Deviation (Variance spread) of the coordinate history buffer for UI
+                    meanX /= (float)state[i].historyCount;
+                    meanY /= (float)state[i].historyCount;
+                    float varSum = 0;
+                    for (int j = 0; j < state[i].historyCount; j++) {
+                         int histIdx = (state[i].historyHead - 1 - j + TargetState::HISTORY_SIZE) % TargetState::HISTORY_SIZE;
+                         float dx = state[i].historyX[histIdx] - meanX;
+                         float dy = state[i].historyY[histIdx] - meanY;
+                         varSum += (dx*dx + dy*dy);
+                    }
+                    state[i].stdDev = sqrtf(varSum / (float)state[i].historyCount);
+                }
+            }
+
             float alpha = baseSmoothingAlpha;
             float beta = baseSmoothingBeta;
             float gamma = baseSmoothingGamma;
 
-            float residualX = stab_x - px;
-            float residualY = stab_y - py;
+            // Residual is calculated against the smoothed objective, not the raw stabilized point
+            float residualX = smoothX - px;
+            float residualY = smoothY - py;
             float distSq = residualX * residualX + residualY * residualY;
 
-            if (state[i].isAnchor) {
+            // Adaptive Gain Selection
+            float accMagnitudeSq = state[i].accX * state[i].accX + state[i].accY * state[i].accY;
+            float accThresholdSq = 4000000.0f; // e.g., 2000 mm/s^2 squared
+
+            if (accMagnitudeSq > accThresholdSq) {
+                // High acceleration -> prioritize Real-Time Tracking
+                alpha = min(1.0f, alpha * 2.5f);
+                beta = alpha * 0.4f;
+                gamma = alpha * 0.1f;
+            } else if (state[i].isAnchor) {
+                // Stable/Anchor -> Lock In position
                 if (distSq > 10000.0f) {
                     alpha *= 0.2f; beta *= 0.1f; gamma *= 0.1f;
                 } else if (distSq < 400.0f) {
@@ -287,9 +462,19 @@ private:
                     gamma *= 1.5f;
                 }
             } else {
-                alpha = min(1.0f, alpha * 2.0f);
+                alpha = min(1.0f, alpha * 1.5f);
                 beta = alpha * 0.2f;
                 gamma = alpha * 0.05f;
+            }
+
+            // Resolution weighting
+            // High resolution (low value) = high confidence = high gain
+            if (rawTarget.resolution > 0) {
+                 float resWeight = 250.0f / (float)rawTarget.resolution;
+                 resWeight = std::clamp(resWeight, 0.5f, 2.0f);
+                 alpha = min(1.0f, alpha * resWeight);
+                 beta *= resWeight;
+                 gamma *= resWeight;
             }
 
             state[i].x = px + alpha * residualX;
@@ -301,10 +486,16 @@ private:
             state[i].accY = state[i].accY + (gamma * residualY / dt_sq_half);
 
             float maxAcc = 5000.0f;
-            if (state[i].accX > maxAcc) state[i].accX = maxAcc;
-            if (state[i].accX < -maxAcc) state[i].accX = -maxAcc;
-            if (state[i].accY > maxAcc) state[i].accY = maxAcc;
-            if (state[i].accY < -maxAcc) state[i].accY = -maxAcc;
+            state[i].accX = std::clamp(state[i].accX, -maxAcc, maxAcc);
+            state[i].accY = std::clamp(state[i].accY, -maxAcc, maxAcc);
+
+            // Update circular history buffer with final determined state
+            state[i].historyX[state[i].historyHead] = state[i].x;
+            state[i].historyY[state[i].historyHead] = state[i].y;
+            state[i].historyHead = (state[i].historyHead + 1) % TargetState::HISTORY_SIZE;
+            if (state[i].historyCount < TargetState::HISTORY_SIZE) {
+                state[i].historyCount++;
+            }
         }
     }
 
@@ -314,6 +505,10 @@ private:
     float baseSmoothingAlpha;
     float baseSmoothingBeta;
     float baseSmoothingGamma;
+
+    // Exponential Moving Average state for global motion vectors
+    float emaCosT = 1.0f;
+    float emaSinT = 0.0f;
 
     const int16_t STATIC_SPEED_INITIAL_THRESHOLD = 15; // cm/s
 };
