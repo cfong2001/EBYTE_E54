@@ -122,9 +122,7 @@ void radarTask(void *pvParameters) {
                     float dt = radar.getDeltaTimeSec();
                     motionComp.process(dt, radar.targets, compensatedTargets);
                 } else {
-                    for(int i=0; i<3; i++) {
-                        compensatedTargets[i] = radar.targets[i];
-                    }
+                    memcpy(compensatedTargets, radar.targets, sizeof(compensatedTargets));
                 }
 
                 for(int i=0; i<3; i++) {
