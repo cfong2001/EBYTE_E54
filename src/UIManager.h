@@ -24,7 +24,8 @@ enum AppState {
     STATE_MENU_EDIT,
     STATE_GUIDE,
     STATE_IMPORTING,
-    STATE_FALLBACK
+    STATE_FALLBACK,
+    STATE_CONFIRM_RESET
 };
 
 enum MenuPage {
@@ -270,6 +271,10 @@ public:
             if (menuSelection < 0) menuSelection = maxMenuSelection;
         } else if (state == STATE_MENU_EDIT) {
             executeMenuEdit(dir);
+        } else if (state == STATE_CONFIRM_RESET) {
+            if (dir != 0) {
+                state = STATE_MENU;
+            }
         }
     }
 
@@ -288,6 +293,15 @@ public:
         } else if (state == STATE_FALLBACK) {
             actionRequested = 3; // Confirm fallback
             state = STATE_RADAR_VIEW;
+        } else if (state == STATE_CONFIRM_RESET) {
+            sprite.fillSprite(0xFDB5); // themeDanger
+            sprite.setTextColor(TFT_WHITE);
+            sprite.setCursor(10, 100);
+            sprite.print("WIPING PREFERENCES...");
+            sprite.pushSprite(0, 0);
+            preferences.clear();
+            delay(1000);
+            ESP.restart();
         } else if (state == STATE_RADAR_VIEW) {
             state = STATE_MENU;
             activePage = PAGE_MAIN;
@@ -495,6 +509,17 @@ public:
             int dots = (millis() / 500) % 4;
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
             sprite.printf("OR WAIT TO REVERT%-3s", dotStr);
+        } else if (state == STATE_CONFIRM_RESET) {
+            float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
+            uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeDanger, themeBg);
+            sprite.fillRect(10, 90, 220, 60, pulseColor);
+            sprite.setTextColor(TFT_WHITE, pulseColor);
+            sprite.setCursor(20, 100);
+            sprite.print("CONFIRM FACTORY RESET");
+            sprite.setCursor(20, 115);
+            sprite.print("[PRESS] TO WIPE");
+            sprite.setCursor(20, 130);
+            sprite.print("[TURN] TO CANCEL");
         }
 
         tft.startWrite();
@@ -1479,14 +1504,7 @@ inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
         if (idx++ == ui->menuSelection) { ui->passthroughMode = !ui->passthroughMode; return; }
         if (idx++ == ui->menuSelection) { ui->showStdDev = !ui->showStdDev; return; }
         if (idx++ == ui->menuSelection) {
-            ui->sprite.fillSprite(0xFDB5); // themeDanger
-            ui->sprite.setTextColor(TFT_WHITE);
-            ui->sprite.setCursor(10, 100);
-            ui->sprite.print("WIPING PREFERENCES...");
-            ui->sprite.pushSprite(0, 0);
-            ui->preferences.clear();
-            delay(1000);
-            ESP.restart();
+            ui->state = STATE_CONFIRM_RESET;
             return;
         }
     }
