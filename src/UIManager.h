@@ -24,7 +24,8 @@ enum AppState {
     STATE_MENU_EDIT,
     STATE_GUIDE,
     STATE_IMPORTING,
-    STATE_FALLBACK
+    STATE_FALLBACK,
+    STATE_CONFIRM_RESET
 };
 
 enum MenuPage {
@@ -264,6 +265,10 @@ public:
             if (guidePage > 2) guidePage = 2;
             return;
         }
+        if (state == STATE_CONFIRM_RESET) {
+            state = STATE_MENU;
+            return;
+        }
         if (state == STATE_MENU) {
             menuSelection += dir;
             if (menuSelection > maxMenuSelection) menuSelection = 0;
@@ -282,7 +287,17 @@ public:
 
     void handleButton() {
 
-        if (state == STATE_IMPORTING) {
+        if (state == STATE_CONFIRM_RESET) {
+            sprite.fillSprite(themeDanger);
+            sprite.setTextColor(TFT_WHITE);
+            sprite.setCursor(10, 100);
+            sprite.print("WIPING PREFERENCES...");
+            sprite.pushSprite(0, 0);
+            preferences.clear();
+            delay(1000);
+            ESP.restart();
+            return;
+        } else if (state == STATE_IMPORTING) {
             actionRequested = 4; // Apply batched changes
             state = STATE_MENU;
         } else if (state == STATE_FALLBACK) {
@@ -468,6 +483,17 @@ public:
 
         if (state == STATE_MENU || state == STATE_MENU_EDIT) {
             drawMenuOverlay();
+        } else if (state == STATE_CONFIRM_RESET) {
+            float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
+            uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeDanger, themeBg);
+            sprite.fillRect(10, 100, 220, 60, pulseColor);
+            sprite.setTextColor(TFT_WHITE, pulseColor);
+            sprite.setCursor(20, 110);
+            sprite.print("CONFIRM RESET?");
+            sprite.setCursor(20, 125);
+            sprite.print("[PRESS] TO ERASE ALL");
+            sprite.setCursor(20, 140);
+            sprite.print("[TURN]  TO CANCEL");
         } else if (state == STATE_IMPORTING) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeWarning, themeBg);
@@ -1479,14 +1505,7 @@ inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
         if (idx++ == ui->menuSelection) { ui->passthroughMode = !ui->passthroughMode; return; }
         if (idx++ == ui->menuSelection) { ui->showStdDev = !ui->showStdDev; return; }
         if (idx++ == ui->menuSelection) {
-            ui->sprite.fillSprite(0xFDB5); // themeDanger
-            ui->sprite.setTextColor(TFT_WHITE);
-            ui->sprite.setCursor(10, 100);
-            ui->sprite.print("WIPING PREFERENCES...");
-            ui->sprite.pushSprite(0, 0);
-            ui->preferences.clear();
-            delay(1000);
-            ESP.restart();
+            ui->state = STATE_CONFIRM_RESET;
             return;
         }
     }
