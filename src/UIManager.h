@@ -117,6 +117,7 @@ public:
     bool devRiskAccepted = false;
     bool motionCompEnabled = true;
     bool passthroughMode = true;
+    bool broadcastModeEnabled = false;
     bool showStdDev = false;
     int uiTextSize = 1;
 
@@ -1181,6 +1182,7 @@ public:
         if (devRiskAccepted) {
             snprintf(items[numItems++], 32, "Motion Comp: %s", motionCompEnabled ? "ON" : "OFF");
             snprintf(items[numItems++], 32, "Passthrough: %s", passthroughMode ? "ON" : "OFF");
+            snprintf(items[numItems++], 32, "Broadcast AP: %s", broadcastModeEnabled ? "ON" : "OFF");
             snprintf(items[numItems++], 32, "Show StdDev: %s", showStdDev ? "ON" : "OFF");
             snprintf(items[numItems++], 32, "%s", "[ FACTORY RESET ]");
             snprintf(items[numItems++], 32, "%s", "[ EXPORT CONFIG ]");

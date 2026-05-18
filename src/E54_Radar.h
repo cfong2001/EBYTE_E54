@@ -16,7 +16,7 @@ class E54_Radar {
 public:
     bool passthroughMode = false;
     E54_Radar(HardwareSerial& serial) : radarSerial(serial) {
-        passthroughMode = false; 
+        passthroughMode = false;
     }
 
     void begin(uint8_t rxPin, uint8_t txPin, long baudRate = 256000) {
