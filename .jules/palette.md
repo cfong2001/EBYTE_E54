@@ -74,3 +74,6 @@
 ## 2026-05-22 - [Asynchronous Hardware Operation Visual Feedback]
 **Learning:** For asynchronous hardware operations or blocking states (e.g., waiting for configuration or uploads), abrupt static binary UI states make the system feel frozen. Users need continuous visual feedback to understand the system is active and processing.
 **Action:** Always provide continuous visual feedback (such as a pulsing background using `sinf` and animated text dots `...`) to reassure the user that the system is active and not frozen. Drive these animations safely using non-blocking timing like `millis()` and avoid `String` concatenation (e.g., by using conditional `const char*` or static buffers) to prevent heap fragmentation.
+## 2026-05-23 - [Confirmation Modals for Destructive Actions]
+**Learning:** Executing destructive actions like "FACTORY RESET" or "WIPE PREFERENCES" immediately upon selection from a hardware menu creates a high risk of accidental data loss, especially on rotary encoder menus where slips are common.
+**Action:** Destructive actions in hardware menus must never execute immediately. Always route the action to a dedicated confirmation state (e.g., `STATE_CONFIRM_RESET`) with a visually distinct prompt (like a pulsing danger overlay) that requires an explicit button press to confirm and allows turning the encoder to cancel.
