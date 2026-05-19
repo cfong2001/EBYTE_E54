@@ -141,8 +141,8 @@ private:
         targets[i].resolution = resolution;
         
         // Calculate distance and angle
-        targets[i].distance_m = sqrt(x * x + y * y) / 1000.0; // Convert mm to m
-        targets[i].angle_deg = atan2(x, y) * 180.0 / PI; // Angle from center
+        targets[i].distance_m = sqrtf((float)x * (float)x + (float)y * (float)y) / 1000.0f; // Convert mm to m
+        targets[i].angle_deg = atan2f((float)x, (float)y) * 180.0f / (float)PI; // Angle from center
       }
       
       offset += TARGET_DATA_SIZE;
