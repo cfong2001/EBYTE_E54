@@ -86,7 +86,6 @@
 ## 2026-05-23 - [Destructive Action Confirmation]
 **Learning:** Destructive actions in hardware menus (like factory resets) must never execute immediately upon selection. Immediate execution leads to accidental data loss and frustrates users.
 **Action:** Always route destructive actions to a dedicated confirmation state (e.g., `STATE_CONFIRM_RESET`) with a visually distinct prompt. Require an explicit button press to confirm and allow turning the encoder to cancel.
-
-## 2024-05-19 - Make menu tooltips dismissible by button release
-**Learning:** Tooltips triggered by a long button press can cause a poor UX if they get stuck and wait for another event to disappear, as users expect them to be dismissed instantly upon releasing the button.
-**Action:** Always implement a dedicated release handler (`handleButtonLongPressEnd`) to explicitly revert transient states like tooltips, rather than leaving them in a stuck state.
+## 2024-05-18 - Exhaustive Hardware Menu Tooltips
+**Learning:** Hardcoded tooltips dynamically matched against hardware menu strings can easily miss newly added settings (e.g. `Broadcast AP:`) or stylistic sub-labels (e.g. `  [DISPLAY/HUD]`), causing generic fallbacks ("Adjust setting value.") which create cognitive dissonance and diminish the sense of a polished interface.
+**Action:** When adding or modifying strings in dynamic hardware configuration menus, cross-reference and update the tooltip rendering block to ensure exhaustive coverage of all text elements the user can select.

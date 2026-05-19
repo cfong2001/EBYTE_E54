@@ -1282,9 +1282,15 @@ public:
                 sprite.print("Return to previous menu.");
             } else if (selItem.startsWith("VISUAL SETTINGS")) {
                 sprite.print("Colors, icons, & layout.");
+            } else if (selItem.startsWith("  [DISPLAY/HUD]")) {
+                sprite.print("Colors, icons, & layout.");
             } else if (selItem.startsWith("ZONE CONFIG")) {
                 sprite.print("Warning & dead zones.");
+            } else if (selItem.startsWith("  [BOUNDARIES]")) {
+                sprite.print("Warning & dead zones.");
             } else if (selItem.startsWith("TARGET DATA")) {
+                sprite.print("Data processing & limits.");
+            } else if (selItem.startsWith("  [GAIN/FILTER]")) {
                 sprite.print("Data processing & limits.");
             } else if (selItem.startsWith("DEV OPTIONS")) {
                 sprite.print("Advanced & experimental.");
@@ -1340,6 +1346,8 @@ public:
                 sprite.print("Compensate for host movement.");
             } else if (selItem.startsWith("Passthrough:")) {
                 sprite.print("Raw UART to serial.");
+            } else if (selItem.startsWith("Broadcast AP:")) {
+                sprite.print("Host a local Wi-Fi network.");
             } else if (selItem.startsWith("Show StdDev:")) {
                 sprite.print("Display data variance.");
             } else if (selItem.startsWith("[ FACTORY RESET ]")) {
