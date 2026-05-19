@@ -286,6 +286,10 @@ public:
         }
     }
 
+    void handleButtonLongPressEnd() {
+        showTooltip = false;
+    }
+
     void handleButton() {
 
         if (state == STATE_CONFIRM_RESET) {
