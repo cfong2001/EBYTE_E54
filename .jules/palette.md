@@ -45,6 +45,15 @@
 ## 2024-05-03 - Menu Back button and Customizable UI Text Size
 **Learning:** Raw string manipulation (e.g., using just `<` for a back arrow) isn't as polished or readable on tiny screens as explicitly forming an arrow `<-`, and hardcoding standard text sizes prevents users with varying setups from properly reading UI menus. TFT fonts lack standard Unicode glyphs without extra heavy library dependencies, so ASCII composite arrows are best for compatibility.
 **Action:** Always offer custom scaling (`uiTextSize` parameter bounded to practical limits like 1-2) mapped directly to hardware rendering functions, while saving preferences dynamically. Use `<-` for backward arrows when Unicode coverage on TFTs isn't guaranteed.
+## 2026-05-03 - Added display rotation and positioning
+**Learning:** Hardcoded coordinates (like 120 and 240) in UI drawing code break when switching orientations or moving between square and rectangular screen profiles.
+**Action:** Replaced hardcoded boundaries and center points with dynamic math relying on `getScreenDimensions()` (e.g. `w/2`, `h`). Implemented flexible offset logic based on enum settings.
+## 2026-05-03 - Added display rotation and positioning
+**Learning:** Hardcoded coordinates (like 120 and 240) in UI drawing code break when switching orientations or moving between square and rectangular screen profiles.
+**Action:** Replaced hardcoded boundaries and center points with dynamic math relying on `getScreenDimensions()` (e.g. `w/2`, `h`). Implemented flexible offset logic based on enum settings.
+## 2026-05-20 - Contextual Empty States & Dynamic Hints (Extended)
+**Learning:** Hardcoded "pseudo-tab-bar" labels that don't accurately reflect hardware button actions cause significant confusion (e.g. `[VIEW] MENU` implies two buttons or touch areas, when there's only one encoder button). Furthermore, "UI traps" like tooltips that can be turned on but not dismissed create frustration.
+**Action:** Ensure hardware button label prompts on the screen dynamically update their text to explicitly match the exact action the single button performs in that context (e.g., `RADAR [MENU]`, `MENU [SELECT]`, `EDIT [SAVE]`). Always ensure that secondary UI states (like long-press tooltips) act as toggles (`!state`) rather than one-way setters.
 ## 2026-05-03 - [Soft Lockout Prevention via Fallback UI]
 **Learning:** Modifying core settings via JSON injections could render the system inoperable if the new settings conflict with hardware (like changing UI sizes or themes uncontrollably). Implementing a `STATE_FALLBACK` UI that temporarily applies settings and requires physical button confirmation to persist them prevents headless lockouts.
 **Action:** Always implement a physical timeout/confirmation layer for remote configuration changes to prevent "bricking" headless devices.
@@ -74,3 +83,9 @@
 ## 2026-05-22 - [Asynchronous Hardware Operation Visual Feedback]
 **Learning:** For asynchronous hardware operations or blocking states (e.g., waiting for configuration or uploads), abrupt static binary UI states make the system feel frozen. Users need continuous visual feedback to understand the system is active and processing.
 **Action:** Always provide continuous visual feedback (such as a pulsing background using `sinf` and animated text dots `...`) to reassure the user that the system is active and not frozen. Drive these animations safely using non-blocking timing like `millis()` and avoid `String` concatenation (e.g., by using conditional `const char*` or static buffers) to prevent heap fragmentation.
+## 2026-05-23 - [Destructive Action Confirmation]
+**Learning:** Destructive actions in hardware menus (like factory resets) must never execute immediately upon selection. Immediate execution leads to accidental data loss and frustrates users.
+**Action:** Always route destructive actions to a dedicated confirmation state (e.g., `STATE_CONFIRM_RESET`) with a visually distinct prompt. Require an explicit button press to confirm and allow turning the encoder to cancel.
+## 2024-05-18 - Exhaustive Hardware Menu Tooltips
+**Learning:** Hardcoded tooltips dynamically matched against hardware menu strings can easily miss newly added settings (e.g. `Broadcast AP:`) or stylistic sub-labels (e.g. `  [DISPLAY/HUD]`), causing generic fallbacks ("Adjust setting value.") which create cognitive dissonance and diminish the sense of a polished interface.
+**Action:** When adding or modifying strings in dynamic hardware configuration menus, cross-reference and update the tooltip rendering block to ensure exhaustive coverage of all text elements the user can select.
