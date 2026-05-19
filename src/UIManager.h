@@ -24,7 +24,8 @@ enum AppState {
     STATE_MENU_EDIT,
     STATE_GUIDE,
     STATE_IMPORTING,
-    STATE_FALLBACK
+    STATE_FALLBACK,
+    STATE_CONFIRM_RESET
 };
 
 enum MenuPage {
@@ -117,6 +118,7 @@ public:
     bool devRiskAccepted = false;
     bool motionCompEnabled = true;
     bool passthroughMode = true;
+    bool broadcastModeEnabled = false;
     bool showStdDev = false;
     int uiTextSize = 1;
 
@@ -230,8 +232,8 @@ public:
         delay(10);
 
         tft.setRotation(0);  // portrait 240x320, matches sprite dimensions
-        tft.fillScreen(TFT_BLACK); // Clear screen
-        Serial.println("[UI] Screen filled BLACK");
+        tft.fillScreen(themeBg); // Clear screen
+        Serial.println("[UI] Screen filled with theme background");
 
 #ifdef TFT_BL
         Serial.printf("[UI] Backlight pin %d -> %s\n", TFT_BL,
@@ -258,6 +260,10 @@ public:
     }
 
     void handleEncoder(int dir) {
+        if (state == STATE_CONFIRM_RESET) {
+            state = STATE_MENU;
+            return;
+        }
         if (state == STATE_GUIDE) {
             guidePage += dir;
             if (guidePage < 0) guidePage = 0;
@@ -282,7 +288,17 @@ public:
 
     void handleButton() {
 
-        if (state == STATE_IMPORTING) {
+        if (state == STATE_CONFIRM_RESET) {
+            sprite.fillSprite(themeDanger);
+            sprite.setTextColor(TFT_WHITE);
+            sprite.setCursor(10, 100);
+            sprite.print("WIPING PREFERENCES...");
+            sprite.pushSprite(0, 0);
+            preferences.clear();
+            delay(1000);
+            ESP.restart();
+            return;
+        } else if (state == STATE_IMPORTING) {
             actionRequested = 4; // Apply batched changes
             state = STATE_MENU;
         } else if (state == STATE_FALLBACK) {
@@ -358,7 +374,7 @@ public:
         if (guidePage == 0) {
             sprite.print("GUIDE 1/3: TARGETS");
             sprite.setCursor(10, 40);
-            sprite.setTextColor(TFT_WHITE, themeBg);
+            sprite.setTextColor(themePrimary, themeBg);
             sprite.print("The radar tracks up");
             sprite.setCursor(10, 55);
             sprite.print("to 3 targets at once.");
@@ -378,7 +394,7 @@ public:
         } else if (guidePage == 1) {
             sprite.print("GUIDE 2/3: CONTROLS");
             sprite.setCursor(10, 40);
-            sprite.setTextColor(TFT_WHITE, themeBg);
+            sprite.setTextColor(themePrimary, themeBg);
             sprite.print("Navigate via the dial:");
 
             sprite.setCursor(20, 80); sprite.print("- TURN: Scroll/Adjust");
@@ -390,7 +406,7 @@ public:
         } else if (guidePage == 2) {
             sprite.print("GUIDE 3/3: ZONES");
             sprite.setCursor(10, 40);
-            sprite.setTextColor(TFT_WHITE, themeBg);
+            sprite.setTextColor(themePrimary, themeBg);
             sprite.print("Zones highlight targets.");
 
             // Draw a mini radar zone
@@ -485,7 +501,7 @@ public:
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeDanger, themeBg);
             sprite.fillRect(10, 90, 220, 60, pulseColor);
-            sprite.setTextColor(TFT_WHITE, pulseColor);
+            sprite.setTextColor(themePrimary, pulseColor);
             sprite.setCursor(20, 100);
             sprite.print("NEW CONFIG LOADED");
             sprite.setCursor(20, 115);
@@ -495,6 +511,17 @@ public:
             int dots = (millis() / 500) % 4;
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
             sprite.printf("OR WAIT TO REVERT%-3s", dotStr);
+        } else if (state == STATE_CONFIRM_RESET) {
+            float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
+            uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeDanger, themeBg);
+            sprite.fillRect(10, 90, 220, 60, pulseColor);
+            sprite.setTextColor(TFT_WHITE, pulseColor);
+            sprite.setCursor(20, 100);
+            sprite.print("CONFIRM FACTORY RESET");
+            sprite.setCursor(20, 115);
+            sprite.print("[PRESS] TO WIPE DATA");
+            sprite.setCursor(20, 130);
+            sprite.print("[TURN] TO CANCEL");
         }
 
         tft.startWrite();
@@ -649,19 +676,19 @@ private:
     void drawTargetIcon(int i, int cx, int cy, uint16_t color) {
         if (targetIcon == ICON_CIRCLE) {
             sprite.fillCircle(cx, cy, 4, color);
-            if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 5, TFT_WHITE);
+            if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 5, themePrimary);
         }
         else if (targetIcon == ICON_SQUARE) {
             sprite.fillRect(cx - 3, cy - 3, 7, 7, color);
-            if (!targetCoasting[i]) sprite.drawRect(cx - 4, cy - 4, 9, 9, TFT_WHITE);
+            if (!targetCoasting[i]) sprite.drawRect(cx - 4, cy - 4, 9, 9, themePrimary);
         }
         else if (targetIcon == ICON_TRIANGLE) {
             sprite.fillTriangle(cx, cy - 5, cx - 4, cy + 3, cx + 4, cy + 3, color);
-            if (!targetCoasting[i]) sprite.drawTriangle(cx, cy - 6, cx - 5, cy + 4, cx + 5, cy + 4, TFT_WHITE);
+            if (!targetCoasting[i]) sprite.drawTriangle(cx, cy - 6, cx - 5, cy + 4, cx + 5, cy + 4, themePrimary);
         }
         else if (targetIcon == ICON_SMART) {
             sprite.drawCircle(cx, cy, 3, color);
-            if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 4, TFT_WHITE);
+            if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 4, themePrimary);
 
             int absSpd = abs(rawTargetSpeed[i]);
             float rawDx = targetCurrentX[i] - targetHistoryX[i][2];
@@ -779,19 +806,19 @@ private:
 
             if (targetIcon == ICON_CIRCLE) {
                 sprite.fillCircle(cx, cy, 4, color);
-                if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 5, TFT_WHITE);
+                if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 5, themePrimary);
             }
             else if (targetIcon == ICON_SQUARE) {
                 sprite.fillRect(cx - 3, cy - 3, 7, 7, color);
-                if (!targetCoasting[i]) sprite.drawRect(cx - 4, cy - 4, 9, 9, TFT_WHITE);
+                if (!targetCoasting[i]) sprite.drawRect(cx - 4, cy - 4, 9, 9, themePrimary);
             }
             else if (targetIcon == ICON_TRIANGLE) {
                 sprite.fillTriangle(cx, cy - 5, cx - 4, cy + 3, cx + 4, cy + 3, color);
-                if (!targetCoasting[i]) sprite.drawTriangle(cx, cy - 6, cx - 5, cy + 4, cx + 5, cy + 4, TFT_WHITE);
+                if (!targetCoasting[i]) sprite.drawTriangle(cx, cy - 6, cx - 5, cy + 4, cx + 5, cy + 4, themePrimary);
             }
             else if (targetIcon == ICON_SMART) {
                 sprite.drawCircle(cx, cy, 3, color);
-                if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 4, TFT_WHITE);
+                if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 4, themePrimary);
 
                 int absSpd = abs(rawTargetSpeed[i]);
                 float rawDx = targetCurrentX[i] - targetHistoryX[i][2];
@@ -1181,6 +1208,7 @@ public:
         if (devRiskAccepted) {
             snprintf(items[numItems++], 32, "Motion Comp: %s", motionCompEnabled ? "ON" : "OFF");
             snprintf(items[numItems++], 32, "Passthrough: %s", passthroughMode ? "ON" : "OFF");
+            snprintf(items[numItems++], 32, "Broadcast AP: %s", broadcastModeEnabled ? "ON" : "OFF");
             snprintf(items[numItems++], 32, "Show StdDev: %s", showStdDev ? "ON" : "OFF");
             snprintf(items[numItems++], 32, "%s", "[ FACTORY RESET ]");
             snprintf(items[numItems++], 32, "%s", "[ EXPORT CONFIG ]");
@@ -1212,7 +1240,7 @@ public:
                     sprite.setTextColor(themeBg, themePrimary);
                 }
             } else {
-                sprite.setTextColor(TFT_WHITE, themeBg);
+                sprite.setTextColor(themePrimary, themeBg);
             }
 
             sprite.setCursor(15, yPos);
@@ -1238,7 +1266,7 @@ public:
         if (showTooltip) {
             sprite.fillRect(10, 140, 220, 60, themeBg);
             sprite.drawRect(10, 140, 220, 60, themeWarning);
-            sprite.setTextColor(TFT_WHITE, themeBg);
+            sprite.setTextColor(themePrimary, themeBg);
             sprite.setTextSize(uiTextSize);
             sprite.setCursor(15, 145);
             sprite.print("INFO: ");
@@ -1250,9 +1278,15 @@ public:
                 sprite.print("Return to previous menu.");
             } else if (selItem.startsWith("VISUAL SETTINGS")) {
                 sprite.print("Colors, icons, & layout.");
+            } else if (selItem.startsWith("  [DISPLAY/HUD]")) {
+                sprite.print("Colors, icons, & layout.");
             } else if (selItem.startsWith("ZONE CONFIG")) {
                 sprite.print("Warning & dead zones.");
+            } else if (selItem.startsWith("  [BOUNDARIES]")) {
+                sprite.print("Warning & dead zones.");
             } else if (selItem.startsWith("TARGET DATA")) {
+                sprite.print("Data processing & limits.");
+            } else if (selItem.startsWith("  [GAIN/FILTER]")) {
                 sprite.print("Data processing & limits.");
             } else if (selItem.startsWith("DEV OPTIONS")) {
                 sprite.print("Advanced & experimental.");
@@ -1308,6 +1342,8 @@ public:
                 sprite.print("Compensate for host movement.");
             } else if (selItem.startsWith("Passthrough:")) {
                 sprite.print("Raw UART to serial.");
+            } else if (selItem.startsWith("Broadcast AP:")) {
+                sprite.print("Host a local Wi-Fi network.");
             } else if (selItem.startsWith("Show StdDev:")) {
                 sprite.print("Display data variance.");
             } else if (selItem.startsWith("[ FACTORY RESET ]")) {
@@ -1325,7 +1361,7 @@ public:
     void drawMenuOverlay() {
         if (menuOverlayY < 200) menuOverlayY += 15;
 
-        sprite.fillRect(0, 0, 240, menuOverlayY, sprite.alphaBlend(220, themeBg, TFT_WHITE));
+        sprite.fillRect(0, 0, 240, menuOverlayY, sprite.alphaBlend(220, themeBg, themePrimary));
         sprite.drawLine(0, menuOverlayY, 240, menuOverlayY, themePrimary);
         if (menuOverlayY < 200) return;
 
@@ -1469,6 +1505,7 @@ inline void DevMenuView::handleMenuClick(UIManager* ui) {
     if (ui->menuSelection == 0) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
     else if (ui->menuSelection == ui->maxMenuSelection - 1 && ui->devRiskAccepted) { ui->actionRequested = 2; ui->state = STATE_RADAR_VIEW; }
     else if (ui->menuSelection == ui->maxMenuSelection && ui->devRiskAccepted) { ui->state = STATE_IMPORTING; }
+    else if (ui->menuSelection == 4 && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_RESET; }
     else { ui->state = STATE_MENU_EDIT; }
 }
 inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
@@ -1480,7 +1517,7 @@ inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
         if (idx++ == ui->menuSelection) { ui->showStdDev = !ui->showStdDev; return; }
         if (idx++ == ui->menuSelection) {
             ui->sprite.fillSprite(0xFDB5); // themeDanger
-            ui->sprite.setTextColor(TFT_WHITE);
+            ui->sprite.setTextColor(themePrimary);
             ui->sprite.setCursor(10, 100);
             ui->sprite.print("WIPING PREFERENCES...");
             ui->sprite.pushSprite(0, 0);

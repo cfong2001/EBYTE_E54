@@ -52,11 +52,11 @@ public:
     float radius = (distance_m / MAX_RANGE_M) * _maxRadius;
     
     // Convert angle to radians (0° is up, clockwise positive)
-    float angle_rad = (angle_deg - 90.0) * PI / 180.0;
+    float angle_rad = (angle_deg - 90.0f) * (float)PI / 180.0f;
     
     // Calculate screen position
-    int x = _centerX + (int)(radius * cos(angle_rad));
-    int y = _centerY + (int)(radius * sin(angle_rad));
+    int x = _centerX + (int)(radius * cosf(angle_rad));
+    int y = _centerY + (int)(radius * sinf(angle_rad));
     
     // Draw target based on index (different sizes/styles)
     drawTarget(x, y, targetIndex);
@@ -140,15 +140,17 @@ private:
     int markerLength = 4;
     
     for (int angle = 0; angle < 360; angle += 45) {
-      float rad = (angle - 90) * PI / 180.0;
+      float rad = (angle - 90) * (float)PI / 180.0f;
+      float cosA = cosf(rad);
+      float sinA = sinf(rad);
       
       // Inner point
-      int x1 = _centerX + (int)((_maxRadius - markerLength) * cos(rad));
-      int y1 = _centerY + (int)((_maxRadius - markerLength) * sin(rad));
+      int x1 = _centerX + (int)((_maxRadius - markerLength) * cosA);
+      int y1 = _centerY + (int)((_maxRadius - markerLength) * sinA);
       
       // Outer point
-      int x2 = _centerX + (int)(_maxRadius * cos(rad));
-      int y2 = _centerY + (int)(_maxRadius * sin(rad));
+      int x2 = _centerX + (int)(_maxRadius * cosA);
+      int y2 = _centerY + (int)(_maxRadius * sinA);
       
       _display->drawLine(x1, y1, x2, y2, SSD1306_WHITE);
     }
