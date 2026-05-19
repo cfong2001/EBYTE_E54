@@ -84,6 +84,9 @@
 **Learning:** For asynchronous hardware operations or blocking states (e.g., waiting for configuration or uploads), abrupt static binary UI states make the system feel frozen. Users need continuous visual feedback to understand the system is active and processing.
 **Action:** Always provide continuous visual feedback (such as a pulsing background using `sinf` and animated text dots `...`) to reassure the user that the system is active and not frozen. Drive these animations safely using non-blocking timing like `millis()` and avoid `String` concatenation (e.g., by using conditional `const char*` or static buffers) to prevent heap fragmentation.
 
+## 2025-05-15 - Add confirmation for destructive actions
+**Learning:** Destructive hardware actions like "FACTORY RESET" that execute immediately on selection cause user anxiety and accidental data loss. Immediate execution from a menu list is an antipattern for safe UI.
+**Action:** Always route destructive actions to a dedicated confirmation state (e.g., `STATE_CONFIRM_RESET`) that clearly warns the user, requires an explicit button press to execute, and allows them to back out by turning the encoder.
 ## 2024-05-18 - Replacing hardcoded UI colors with dynamic theme variables
 **Learning:** Hardcoded text and component colors (like `TFT_WHITE` or `TFT_BLACK`) bypass theme definitions. It's crucial to map hardcoded fallback UI components and tooltips to dynamic theme variables such as `themePrimary` to ensure consistent readability and accessibility across different visual styles.
 **Action:** Always search for hardcoded color macro definitions in UI files (e.g. `TFT_` macros) to ensure they are dynamically tied to accessibility-compliant theme states.

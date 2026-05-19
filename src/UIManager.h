@@ -276,6 +276,10 @@ public:
             if (menuSelection < 0) menuSelection = maxMenuSelection;
         } else if (state == STATE_MENU_EDIT) {
             executeMenuEdit(dir);
+        } else if (state == STATE_CONFIRM_RESET) {
+            if (dir != 0) {
+                state = STATE_MENU;
+            }
         }
     }
 
@@ -304,6 +308,15 @@ public:
         } else if (state == STATE_FALLBACK) {
             actionRequested = 3; // Confirm fallback
             state = STATE_RADAR_VIEW;
+        } else if (state == STATE_CONFIRM_RESET) {
+            sprite.fillSprite(0xFDB5); // themeDanger
+            sprite.setTextColor(TFT_WHITE);
+            sprite.setCursor(10, 100);
+            sprite.print("WIPING PREFERENCES...");
+            sprite.pushSprite(0, 0);
+            preferences.clear();
+            delay(1000);
+            ESP.restart();
         } else if (state == STATE_RADAR_VIEW) {
             state = STATE_MENU;
             activePage = PAGE_MAIN;
@@ -519,7 +532,7 @@ public:
             sprite.setCursor(20, 100);
             sprite.print("CONFIRM FACTORY RESET");
             sprite.setCursor(20, 115);
-            sprite.print("[PRESS] TO WIPE DATA");
+            sprite.print("[PRESS] TO WIPE");
             sprite.setCursor(20, 130);
             sprite.print("[TURN] TO CANCEL");
         }
@@ -1516,6 +1529,7 @@ inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
         if (idx++ == ui->menuSelection) { ui->passthroughMode = !ui->passthroughMode; return; }
         if (idx++ == ui->menuSelection) { ui->showStdDev = !ui->showStdDev; return; }
         if (idx++ == ui->menuSelection) {
+            ui->state = STATE_CONFIRM_RESET;
             ui->sprite.fillSprite(0xFDB5); // themeDanger
             ui->sprite.setTextColor(themePrimary);
             ui->sprite.setCursor(10, 100);
