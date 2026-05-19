@@ -232,8 +232,8 @@ public:
         delay(10);
 
         tft.setRotation(0);  // portrait 240x320, matches sprite dimensions
-        tft.fillScreen(TFT_BLACK); // Clear screen
-        Serial.println("[UI] Screen filled BLACK");
+        tft.fillScreen(themeBg); // Clear screen
+        Serial.println("[UI] Screen filled with theme background");
 
 #ifdef TFT_BL
         Serial.printf("[UI] Backlight pin %d -> %s\n", TFT_BL,
@@ -374,7 +374,7 @@ public:
         if (guidePage == 0) {
             sprite.print("GUIDE 1/3: TARGETS");
             sprite.setCursor(10, 40);
-            sprite.setTextColor(TFT_WHITE, themeBg);
+            sprite.setTextColor(themePrimary, themeBg);
             sprite.print("The radar tracks up");
             sprite.setCursor(10, 55);
             sprite.print("to 3 targets at once.");
@@ -394,7 +394,7 @@ public:
         } else if (guidePage == 1) {
             sprite.print("GUIDE 2/3: CONTROLS");
             sprite.setCursor(10, 40);
-            sprite.setTextColor(TFT_WHITE, themeBg);
+            sprite.setTextColor(themePrimary, themeBg);
             sprite.print("Navigate via the dial:");
 
             sprite.setCursor(20, 80); sprite.print("- TURN: Scroll/Adjust");
@@ -406,7 +406,7 @@ public:
         } else if (guidePage == 2) {
             sprite.print("GUIDE 3/3: ZONES");
             sprite.setCursor(10, 40);
-            sprite.setTextColor(TFT_WHITE, themeBg);
+            sprite.setTextColor(themePrimary, themeBg);
             sprite.print("Zones highlight targets.");
 
             // Draw a mini radar zone
@@ -501,7 +501,7 @@ public:
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeDanger, themeBg);
             sprite.fillRect(10, 90, 220, 60, pulseColor);
-            sprite.setTextColor(TFT_WHITE, pulseColor);
+            sprite.setTextColor(themePrimary, pulseColor);
             sprite.setCursor(20, 100);
             sprite.print("NEW CONFIG LOADED");
             sprite.setCursor(20, 115);
@@ -676,19 +676,19 @@ private:
     void drawTargetIcon(int i, int cx, int cy, uint16_t color) {
         if (targetIcon == ICON_CIRCLE) {
             sprite.fillCircle(cx, cy, 4, color);
-            if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 5, TFT_WHITE);
+            if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 5, themePrimary);
         }
         else if (targetIcon == ICON_SQUARE) {
             sprite.fillRect(cx - 3, cy - 3, 7, 7, color);
-            if (!targetCoasting[i]) sprite.drawRect(cx - 4, cy - 4, 9, 9, TFT_WHITE);
+            if (!targetCoasting[i]) sprite.drawRect(cx - 4, cy - 4, 9, 9, themePrimary);
         }
         else if (targetIcon == ICON_TRIANGLE) {
             sprite.fillTriangle(cx, cy - 5, cx - 4, cy + 3, cx + 4, cy + 3, color);
-            if (!targetCoasting[i]) sprite.drawTriangle(cx, cy - 6, cx - 5, cy + 4, cx + 5, cy + 4, TFT_WHITE);
+            if (!targetCoasting[i]) sprite.drawTriangle(cx, cy - 6, cx - 5, cy + 4, cx + 5, cy + 4, themePrimary);
         }
         else if (targetIcon == ICON_SMART) {
             sprite.drawCircle(cx, cy, 3, color);
-            if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 4, TFT_WHITE);
+            if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 4, themePrimary);
 
             int absSpd = abs(rawTargetSpeed[i]);
             float rawDx = targetCurrentX[i] - targetHistoryX[i][2];
@@ -806,19 +806,19 @@ private:
 
             if (targetIcon == ICON_CIRCLE) {
                 sprite.fillCircle(cx, cy, 4, color);
-                if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 5, TFT_WHITE);
+                if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 5, themePrimary);
             }
             else if (targetIcon == ICON_SQUARE) {
                 sprite.fillRect(cx - 3, cy - 3, 7, 7, color);
-                if (!targetCoasting[i]) sprite.drawRect(cx - 4, cy - 4, 9, 9, TFT_WHITE);
+                if (!targetCoasting[i]) sprite.drawRect(cx - 4, cy - 4, 9, 9, themePrimary);
             }
             else if (targetIcon == ICON_TRIANGLE) {
                 sprite.fillTriangle(cx, cy - 5, cx - 4, cy + 3, cx + 4, cy + 3, color);
-                if (!targetCoasting[i]) sprite.drawTriangle(cx, cy - 6, cx - 5, cy + 4, cx + 5, cy + 4, TFT_WHITE);
+                if (!targetCoasting[i]) sprite.drawTriangle(cx, cy - 6, cx - 5, cy + 4, cx + 5, cy + 4, themePrimary);
             }
             else if (targetIcon == ICON_SMART) {
                 sprite.drawCircle(cx, cy, 3, color);
-                if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 4, TFT_WHITE);
+                if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 4, themePrimary);
 
                 int absSpd = abs(rawTargetSpeed[i]);
                 float rawDx = targetCurrentX[i] - targetHistoryX[i][2];
@@ -1342,7 +1342,7 @@ public:
                     sprite.setTextColor(themeBg, themePrimary);
                 }
             } else {
-                sprite.setTextColor(TFT_WHITE, themeBg);
+                sprite.setTextColor(themePrimary, themeBg);
             }
 
             sprite.setCursor(15, yPos);
@@ -1355,13 +1355,104 @@ public:
 
         if (showTooltip) {
             drawMenuTooltip(items[menuSelection]);
+            sprite.fillRect(10, 140, 220, 60, themeBg);
+            sprite.drawRect(10, 140, 220, 60, themeWarning);
+            sprite.setTextColor(themePrimary, themeBg);
+            sprite.setTextSize(uiTextSize);
+            sprite.setCursor(15, 145);
+            sprite.print("INFO: ");
+            sprite.setCursor(15, 160);
+
+            String selItem = String(items[menuSelection]);
+
+            if (selItem.startsWith("<- Back")) {
+                sprite.print("Return to previous menu.");
+            } else if (selItem.startsWith("VISUAL SETTINGS")) {
+                sprite.print("Colors, icons, & layout.");
+            } else if (selItem.startsWith("  [DISPLAY/HUD]")) {
+                sprite.print("Colors, icons, & layout.");
+            } else if (selItem.startsWith("ZONE CONFIG")) {
+                sprite.print("Warning & dead zones.");
+            } else if (selItem.startsWith("  [BOUNDARIES]")) {
+                sprite.print("Warning & dead zones.");
+            } else if (selItem.startsWith("TARGET DATA")) {
+                sprite.print("Data processing & limits.");
+            } else if (selItem.startsWith("  [GAIN/FILTER]")) {
+                sprite.print("Data processing & limits.");
+            } else if (selItem.startsWith("DEV OPTIONS")) {
+                sprite.print("Advanced & experimental.");
+            } else if (selItem.startsWith("USER GUIDE")) {
+                sprite.print("Help & instructions.");
+            } else if (selItem.startsWith("[ Exit Menu ]")) {
+                sprite.print("Return to radar view.");
+            } else if (selItem.startsWith("Theme:")) {
+                sprite.print("Change color palette.");
+            } else if (selItem.startsWith("Icon:")) {
+                sprite.print("Change target marker.");
+            } else if (selItem.startsWith("Text Size:")) {
+                sprite.print("UI text scale (1-2).");
+            } else if (selItem.startsWith("Sweep Line:")) {
+                sprite.print("Toggle scanning line.");
+            } else if (selItem.startsWith("Sweep Mode:")) {
+                sprite.print("Simulated vs physical.");
+            } else if (selItem.startsWith("Trails:")) {
+                sprite.print("Target history length.");
+            } else if (selItem.startsWith("Grid:")) {
+                sprite.print("Toggle background grid.");
+            } else if (selItem.startsWith("Boot Anim:")) {
+                sprite.print("Toggle startup sequence.");
+            } else if (selItem.startsWith("Warn Zone:")) {
+                sprite.print("Visual alert area.");
+            } else if (selItem.startsWith(" W-MinD:") || selItem.startsWith(" D-MinD:")) {
+                sprite.print("Minimum distance (mm).");
+            } else if (selItem.startsWith(" W-MaxD:") || selItem.startsWith(" D-MaxD:")) {
+                sprite.print("Maximum distance (mm).");
+            } else if (selItem.startsWith(" W-MinA:") || selItem.startsWith(" D-MinA:")) {
+                sprite.print("Left-most angle (deg).");
+            } else if (selItem.startsWith(" W-MaxA:") || selItem.startsWith(" D-MaxA:")) {
+                sprite.print("Right-most angle (deg).");
+            } else if (selItem.startsWith("Warn Fuzz:")) {
+                sprite.print("Boundary tolerance (%).");
+            } else if (selItem.startsWith("Warn Time:")) {
+                sprite.print("Time to trigger alert.");
+            } else if (selItem.startsWith("Dead Zone:")) {
+                sprite.print("Ignore targets area.");
+            } else if (selItem.startsWith("Telemetry:")) {
+                sprite.print("On-screen target data.");
+            } else if (selItem.startsWith("Sensitivity:")) {
+                sprite.print("Min target speed (cm/s).");
+            } else if (selItem.startsWith("Loc Avg:")) {
+                sprite.print("Position smoothing frames.");
+            } else if (selItem.startsWith("Smoothing:")) {
+                sprite.print("Movement interpolation.");
+            } else if (selItem.startsWith("[ Reset Tracking ]")) {
+                sprite.print("Clear all targets.");
+            } else if (selItem.startsWith("Accept Risk?")) {
+                sprite.print("Enable advanced features?");
+            } else if (selItem.startsWith("Motion Comp:")) {
+                sprite.print("Compensate for host movement.");
+            } else if (selItem.startsWith("Passthrough:")) {
+                sprite.print("Raw UART to serial.");
+            } else if (selItem.startsWith("Broadcast AP:")) {
+                sprite.print("Host a local Wi-Fi network.");
+            } else if (selItem.startsWith("Show StdDev:")) {
+                sprite.print("Display data variance.");
+            } else if (selItem.startsWith("[ FACTORY RESET ]")) {
+                sprite.print("Erase all settings.");
+            } else if (selItem.startsWith("[ EXPORT CONFIG ]")) {
+                sprite.print("Save settings to SD.");
+            } else if (selItem.startsWith("[ IMPORT CONFIG ]")) {
+                sprite.print("Load settings from SD.");
+            } else {
+                sprite.print("Adjust setting value.");
+            }
         }
     }
 
     void drawMenuOverlay() {
         if (menuOverlayY < 200) menuOverlayY += 15;
 
-        sprite.fillRect(0, 0, 240, menuOverlayY, sprite.alphaBlend(220, themeBg, TFT_WHITE));
+        sprite.fillRect(0, 0, 240, menuOverlayY, sprite.alphaBlend(220, themeBg, themePrimary));
         sprite.drawLine(0, menuOverlayY, 240, menuOverlayY, themePrimary);
         if (menuOverlayY < 200) return;
 
@@ -1515,7 +1606,17 @@ inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
         if (idx++ == ui->menuSelection) { ui->motionCompEnabled = !ui->motionCompEnabled; return; }
         if (idx++ == ui->menuSelection) { ui->passthroughMode = !ui->passthroughMode; return; }
         if (idx++ == ui->menuSelection) { ui->showStdDev = !ui->showStdDev; return; }
-        if (idx++ == ui->menuSelection) { return; } // Handled via CONFIRM_RESET state
+        if (idx++ == ui->menuSelection) {
+            ui->sprite.fillSprite(0xFDB5); // themeDanger
+            ui->sprite.setTextColor(themePrimary);
+            ui->sprite.setCursor(10, 100);
+            ui->sprite.print("WIPING PREFERENCES...");
+            ui->sprite.pushSprite(0, 0);
+            ui->preferences.clear();
+            delay(1000);
+            ESP.restart();
+            return;
+        }
     }
 }
 inline void DevMenuView::populateMenuPage(UIManager* ui, char items[][32], int& numItems) { ui->populateDevMenu(items, numItems); }
