@@ -73,6 +73,40 @@ void test_isInsideZone_edge_cases() {
     std::cout << "  ✓ test_isInsideZone_edge_cases passed" << std::endl;
 }
 
+void test_isWarning() {
+    std::cout << "Running test_isWarning..." << std::endl;
+    ZoneManager zm;
+
+    // Default ZONE_OFF
+    assert(zm.isWarning(0) == false);
+
+    zm.setWarnPreset(ZONE_CLOSE);
+    zm.setHistoryWindow(5);
+    zm.setFuzzingThreshold(50); // Need >= 50% hits
+
+    bool active[3] = {false, false, false};
+    int16_t x[3] = {0, 0, 0};
+    int16_t y[3] = {0, 0, 0};
+
+    // Start tracking but no hits
+    zm.updateFuzzing(active, x, y);
+    assert(zm.isWarning(0) == false);
+
+    // Set target 0 to be active and inside the close zone (y=1000)
+    active[0] = true;
+    x[0] = 0;
+    y[0] = 1000;
+
+    zm.updateFuzzing(active, x, y);
+    // Hits = 1, checkFrames = 1 -> 100% >= 50% -> true
+    assert(zm.isWarning(0) == true);
+
+    // Move outside the zone (y=3000)
+    y[0] = 3000;
+    zm.updateFuzzing(active, x, y);
+    // Hits = 1, checkFrames = 2 -> 50% >= 50% -> true
+    assert(zm.isWarning(0) == true);
+
 void test_updateFuzzing() {
     std::cout << "Running test_updateFuzzing..." << std::endl;
     ZoneManager zm;
