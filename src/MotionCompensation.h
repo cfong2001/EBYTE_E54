@@ -146,6 +146,17 @@ public:
 
     void forceReset() { init(); }
 
+    bool runSelfTest() {
+        MotionCompensation testMc;
+        testMc.init();
+        RadarTarget target = {true, 1000, 2000, 10, 50, false};
+        testMc.updateFilterState(0, 0.1f, 1000.0f, 2000.0f, 1000.0f, 2000.0f, target);
+        if (testMc.state[0].active != true || testMc.state[0].x != 1000.0f) {
+            return false;
+        }
+        return true;
+    }
+
 private:
 
     void predictStates(float dt, const RadarTarget targets[3], float P_x[3], float P_y[3]) {
