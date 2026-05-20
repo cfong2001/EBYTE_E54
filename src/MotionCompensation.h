@@ -21,6 +21,10 @@
  */
 class MotionCompensation {
 public:
+    friend void test_initialization();
+    friend void test_steady_state();
+    friend void test_high_acceleration();
+
     struct TargetState {
         bool active;
         bool isAnchor;
@@ -198,7 +202,7 @@ private:
                 }
             }
 
-            float minErr = min(err[0], min(err[1], err[2]));
+            float minErr = std::min(err[0], std::min(err[1], err[2]));
             for (int i = 0; i < 3; i++) {
                 if (err[i] < 0.3f || err[i] <= (minErr * 2.0f + 0.1f)) {
                     anchorIndices[validatedAnchors++] = tempAnchorIndices[i];
@@ -449,7 +453,7 @@ private:
 
             if (accMagnitudeSq > accThresholdSq) {
                 // High acceleration -> prioritize Real-Time Tracking
-                alpha = min(1.0f, alpha * 2.5f);
+                alpha = std::min(1.0f, alpha * 2.5f);
                 beta = alpha * 0.4f;
                 gamma = alpha * 0.1f;
             } else if (state[i].isAnchor) {
@@ -457,12 +461,12 @@ private:
                 if (distSq > 10000.0f) {
                     alpha *= 0.2f; beta *= 0.1f; gamma *= 0.1f;
                 } else if (distSq < 400.0f) {
-                    alpha = min(1.0f, alpha * 1.5f);
+                    alpha = std::min(1.0f, alpha * 1.5f);
                     beta *= 1.5f;
                     gamma *= 1.5f;
                 }
             } else {
-                alpha = min(1.0f, alpha * 1.5f);
+                alpha = std::min(1.0f, alpha * 1.5f);
                 beta = alpha * 0.2f;
                 gamma = alpha * 0.05f;
             }
@@ -471,8 +475,8 @@ private:
             // High resolution (low value) = high confidence = high gain
             if (rawTarget.resolution > 0) {
                  float resWeight = 250.0f / (float)rawTarget.resolution;
-                 resWeight = std::clamp(resWeight, 0.5f, 2.0f);
-                 alpha = min(1.0f, alpha * resWeight);
+                 resWeight = std::min(std::max(resWeight, 0.5f), 2.0f);
+                 alpha = std::min(1.0f, alpha * resWeight);
                  beta *= resWeight;
                  gamma *= resWeight;
             }
@@ -486,8 +490,8 @@ private:
             state[i].accY = state[i].accY + (gamma * residualY / dt_sq_half);
 
             float maxAcc = 5000.0f;
-            state[i].accX = std::clamp(state[i].accX, -maxAcc, maxAcc);
-            state[i].accY = std::clamp(state[i].accY, -maxAcc, maxAcc);
+            state[i].accX = std::min(std::max(state[i].accX, -maxAcc), maxAcc);
+            state[i].accY = std::min(std::max(state[i].accY, -maxAcc), maxAcc);
 
             // Update circular history buffer with final determined state
             state[i].historyX[state[i].historyHead] = state[i].x;
