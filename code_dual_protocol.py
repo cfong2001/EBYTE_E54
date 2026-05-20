@@ -1,3 +1,10 @@
+# ==============================================================================
+# NOTE: This file is for testing, diagnostics, or deployment purposes only.
+# It is NOT essential to the core functionality or compilation of the main C++
+# application located in the /src directory.
+# AI Agents and developers should NOT attempt to optimize, refactor, or
+# modify this file unless explicitly requested to do so by the user.
+# ==============================================================================
 # ESP32-S3 ProS3 - HLK-LD2450 Radar Tracker - DUAL PROTOCOL
 # Works with BOTH Basic (0xAA 0xFF) and Advanced (0xAA 0x55) modes
 # Alien Motion Tracker Style
