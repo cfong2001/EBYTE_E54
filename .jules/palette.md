@@ -100,3 +100,7 @@
 ## 2024-05-20 - Stuck Tooltips on Button Release
 **Learning:** For transient UI states triggered by a long button press (e.g., using `OneButton`'s `attachLongPressStart`), explicitly reverting the state upon button release prevents stuck UI elements.
 **Action:** Always implement a dedicated release handler (e.g., `attachLongPressStop`) to clear transient states when the user releases the button.
+## $(date +%Y-%m-%d) - Scale UI rendering with a separate variable
+
+**Learning:** Separating UI scale from text size offers better user customization. Instead of combining the two, or using a simple offset `sprite.setViewport` which is only available in more modern or specific forks of graphic libraries, all sizes can be drawn independently using an adjustment float variable that applies to the draw metrics explicitly.
+**Action:** Implemented a new `uiScale` variable defaulting to 1.0 that's applied directly against rendering lengths and boundaries for icons, telemetry dots, tracking traces, radial zones, and sweeps within the `draw` layer. Bound this `uiScale` to `preferences` NVM alongside `uiTextSize` and provided a dedicated UI setting adjustable by the encoder.

@@ -122,6 +122,7 @@ public:
     bool broadcastModeEnabled = false;
     bool showStdDev = false;
     int uiTextSize = 1;
+    float uiScale = 1.0f;
 
     UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
         mainMenuView = new MainMenuView();
@@ -190,6 +191,7 @@ public:
 
         telemetryMode = (TelemetryMode)preferences.getInt("tData", TELEMETRY_OFF);
         uiTextSize = preferences.getInt("textSize", 1);
+        uiScale = preferences.getFloat("uiScale", 1.0f);
         sensitivity = preferences.getInt("sens", 5);
         locationAveraging = preferences.getInt("locAvg", 5);
         interpolationAmount = (float)preferences.getInt("interp", 5) * 0.1f;
@@ -209,6 +211,7 @@ public:
 
         preferences.putInt("tData", telemetryMode);
         preferences.putInt("textSize", uiTextSize);
+        preferences.putFloat("uiScale", uiScale);
         preferences.putInt("sens", sensitivity);
         preferences.putInt("locAvg", locationAveraging);
         int interDisp = (int)(interpolationAmount * 10.0f + 0.5f);
@@ -449,8 +452,8 @@ public:
                 if (absSpeed < sensitivity && sensitivity > 1) {
                     targetActive[i] = false;
                 } else {
-                    targetGoalX[i] = (tft.width() / 2) + (targets[i].x * (tft.width() / 2) / 5000);
-                    targetGoalY[i] = tft.height() - (targets[i].y * tft.height() / 5000);
+                    targetGoalX[i] = (tft.width() / 2) + (targets[i].x * (tft.width() / 2) / 5000) * uiScale;
+                    targetGoalY[i] = tft.height() - ((targets[i].y * tft.height() / 5000) * uiScale);
 
                     rawTargetX[i] = targets[i].x;
                     rawTargetY[i] = targets[i].y;
@@ -810,8 +813,8 @@ public:
             uint16_t sweepColor = (theme == THEME_ALIEN) ? themePrimary : TFT_DARKGREY;
             for (int a = 0; a < 30; a += 2) {
                 float tr = (sweepAngle - a - 180) * 0.0174533f;
-                int tx = (tft.width() / 2) + 180 * cosf(tr);
-                int ty = tft.height() + 180 * sinf(tr);
+                int tx = (tft.width() / 2) + (180 * uiScale) * cosf(tr);
+                int ty = tft.height() + (180 * uiScale) * sinf(tr);
                 uint8_t alpha = 255 - ((a * 255) / 30);
                 uint16_t trailCol = sprite.alphaBlend(alpha, sweepColor, themeBg);
                 sprite.drawLine(120, 320, tx, ty, trailCol);
@@ -829,7 +832,7 @@ private:
                 if (hx > 0 && hy > 0) {
                     uint8_t t_alpha = (currentAlpha * (trailLength - h)) / trailLength;
                     uint16_t tColor = sprite.alphaBlend(t_alpha, baseColor, themeBg);
-                    int tr = max(1, 4 - (h / 2));
+                    int tr = max(1, (int)((4 - (h / 2)) * uiScale));
                     sprite.fillCircle(hx, hy, tr, tColor);
                 }
             }
@@ -842,7 +845,7 @@ private:
             uint8_t blendRatio = (uint8_t)(pulse * 255.0f);
             uint16_t blendColor = sprite.alphaBlend(blendRatio, themeDanger, themeWarning);
             uint16_t wCol = sprite.alphaBlend(currentAlpha, blendColor, themeBg);
-            int pr = 8 + (int)(pulse * 2.0f);
+            int pr = (int)((8 + (pulse * 2.0f)) * uiScale);
             sprite.drawCircle(cx, cy, pr, wCol);
         }
         float danger = zoneManager.getTargetDangerLevel(i);
@@ -854,7 +857,7 @@ private:
             // ⚡ Bolt: Use single-precision sinf() to avoid implicit double conversion
             // inside 30Hz display rendering loop, saving CPU cycles on ESP32 FPU.
             float pulse = (sinf(millis() / pulseSpeed) + 1.0f) * 0.5f;
-            int r = 6 + (int)(pulse * 4.0f * danger);
+            int r = (int)((6 + (pulse * 4.0f * danger)) * uiScale);
 
             sprite.drawCircle(cx, cy, r, wCol);
         }
@@ -862,20 +865,24 @@ private:
 
     void drawTargetIcon(int i, int cx, int cy, uint16_t color) {
         if (targetIcon == ICON_CIRCLE) {
-            sprite.fillCircle(cx, cy, 4, color);
-            if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 5, themePrimary);
+            int r1 = max(1, (int)(4 * uiScale));
+            int r2 = max(1, (int)(5 * uiScale));
+            sprite.fillCircle(cx, cy, r1, color);
+            if (!targetCoasting[i]) sprite.drawCircle(cx, cy, r2, themePrimary);
         }
         else if (targetIcon == ICON_SQUARE) {
-            sprite.fillRect(cx - 3, cy - 3, 7, 7, color);
-            if (!targetCoasting[i]) sprite.drawRect(cx - 4, cy - 4, 9, 9, themePrimary);
+            int s1 = max(1, (int)(7 * uiScale));
+            int s2 = max(1, (int)(9 * uiScale));
+            sprite.fillRect(cx - s1/2, cy - s1/2, s1, s1, color);
+            if (!targetCoasting[i]) sprite.drawRect(cx - s2/2, cy - s2/2, s2, s2, themePrimary);
         }
         else if (targetIcon == ICON_TRIANGLE) {
-            sprite.fillTriangle(cx, cy - 5, cx - 4, cy + 3, cx + 4, cy + 3, color);
-            if (!targetCoasting[i]) sprite.drawTriangle(cx, cy - 6, cx - 5, cy + 4, cx + 5, cy + 4, themePrimary);
+            sprite.fillTriangle(cx, cy - 5 * uiScale, cx - 4 * uiScale, cy + 3 * uiScale, cx + 4 * uiScale, cy + 3 * uiScale, color);
+            if (!targetCoasting[i]) sprite.drawTriangle(cx, cy - 6 * uiScale, cx - 5 * uiScale, cy + 4 * uiScale, cx + 5 * uiScale, cy + 4 * uiScale, themePrimary);
         }
         else if (targetIcon == ICON_SMART) {
-            sprite.drawCircle(cx, cy, 3, color);
-            if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 4, themePrimary);
+            sprite.drawCircle(cx, cy, max(1, (int)(3 * uiScale)), color);
+            if (!targetCoasting[i]) sprite.drawCircle(cx, cy, max(1, (int)(4 * uiScale)), themePrimary);
 
             int absSpd = abs(rawTargetSpeed[i]);
             float rawDx = targetCurrentX[i] - targetHistoryX[i][2];
@@ -893,8 +900,8 @@ private:
             }
 
             if (smoothSpeed[i] > 5.0f) {
-                float stickLen = 5.0f + (smoothSpeed[i] / 10.0f);
-                if (stickLen > 25.0f) stickLen = 25.0f;
+                float stickLen = (5.0f + (smoothSpeed[i] / 10.0f)) * uiScale;
+                if (stickLen > 25.0f * uiScale) stickLen = 25.0f * uiScale;
                 float sLen = sqrtf(smoothVecX[i]*smoothVecX[i] + smoothVecY[i]*smoothVecY[i]);
                 if (sLen > 0.01f) {
                     float nSvx = smoothVecX[i] / sLen;
@@ -911,18 +918,18 @@ private:
                     constexpr float sin_05 = 0.47942554f;
 
                     // Rotate counter-clockwise (-0.5 radians)
-                    int ax1 = ex - (int)(4.0f * (nSvx * cos_05 + nSvy * sin_05));
-                    int ay1 = ey - (int)(4.0f * (nSvy * cos_05 - nSvx * sin_05));
+                    int ax1 = ex - (int)(4.0f * uiScale * (nSvx * cos_05 + nSvy * sin_05));
+                    int ay1 = ey - (int)(4.0f * uiScale * (nSvy * cos_05 - nSvx * sin_05));
 
                     // Rotate clockwise (+0.5 radians)
-                    int ax2 = ex - (int)(4.0f * (nSvx * cos_05 - nSvy * sin_05));
-                    int ay2 = ey - (int)(4.0f * (nSvy * cos_05 + nSvx * sin_05));
+                    int ax2 = ex - (int)(4.0f * uiScale * (nSvx * cos_05 - nSvy * sin_05));
+                    int ay2 = ey - (int)(4.0f * uiScale * (nSvy * cos_05 + nSvx * sin_05));
 
                     sprite.drawLine(ex, ey, ax1, ay1, color);
                     sprite.drawLine(ex, ey, ax2, ay2, color);
                 }
             } else {
-                sprite.fillCircle(cx, cy, 2, color);
+                sprite.fillCircle(cx, cy, max(1, (int)(2 * uiScale)), color);
             }
         }
     }
@@ -962,8 +969,8 @@ private:
             // Draw StdDev Visualization Circle
             if (showStdDev && targetStdDev[i] > 1.0f) {
                 // Convert millimeter stdDev to screen pixels (approx 120 pixels per 5000 mm)
-                float screenRadius = targetStdDev[i] * (120.0f * 0.0002f);
-                if (screenRadius < 2.0f) screenRadius = 2.0f;
+                float screenRadius = targetStdDev[i] * (120.0f * 0.0002f) * uiScale;
+                if (screenRadius < 2.0f * uiScale) screenRadius = 2.0f * uiScale;
                 if (screenRadius > 120.0f) screenRadius = tft.width() / 2.0f;
                 uint16_t devColor = sprite.alphaBlend(100, baseColor, themeBg); // subtle wireframe
                 sprite.drawCircle(cx, cy, (int)screenRadius, devColor);
@@ -974,7 +981,7 @@ private:
                 uint8_t blendRatio = (uint8_t)(pulse * 255.0f);
                 uint16_t blendColor = sprite.alphaBlend(blendRatio, themeDanger, themeWarning);
                 uint16_t wCol = sprite.alphaBlend(currentAlpha, blendColor, themeBg);
-                int pr = 8 + (int)(pulse * 2.0f);
+                int pr = (int)((8 + (pulse * 2.0f)) * uiScale);
                 sprite.drawCircle(cx, cy, pr, wCol);
             }
             float danger = zoneManager.getTargetDangerLevel(i);
@@ -986,26 +993,30 @@ private:
                 // ⚡ Bolt: Use single-precision sinf() to avoid implicit double conversion
                 // inside 30Hz display rendering loop, saving CPU cycles on ESP32 FPU.
                 float pulse = (sinf(millis() / pulseSpeed) + 1.0f) * 0.5f;
-                int r = 6 + (int)(pulse * 4.0f * danger);
+                int r = (int)((6 + (pulse * 4.0f * danger)) * uiScale);
 
                 sprite.drawCircle(cx, cy, r, wCol);
             }
 
             if (targetIcon == ICON_CIRCLE) {
-                sprite.fillCircle(cx, cy, 4, color);
-                if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 5, themePrimary);
+                int r1 = max(1, (int)(4 * uiScale));
+                int r2 = max(1, (int)(5 * uiScale));
+                sprite.fillCircle(cx, cy, r1, color);
+                if (!targetCoasting[i]) sprite.drawCircle(cx, cy, r2, themePrimary);
             }
             else if (targetIcon == ICON_SQUARE) {
-                sprite.fillRect(cx - 3, cy - 3, 7, 7, color);
-                if (!targetCoasting[i]) sprite.drawRect(cx - 4, cy - 4, 9, 9, themePrimary);
+                int s1 = max(1, (int)(7 * uiScale));
+                int s2 = max(1, (int)(9 * uiScale));
+                sprite.fillRect(cx - s1/2, cy - s1/2, s1, s1, color);
+                if (!targetCoasting[i]) sprite.drawRect(cx - s2/2, cy - s2/2, s2, s2, themePrimary);
             }
             else if (targetIcon == ICON_TRIANGLE) {
-                sprite.fillTriangle(cx, cy - 5, cx - 4, cy + 3, cx + 4, cy + 3, color);
-                if (!targetCoasting[i]) sprite.drawTriangle(cx, cy - 6, cx - 5, cy + 4, cx + 5, cy + 4, themePrimary);
+                sprite.fillTriangle(cx, cy - 5 * uiScale, cx - 4 * uiScale, cy + 3 * uiScale, cx + 4 * uiScale, cy + 3 * uiScale, color);
+                if (!targetCoasting[i]) sprite.drawTriangle(cx, cy - 6 * uiScale, cx - 5 * uiScale, cy + 4 * uiScale, cx + 5 * uiScale, cy + 4 * uiScale, themePrimary);
             }
             else if (targetIcon == ICON_SMART) {
-                sprite.drawCircle(cx, cy, 3, color);
-                if (!targetCoasting[i]) sprite.drawCircle(cx, cy, 4, themePrimary);
+                sprite.drawCircle(cx, cy, max(1, (int)(3 * uiScale)), color);
+                if (!targetCoasting[i]) sprite.drawCircle(cx, cy, max(1, (int)(4 * uiScale)), themePrimary);
 
                 int absSpd = abs(rawTargetSpeed[i]);
                 float rawDx = targetCurrentX[i] - targetHistoryX[i][2];
@@ -1231,8 +1242,8 @@ public:
     }
 
     void drawRadialWedge(int minDist, int maxDist, int minAngle, int maxAngle, uint16_t color) {
-        int maxR = (maxDist * 180) / 6000;
-        int minR = (minDist * 180) / 6000;
+        int maxR = ((maxDist * 180) / 6000) * uiScale;
+        int minR = ((minDist * 180) / 6000) * uiScale;
         if (maxR > 180) maxR = 180;
         if (minR > 180) minR = 180;
         for (int a = minAngle; a <= maxAngle; a++) {
@@ -1325,6 +1336,7 @@ public:
         snprintf(items[numItems++], 32, "Theme: %s", themeStr);
         snprintf(items[numItems++], 32, "Icon: %s", iconStr);
         snprintf(items[numItems++], 32, "Text Size: %d", uiTextSize);
+        snprintf(items[numItems++], 32, "UI Scale: %.1f", uiScale);
         snprintf(items[numItems++], 32, "Sweep Line: %s", sweepLineEnabled ? "ON" : "OFF");
         snprintf(items[numItems++], 32, "Sweep Mode: %s", simulatedSweep ? "SIMULATED" : "VISUAL");
         snprintf(items[numItems++], 32, "Trails: %d", trailLength);
@@ -1703,6 +1715,7 @@ inline void VisualsMenuView::executeMenuEdit(UIManager* ui, int dir) {
         return;
     }
     if (idx++ == ui->menuSelection) { ui->uiTextSize += dir; if (ui->uiTextSize < 1) ui->uiTextSize = 1; if (ui->uiTextSize > 2) ui->uiTextSize = 2; return; }
+    if (idx++ == ui->menuSelection) { ui->uiScale += dir * 0.1f; if (ui->uiScale < 0.5f) ui->uiScale = 0.5f; if (ui->uiScale > 2.0f) ui->uiScale = 2.0f; return; }
     if (idx++ == ui->menuSelection) { ui->sweepLineEnabled = !ui->sweepLineEnabled; return; }
     if (idx++ == ui->menuSelection) { ui->simulatedSweep = !ui->simulatedSweep; return; }
     if (idx++ == ui->menuSelection) { ui->trailLength += dir; if (ui->trailLength < 0) ui->trailLength = 0; if (ui->trailLength > 10) ui->trailLength = 10; return; }
