@@ -14,7 +14,7 @@ BroadcastServer::BroadcastServer() : server(80), isRunning(false) {
 void BroadcastServer::begin() {
     if (isRunning) return;
 
-    WiFi.softAP("ESP32-Radar-Tracker", ""); // Open AP
+    WiFi.softAP("ESP32-Radar-Tracker", "RadarAdmin123"); // Secured AP
     IPAddress IP = WiFi.softAPIP();
     Serial.print("AP IP address: ");
     Serial.println(IP);
