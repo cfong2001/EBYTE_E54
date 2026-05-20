@@ -6,8 +6,37 @@
 #include <vector>
 #include <cstdarg>
 #include <cstdio>
+#include <queue>
 
 #define PI 3.14159265358979323846
+#define SERIAL_8N1 0x800001c
+
+// Mock micros
+extern uint32_t mock_micros;
+inline uint32_t micros() { return mock_micros; }
+
+class HardwareSerial {
+public:
+    std::queue<uint8_t> rx_buffer;
+
+    void setRxBufferSize(size_t size) {}
+    void begin(long baudRate, uint32_t config, uint8_t rxPin, uint8_t txPin) {}
+
+    int available() {
+        return rx_buffer.size();
+    }
+
+    int read() {
+        if (rx_buffer.empty()) return -1;
+        uint8_t val = rx_buffer.front();
+        rx_buffer.pop();
+        return val;
+    }
+
+    void write(uint8_t b) {
+        rx_buffer.push(b);
+    }
+};
 
 // Mock Serial
 class MockSerial {
@@ -26,6 +55,8 @@ public:
         va_end(args);
         log.push_back(std::string(buf));
     }
+
+    explicit operator bool() const { return true; }
 
     void clear() {
         log.clear();
@@ -55,3 +86,5 @@ typedef void* TaskHandle_t;
 inline int uxTaskGetNumberOfTasks() { return 1; }
 inline void vTaskDelay(int ticks) {}
 inline void xTaskCreatePinnedToCore(void (*task)(void*), const char* name, int stack, void* param, int prio, TaskHandle_t* handle, int core) {}
+
+// Update MockSerial to support operator bool()
