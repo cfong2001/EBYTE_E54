@@ -14,7 +14,25 @@ BroadcastServer::BroadcastServer() : server(80), isRunning(false) {
 void BroadcastServer::begin() {
     if (isRunning) return;
 
-    WiFi.softAP("ESP32-Radar-Tracker", ""); // Open AP
+
+    Preferences prefs;
+    prefs.begin("radar_sys", true);
+    String wifiPass = prefs.getString("wifi_pass", "");
+    prefs.end();
+
+    if (wifiPass == "") {
+        const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        wifiPass = "";
+        for (int i = 0; i < 12; i++) {
+            wifiPass += charset[random(0, sizeof(charset) - 1)];
+        }
+        prefs.begin("radar_sys", false);
+        prefs.putString("wifi_pass", wifiPass);
+        prefs.end();
+    }
+
+    WiFi.softAP("ESP32-Radar-Tracker", wifiPass.c_str()); // Secured AP
+
     IPAddress IP = WiFi.softAPIP();
     Serial.print("AP IP address: ");
     Serial.println(IP);

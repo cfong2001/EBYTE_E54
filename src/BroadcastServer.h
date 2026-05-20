@@ -6,6 +6,7 @@
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 #include "E54_Radar.h"
+#include <Preferences.h>
 
 class BroadcastServer {
 public:

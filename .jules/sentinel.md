@@ -10,3 +10,7 @@
 **Vulnerability:** Interactive CLI prompts for retry/quit actions accepted any input other than 'q' and treated it as a default 'retry' action, allowing arbitrary input to bypass the intended prompt choices.
 **Learning:** For security and reliability, input prompts should use strict validation. Failing to validate user input against a finite set of allowed values violates CWE-20 and can lead to unexpected behavior.
 **Prevention:** Always use a `while True` loop to strictly validate user input against expected values (e.g., `['r', 'q']`) before proceeding. Do not use default fallback actions for arbitrary input.
+## 2025-05-20 - Open WiFi Access Point
+**Vulnerability:** The `WiFi.softAP` function was called with an empty password string, creating an open WiFi access point without authentication or encryption.
+**Learning:** Hardcoding empty passwords for Access Points allows any nearby attacker to connect, potentially accessing sensitive telemetry or disrupting device functionality.
+**Prevention:** Always provide a strong password (minimum 8 characters) when initializing a soft AP to enable WPA2-PSK encryption, preventing unauthorized access.
