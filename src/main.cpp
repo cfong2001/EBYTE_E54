@@ -67,6 +67,10 @@ void handleButtonLongPressStart() {
     ui.handleButtonLongPress();
 }
 
+void handleButtonLongPressStop() {
+    ui.handleButtonLongPressStop();
+}
+
 // KEY0: secondary "menu return / confirmation" button per module datasheet
 void handleKey0Press() {
     // In menu: acts as back/confirm (same as encoder press for simplicity)
@@ -216,6 +220,7 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_B), checkPosition, CHANGE);
     button.attachClick(handleButtonPress);
     button.attachLongPressStart(handleButtonLongPressStart);
+    button.attachLongPressStop(handleButtonLongPressStop);
     key0.attachClick(handleKey0Press);
     key0.attachLongPressStart(handleKey0LongPress);
 

@@ -96,3 +96,7 @@
 ## 2024-05-18 - Exhaustive Hardware Menu Tooltips
 **Learning:** Hardcoded tooltips dynamically matched against hardware menu strings can easily miss newly added settings (e.g. `Broadcast AP:`) or stylistic sub-labels (e.g. `  [DISPLAY/HUD]`), causing generic fallbacks ("Adjust setting value.") which create cognitive dissonance and diminish the sense of a polished interface.
 **Action:** When adding or modifying strings in dynamic hardware configuration menus, cross-reference and update the tooltip rendering block to ensure exhaustive coverage of all text elements the user can select.
+
+## 2024-05-19 - Transient UI State Management
+**Learning:** Hardware button long-press interactions that trigger transient UI overlays (like tooltips) can easily become stuck if the explicit release state (e.g., `attachLongPressStop`) is unhandled, resulting in a persistent, blocking overlay.
+**Action:** When implementing `attachLongPressStart` for transient tooltips or overlays via `OneButton`, always ensure a corresponding `attachLongPressStop` or explicit timeout is bound to gracefully revert the UI state to normal.
