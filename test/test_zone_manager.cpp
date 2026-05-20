@@ -73,10 +73,75 @@ void test_isInsideZone_edge_cases() {
     std::cout << "  ✓ test_isInsideZone_edge_cases passed" << std::endl;
 }
 
+void test_updateFuzzing() {
+    std::cout << "Running test_updateFuzzing..." << std::endl;
+    ZoneManager zm;
+    zm.setWarnPreset(ZONE_CUSTOM);
+    zm.setWarnCustom({1000, 3000, -30, 30});
+    zm.setHistoryWindow(5);
+    zm.setFuzzingThreshold(60);
+
+    bool targetActive[3] = {false, false, false};
+    int16_t targetX[3] = {0, 0, 0};
+    int16_t targetY[3] = {0, 0, 0};
+
+    // Frame 1: Target 0 becomes active and is inside the zone
+    targetActive[0] = true;
+    targetX[0] = 0;
+    targetY[0] = 2000;
+    zm.updateFuzzing(targetActive, targetX, targetY);
+
+    // Only 1 frame of history, hits=1, checkFrames=1, percent=100 >= 60
+    assert(zm.isWarning(0) == true);
+
+    // Frame 2: Target 0 still active and inside
+    zm.updateFuzzing(targetActive, targetX, targetY);
+    assert(zm.isWarning(0) == true);
+
+    // Frame 3: Target 0 active but outside the zone
+    targetX[0] = 0;
+    targetY[0] = 4000;
+    zm.updateFuzzing(targetActive, targetX, targetY);
+
+    // 3 frames, hits=2, checkFrames=3, percent=66 >= 60
+    assert(zm.isWarning(0) == true);
+
+    // Frame 4: Target 0 outside again
+    zm.updateFuzzing(targetActive, targetX, targetY);
+    // 4 frames, hits=2, checkFrames=4, percent=50 < 60
+    assert(zm.isWarning(0) == false);
+
+    // Frame 5: Target 0 outside again
+    zm.updateFuzzing(targetActive, targetX, targetY);
+    // 5 frames, hits=2, checkFrames=5, percent=40 < 60
+    assert(zm.isWarning(0) == false);
+
+    // Test ZONE_OFF resets history and suppresses warnings
+    zm.setWarnPreset(ZONE_OFF);
+    targetX[0] = 0;
+    targetY[0] = 2000; // Back inside
+    zm.updateFuzzing(targetActive, targetX, targetY);
+    assert(zm.isWarning(0) == false);
+
+    // Switch back to custom, history should have been reset to 0
+    zm.setWarnPreset(ZONE_CUSTOM);
+    // Need to trigger another update to get a frame of history
+    zm.updateFuzzing(targetActive, targetX, targetY);
+    assert(zm.isWarning(0) == true);
+
+    // Target becomes inactive, should reset history
+    targetActive[0] = false;
+    zm.updateFuzzing(targetActive, targetX, targetY);
+    assert(zm.isWarning(0) == false);
+
+    std::cout << "  ✓ test_updateFuzzing passed" << std::endl;
+}
+
 void test_zone_manager_all() {
     std::cout << "Testing ZoneManager..." << std::endl;
     test_isInsideZone_distance();
     test_isInsideZone_angle();
     test_isInsideZone_edge_cases();
+    test_updateFuzzing();
     std::cout << "All ZoneManager tests passed!" << std::endl;
 }
