@@ -6,6 +6,10 @@
 #include <vector>
 #include <cstdarg>
 #include <cstdio>
+#include <algorithm>
+
+using std::min;
+using std::max;
 
 #define PI 3.14159265358979323846
 
@@ -14,10 +18,6 @@ class MockSerial {
 public:
     std::vector<std::string> log;
 
-    void print(const char* s) {}
-    template<typename T> void println(T t) {}
-    template<typename T> void print(T t) {}
-    operator bool() const { return true; }
     void println(const char* s) {
         log.push_back(std::string(s));
     }
@@ -33,6 +33,10 @@ public:
 
     void clear() {
         log.clear();
+    }
+
+    operator bool() const {
+        return true;
     }
 };
 
@@ -60,19 +64,32 @@ inline int uxTaskGetNumberOfTasks() { return 1; }
 inline void vTaskDelay(int ticks) {}
 inline void xTaskCreatePinnedToCore(void (*task)(void*), const char* name, int stack, void* param, int prio, TaskHandle_t* handle, int core) {}
 
+
+#ifndef ARDUINO_H_ADDITIONS
+#define ARDUINO_H_ADDITIONS
+#ifndef SERIAL_8N1
+#define SERIAL_8N1 0x800001c
+#endif
+
 class HardwareSerial {
 public:
-    void setRxBufferSize(size_t size) {}
-    void begin(long baud, int config, int rxPin, int txPin) {}
+    void begin(unsigned long baud, uint32_t config=SERIAL_8N1, int8_t rxPin=-1, int8_t txPin=-1, bool invert=false, unsigned long timeout_ms = 20000UL) {}
+    void setRxBufferSize(size_t) {}
     int available() { return 0; }
-    int read() { return 0; }
+    int read() { return -1; }
+    size_t write(uint8_t) { return 1; }
+    size_t write(const uint8_t *buffer, size_t size) { return size; }
 };
 
-#define SERIAL_8N1 0
-
+#ifndef micros
 inline unsigned long micros() { return mock_millis * 1000; }
+#endif
 
-typedef void* SemaphoreHandle_t;
-inline SemaphoreHandle_t xSemaphoreCreateMutex() { return (SemaphoreHandle_t)1; }
-inline bool xSemaphoreTake(SemaphoreHandle_t xSemaphore, int xTicksToWait) { return true; }
-inline bool xSemaphoreGive(SemaphoreHandle_t xSemaphore) { return true; }
+#endif
+
+namespace std {
+    template<class T>
+    constexpr const T& clamp(const T& v, const T& lo, const T& hi) {
+        return (v < lo) ? lo : (hi < v) ? hi : v;
+    }
+}
