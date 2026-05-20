@@ -26,7 +26,8 @@ enum AppState {
     STATE_IMPORTING,
     STATE_FALLBACK,
     STATE_CONFIRM_RESET,
-    STATE_CONFIRM_WIFI_GEN
+    STATE_CONFIRM_WIFI_GEN,
+    STATE_SELF_TEST
 };
 
 enum MenuPage {
@@ -261,8 +262,11 @@ public:
     }
 
     void handleEncoder(int dir) {
-        if (state == STATE_CONFIRM_RESET,
-    STATE_CONFIRM_WIFI_GEN) {
+        if (state == STATE_SELF_TEST) {
+            state = STATE_MENU;
+            return;
+        }
+        if (state == STATE_CONFIRM_RESET) {
             state = STATE_MENU;
             return;
         }
@@ -278,8 +282,7 @@ public:
             if (menuSelection < 0) menuSelection = maxMenuSelection;
         } else if (state == STATE_MENU_EDIT) {
             executeMenuEdit(dir);
-        } else if (state == STATE_CONFIRM_RESET,
-    STATE_CONFIRM_WIFI_GEN) {
+        } else if (state == STATE_CONFIRM_RESET || state == STATE_CONFIRM_WIFI_GEN) {
             if (dir != 0) {
                 state = STATE_MENU;
             }
@@ -298,9 +301,12 @@ public:
     }
 
     void handleButton() {
+        if (state == STATE_SELF_TEST) {
+            state = STATE_MENU;
+            return;
+        }
 
-        if (state == STATE_CONFIRM_RESET,
-    STATE_CONFIRM_WIFI_GEN) {
+        if (state == STATE_CONFIRM_RESET || state == STATE_CONFIRM_WIFI_GEN) {
             sprite.fillSprite(themeDanger);
             sprite.setTextColor(TFT_WHITE);
             sprite.setCursor(10, 100);
@@ -398,8 +404,7 @@ public:
         } else if (state == STATE_FALLBACK) {
             actionRequested = 3; // Confirm fallback
             state = STATE_RADAR_VIEW;
-        } else if (state == STATE_CONFIRM_RESET,
-    STATE_CONFIRM_WIFI_GEN) {
+        } else if (state == STATE_CONFIRM_RESET) {
             sprite.fillSprite(0xFDB5); // themeDanger
             sprite.setTextColor(TFT_WHITE);
             sprite.setCursor(10, 100);
@@ -544,6 +549,10 @@ public:
     void renderLoop() {
         if (state == STATE_BOOT) {
             drawBootScreen();
+            return;
+        }
+        if (state == STATE_SELF_TEST) {
+            drawSelfTestScreen();
             return;
         }
         if (state == STATE_GUIDE) {
@@ -697,8 +706,7 @@ public:
             int dots = (millis() / 500) % 4;
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
             sprite.printf("OR WAIT TO REVERT%-3s", dotStr);
-        } else if (state == STATE_CONFIRM_RESET,
-    STATE_CONFIRM_WIFI_GEN) {
+        } else if (state == STATE_CONFIRM_RESET) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeDanger, themeBg);
             sprite.fillRect(10, 90, 220, 60, pulseColor);
@@ -1153,6 +1161,9 @@ public:
 
     int sweepAngle;
     int actionRequested;
+    bool selfTestDone = false;
+    bool selfTestRxOk = false;
+    bool selfTestSoftwareOk = false;
 
     bool anchorValid;
     int16_t anchorX;
@@ -1185,6 +1196,47 @@ public:
     bool lastTargetActive[3];
     int lastDrawnX[3];
     int lastDrawnY[3];
+
+    void drawSelfTestScreen() {
+        sprite.fillSprite(themeBg);
+        sprite.setTextColor(themePrimary, themeBg);
+        sprite.setTextSize(uiTextSize);
+        sprite.setCursor(10, 10);
+        sprite.print("--- SELF TEST ---");
+
+        sprite.setCursor(10, 40);
+        if (!selfTestDone) {
+            sprite.print("Running tests...");
+        } else {
+            sprite.print("Wiring / RX Check:");
+            sprite.setCursor(10, 60);
+            if (selfTestRxOk) {
+                sprite.setTextColor(themeSuccess, themeBg);
+                sprite.print("PASS: RX is HIGH");
+            } else {
+                sprite.setTextColor(themeDanger, themeBg);
+                sprite.print("FAIL: RX is LOW");
+            }
+
+            sprite.setTextColor(themePrimary, themeBg);
+            sprite.setCursor(10, 80);
+            sprite.print("Software Logic Check:");
+            sprite.setCursor(10, 100);
+            if (selfTestSoftwareOk) {
+                sprite.setTextColor(themeSuccess, themeBg);
+                sprite.print("PASS: Tests passed");
+            } else {
+                sprite.setTextColor(themeDanger, themeBg);
+                sprite.print("FAIL: Tests failed");
+            }
+        }
+
+        sprite.setTextColor(themeWarning, themeBg);
+        sprite.setCursor(10, 140);
+        sprite.print("Click to exit");
+
+        sprite.pushSprite(0, 0);
+    }
 
     void drawBootScreen() {
         sprite.fillSprite(themeBg);
@@ -1397,6 +1449,7 @@ public:
             snprintf(items[numItems++], 32, "Passthrough: %s", passthroughMode ? "ON" : "OFF");
             snprintf(items[numItems++], 32, "Broadcast AP: %s", broadcastModeEnabled ? "ON" : "OFF");
             snprintf(items[numItems++], 32, "Show StdDev: %s", showStdDev ? "ON" : "OFF");
+            snprintf(items[numItems++], 32, "%s", "[ RUN SELF TEST ]");
             snprintf(items[numItems++], 32, "%s", "[ FACTORY RESET ]");
             snprintf(items[numItems++], 32, "%s", "[ EXPORT CONFIG ]");
             snprintf(items[numItems++], 32, "%s", "[ IMPORT CONFIG ]");
@@ -1784,11 +1837,11 @@ inline void DataMenuView::populateMenuPage(UIManager* ui, char items[][32], int&
 
 inline void DevMenuView::handleMenuClick(UIManager* ui) {
     if (ui->menuSelection == 0) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
+    else if (ui->menuSelection == ui->maxMenuSelection - 4 && ui->devRiskAccepted) { ui->actionRequested = 5; ui->state = STATE_SELF_TEST; ui->selfTestDone = false; }
+    else if (ui->menuSelection == ui->maxMenuSelection - 3 && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_RESET; }
     else if (ui->menuSelection == ui->maxMenuSelection - 2 && ui->devRiskAccepted) { ui->actionRequested = 2; ui->state = STATE_RADAR_VIEW; }
     else if (ui->menuSelection == ui->maxMenuSelection - 1 && ui->devRiskAccepted) { ui->state = STATE_IMPORTING; }
     else if (ui->menuSelection == ui->maxMenuSelection && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_WIFI_GEN; }
-    else if (ui->menuSelection == 4 && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_RESET,
-    STATE_CONFIRM_WIFI_GEN; }
     else { ui->state = STATE_MENU_EDIT; }
 }
 inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
@@ -1798,9 +1851,9 @@ inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
         if (idx++ == ui->menuSelection) { ui->motionCompEnabled = !ui->motionCompEnabled; return; }
         if (idx++ == ui->menuSelection) { ui->passthroughMode = !ui->passthroughMode; return; }
         if (idx++ == ui->menuSelection) { ui->showStdDev = !ui->showStdDev; return; }
+        idx++; // Skip [ RUN SELF TEST ] as it's handled in handleMenuClick
         if (idx++ == ui->menuSelection) {
-            ui->state = STATE_CONFIRM_RESET,
-    STATE_CONFIRM_WIFI_GEN;
+            ui->state = STATE_CONFIRM_RESET;
             ui->sprite.fillSprite(0xFDB5); // themeDanger
             ui->sprite.setTextColor(themePrimary);
             ui->sprite.setCursor(10, 100);
