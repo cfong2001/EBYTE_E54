@@ -18,10 +18,6 @@ class MockSerial {
 public:
     std::vector<std::string> log;
 
-    void print(const char* s) {}
-    template<typename T> void println(T t) {}
-    template<typename T> void print(T t) {}
-    operator bool() const { return true; }
     void println(const char* s) {
         log.push_back(std::string(s));
     }
@@ -68,9 +64,13 @@ inline int uxTaskGetNumberOfTasks() { return 1; }
 inline void vTaskDelay(int ticks) {}
 inline void xTaskCreatePinnedToCore(void (*task)(void*), const char* name, int stack, void* param, int prio, TaskHandle_t* handle, int core) {}
 
+
 #ifndef ARDUINO_H_ADDITIONS
 #define ARDUINO_H_ADDITIONS
+#ifndef SERIAL_8N1
 #define SERIAL_8N1 0x800001c
+#endif
+
 class HardwareSerial {
 public:
     void begin(unsigned long baud, uint32_t config=SERIAL_8N1, int8_t rxPin=-1, int8_t txPin=-1, bool invert=false, unsigned long timeout_ms = 20000UL) {}
@@ -81,7 +81,9 @@ public:
     size_t write(const uint8_t *buffer, size_t size) { return size; }
 };
 
+#ifndef micros
 inline unsigned long micros() { return mock_millis * 1000; }
+#endif
 
 #endif
 
@@ -91,19 +93,3 @@ namespace std {
         return (v < lo) ? lo : (hi < v) ? hi : v;
     }
 }
-class HardwareSerial {
-public:
-    void setRxBufferSize(size_t size) {}
-    void begin(long baud, int config, int rxPin, int txPin) {}
-    int available() { return 0; }
-    int read() { return 0; }
-};
-
-#define SERIAL_8N1 0
-
-inline unsigned long micros() { return mock_millis * 1000; }
-
-typedef void* SemaphoreHandle_t;
-inline SemaphoreHandle_t xSemaphoreCreateMutex() { return (SemaphoreHandle_t)1; }
-inline bool xSemaphoreTake(SemaphoreHandle_t xSemaphore, int xTicksToWait) { return true; }
-inline bool xSemaphoreGive(SemaphoreHandle_t xSemaphore) { return true; }
