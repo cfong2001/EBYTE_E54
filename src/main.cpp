@@ -8,6 +8,7 @@
 #include "UIManager.h"
 #include "PerformanceMonitor.h"
 #include "ConfigManager.h"
+#include "BroadcastServer.h"
 
 ConfigManager configManager;
 
@@ -16,6 +17,7 @@ HardwareSerial radarUART(2);
 E54_Radar radar(radarUART);
 MotionCompensation motionComp;
 PerformanceMonitor perfMonitor;
+BroadcastServer bcastServer;
 
 TFT_eSPI tft = TFT_eSPI();
 UIManager ui(tft);
@@ -63,6 +65,10 @@ void handleButtonPress() {
 
 void handleButtonLongPressStart() {
     ui.handleButtonLongPress();
+}
+
+void handleButtonLongPressStop() {
+    ui.handleButtonLongPressStop();
 }
 
 // KEY0: secondary "menu return / confirmation" button per module datasheet
@@ -122,9 +128,7 @@ void radarTask(void *pvParameters) {
                     float dt = radar.getDeltaTimeSec();
                     motionComp.process(dt, radar.targets, compensatedTargets);
                 } else {
-                    for(int i=0; i<3; i++) {
-                        compensatedTargets[i] = radar.targets[i];
-                    }
+                    memcpy(compensatedTargets, radar.targets, sizeof(compensatedTargets));
                 }
 
                 for(int i=0; i<3; i++) {
@@ -133,6 +137,7 @@ void radarTask(void *pvParameters) {
                     }
                 }
                 ui.updateRadarData(compensatedTargets, motionComp.isAnchorValid(), motionComp.getAnchorX(), motionComp.getAnchorY());
+                bcastServer.updateData(compensatedTargets);
 
                 for (int i = 0; i < 3; i++) {
                     ui.setTargetMotion(i, motionComp.getTargetVelX(i), motionComp.getTargetVelY(i),
@@ -168,9 +173,9 @@ void setup() {
     Serial.printf("Connect Sensor RX -> ESP32 GPIO %d\n", RADAR_TX_PIN);
     Serial.printf("Baud Rate: %d\n", RADAR_BAUD);
     Serial.println("--------------------------");
-    
+
     // TEST: Disable internal pull-up on RX to see if Radar drives it HIGH
-    pinMode(RADAR_RX_PIN, INPUT); 
+    pinMode(RADAR_RX_PIN, INPUT);
     pinMode(RADAR_TX_PIN, OUTPUT);
     digitalWrite(RADAR_TX_PIN, HIGH);
 
@@ -184,7 +189,7 @@ void setup() {
 
     // Double-Baud Handshake
     uint8_t startCmd[] = {0xFD, 0xFC, 0xFB, 0xFA, 0x02, 0x00, 0x90, 0x00, 0x04, 0x03, 0x02, 0x01};
-    
+
     Serial.println("Handshake Step 1: 115200 baud...");
     // Optimization: Increase RX buffer size from default 256 to 1024 to prevent overflow and packet loss at high baud rates (115200+)
     radarUART.setRxBufferSize(1024);
@@ -198,18 +203,24 @@ void setup() {
     delay(200);
 
     radar.begin(RADAR_RX_PIN, RADAR_TX_PIN, 256000);
-    
+
     motionComp.init();
     perfMonitor.begin();
 
     // Initialize UI
     ui.init();
 
+    // Initialize Broadcast AP if enabled
+    if (ui.broadcastModeEnabled) {
+        bcastServer.begin();
+    }
+
     // Initialize inputs
     attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_A), checkPosition, CHANGE);
     attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_B), checkPosition, CHANGE);
     button.attachClick(handleButtonPress);
     button.attachLongPressStart(handleButtonLongPressStart);
+    button.attachLongPressStop(handleButtonLongPressStop);
     key0.attachClick(handleKey0Press);
     key0.attachLongPressStart(handleKey0LongPress);
 
@@ -279,6 +290,17 @@ void loop() {
             configManager.restoreFromFallback();
             delay(1000);
             ESP.restart();
+        }
+    }
+
+    // Handle Broadcast AP Toggles
+    static bool lastBroadcastMode = ui.broadcastModeEnabled;
+    if (ui.broadcastModeEnabled != lastBroadcastMode) {
+        lastBroadcastMode = ui.broadcastModeEnabled;
+        if (ui.broadcastModeEnabled) {
+            bcastServer.begin();
+        } else {
+            bcastServer.stop();
         }
     }
 

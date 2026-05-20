@@ -74,10 +74,8 @@
 #endif
 
 
-// if you seem to get "corrupt settings add this line to your .ino
-// #include <avr/io.h>
 
-/* 
+/*
 if modules don't seem to save or read parameters, it's probably due to slow pin changing times
 in the module. I see this happen rarely. You will have to adjust this value
 when settin M0 an M1 there is gererally a short time for the transceiver modules
@@ -155,19 +153,6 @@ if your unit will not return parameter settings.
 
 // transmitter output power--check government regulations on legal transmit power
 // refer to the data sheet as not all modules support these power levels
-// constants for 1W units
-// (can be different for transmitter and reveiver)
-//#define OPT_TP30 0b00		// 30 db
-//#define OPT_TP27 0b01		// 27 db
-//#define OPT_TP24 0b10		// 24 db
-//#define OPT_TP21 0b11		// 21 db
-
-// constants or 500 mW units
-//#define OPT_TP27 0b00		// 27 db
-//#define OPT_TP24 0b01		// 24 db
-//#define OPT_TP21 0b10		// 21 db
-//#define OPT_TP18 0b11		// 17 db
-//#define OPT_TP17 0b11		// 17 db
 
 // constants or 100 mW units
 #define OPT_TP20 0b00		// 20 db
