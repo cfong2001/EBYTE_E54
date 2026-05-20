@@ -26,7 +26,8 @@ enum AppState {
     STATE_IMPORTING,
     STATE_FALLBACK,
     STATE_CONFIRM_RESET,
-    STATE_CONFIRM_WIFI_GEN
+    STATE_CONFIRM_WIFI_GEN,
+    STATE_VIEW_WIFI_PASS
 };
 
 enum MenuPage {
@@ -388,6 +389,23 @@ public:
             delay(3000);
             ESP.restart();
             return;
+                } else if (state == STATE_VIEW_WIFI_PASS) {
+            state = STATE_MENU;
+            return;
+                } else if (state == STATE_VIEW_WIFI_PASS) {
+            sprite.fillRect(10, 90, 220, 60, themePrimary);
+            sprite.setTextColor(themeBg);
+            sprite.setCursor(20, 100);
+            sprite.print("CURRENT WIFI PASS:");
+
+            preferences.begin("radar_sys", true);
+            String wifiPass = preferences.getString("wifi_pass", "NOT SET");
+            preferences.end();
+
+            sprite.setCursor(20, 115);
+            sprite.print(wifiPass);
+            sprite.setCursor(20, 130);
+            sprite.print("[PRESS] TO CLOSE");
         } else if (state == STATE_IMPORTING) {
             actionRequested = 4; // Apply batched changes
             state = STATE_MENU;
@@ -666,6 +684,23 @@ public:
             delay(3000);
             ESP.restart();
             return;
+                } else if (state == STATE_VIEW_WIFI_PASS) {
+            state = STATE_MENU;
+            return;
+                } else if (state == STATE_VIEW_WIFI_PASS) {
+            sprite.fillRect(10, 90, 220, 60, themePrimary);
+            sprite.setTextColor(themeBg);
+            sprite.setCursor(20, 100);
+            sprite.print("CURRENT WIFI PASS:");
+
+            preferences.begin("radar_sys", true);
+            String wifiPass = preferences.getString("wifi_pass", "NOT SET");
+            preferences.end();
+
+            sprite.setCursor(20, 115);
+            sprite.print(wifiPass);
+            sprite.setCursor(20, 130);
+            sprite.print("[PRESS] TO CLOSE");
         } else if (state == STATE_IMPORTING) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeWarning, themeBg);
@@ -1780,8 +1815,9 @@ inline void DataMenuView::populateMenuPage(UIManager* ui, char items[][32], int&
 
 inline void DevMenuView::handleMenuClick(UIManager* ui) {
     if (ui->menuSelection == 0) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
-    else if (ui->menuSelection == ui->maxMenuSelection - 2 && ui->devRiskAccepted) { ui->actionRequested = 2; ui->state = STATE_RADAR_VIEW; }
-    else if (ui->menuSelection == ui->maxMenuSelection - 1 && ui->devRiskAccepted) { ui->state = STATE_IMPORTING; }
+    else if (ui->menuSelection == ui->maxMenuSelection - 3 && ui->devRiskAccepted) { ui->actionRequested = 2; ui->state = STATE_RADAR_VIEW; }
+    else if (ui->menuSelection == ui->maxMenuSelection - 2 && ui->devRiskAccepted) { ui->state = STATE_IMPORTING; }
+    else if (ui->menuSelection == ui->maxMenuSelection - 1 && ui->devRiskAccepted) { ui->state = STATE_VIEW_WIFI_PASS; }
     else if (ui->menuSelection == ui->maxMenuSelection && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_WIFI_GEN; }
     else if (ui->menuSelection == 4 && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_RESET,
     STATE_CONFIRM_WIFI_GEN; }
