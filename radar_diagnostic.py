@@ -12,6 +12,7 @@ import board
 import busio
 import time
 import neopixel
+import math
 from utils import s16_le
 
 # Initialize hardware
@@ -69,7 +70,6 @@ while True:
                     y = s16_le(frame[offset+2], frame[offset+3])
                     
                     if x != 0 or y != 0:
-                        import math
                         dist = math.sqrt(x*x + y*y)
                         print(f"✓ Target {i+1}: {dist/1000:.2f}m  X:{x:5d} Y:{y:5d}")
             else:
