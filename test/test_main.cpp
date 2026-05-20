@@ -2,6 +2,7 @@
 
 void test_zone_manager_all();
 int main_perf();
+int test_motion_compensation_main();
 void test_radar_all();
 
 int main() {
