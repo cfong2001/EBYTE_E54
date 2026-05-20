@@ -6,47 +6,19 @@
 #include <vector>
 #include <cstdarg>
 #include <cstdio>
+#include <algorithm>
 #include <queue>
 
+using std::min;
+using std::max;
+
 #define PI 3.14159265358979323846
-#define SERIAL_8N1 0x800001c
-
-// Mock micros
-extern uint32_t mock_micros;
-inline uint32_t micros() { return mock_micros; }
-
-class HardwareSerial {
-public:
-    std::queue<uint8_t> rx_buffer;
-
-    void setRxBufferSize(size_t size) {}
-    void begin(long baudRate, uint32_t config, uint8_t rxPin, uint8_t txPin) {}
-
-    int available() {
-        return rx_buffer.size();
-    }
-
-    int read() {
-        if (rx_buffer.empty()) return -1;
-        uint8_t val = rx_buffer.front();
-        rx_buffer.pop();
-        return val;
-    }
-
-    void write(uint8_t b) {
-        rx_buffer.push(b);
-    }
-};
 
 // Mock Serial
 class MockSerial {
 public:
     std::vector<std::string> log;
 
-    void print(const char* s) {}
-    template<typename T> void println(T t) {}
-    template<typename T> void print(T t) {}
-    operator bool() const { return true; }
     void println(const char* s) {
         log.push_back(std::string(s));
     }
@@ -60,10 +32,12 @@ public:
         log.push_back(std::string(buf));
     }
 
-    explicit operator bool() const { return true; }
-
     void clear() {
         log.clear();
+    }
+
+    operator bool() const {
+        return true;
     }
 };
 
@@ -91,20 +65,46 @@ inline int uxTaskGetNumberOfTasks() { return 1; }
 inline void vTaskDelay(int ticks) {}
 inline void xTaskCreatePinnedToCore(void (*task)(void*), const char* name, int stack, void* param, int prio, TaskHandle_t* handle, int core) {}
 
-// Update MockSerial to support operator bool()
+
+#ifndef ARDUINO_H_ADDITIONS
+#define ARDUINO_H_ADDITIONS
+#ifndef SERIAL_8N1
+#define SERIAL_8N1 0x800001c
+#endif
+
 class HardwareSerial {
 public:
-    void setRxBufferSize(size_t size) {}
-    void begin(long baud, int config, int rxPin, int txPin) {}
-    int available() { return 0; }
-    int read() { return 0; }
+    std::queue<uint8_t> rx_buffer;
+
+    void begin(unsigned long baud, uint32_t config=SERIAL_8N1, int8_t rxPin=-1, int8_t txPin=-1, bool invert=false, unsigned long timeout_ms = 20000UL) {}
+    void setRxBufferSize(size_t) {}
+
+    int available() { return rx_buffer.size(); }
+    int read() {
+        if (rx_buffer.empty()) return -1;
+        uint8_t val = rx_buffer.front();
+        rx_buffer.pop();
+        return val;
+    }
+    size_t write(uint8_t b) {
+        rx_buffer.push(b);
+        return 1;
+    }
+    size_t write(const uint8_t *buffer, size_t size) {
+        for(size_t i=0; i<size; i++) rx_buffer.push(buffer[i]);
+        return size;
+    }
 };
 
-#define SERIAL_8N1 0
-
+#ifndef micros
 inline unsigned long micros() { return mock_millis * 1000; }
+#endif
 
-typedef void* SemaphoreHandle_t;
-inline SemaphoreHandle_t xSemaphoreCreateMutex() { return (SemaphoreHandle_t)1; }
-inline bool xSemaphoreTake(SemaphoreHandle_t xSemaphore, int xTicksToWait) { return true; }
-inline bool xSemaphoreGive(SemaphoreHandle_t xSemaphore) { return true; }
+#endif
+
+namespace std {
+    template<class T>
+    constexpr const T& clamp(const T& v, const T& lo, const T& hi) {
+        return (v < lo) ? lo : (hi < v) ? hi : v;
+    }
+}
