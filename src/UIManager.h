@@ -1535,8 +1535,29 @@ public:
                 sprite.setTextColor(themePrimary, themeBg);
             }
 
-            sprite.setCursor(15, yPos);
-            sprite.print(items[idx]);
+            int maxWidth = 210;
+            int tWidth = sprite.textWidth(items[idx]);
+
+            if (tWidth > maxWidth) {
+                int overflow = tWidth - maxWidth;
+                int scrollSpeed = 50;
+                int cycleTime = (overflow * scrollSpeed) + 2000;
+                int t = millis() % cycleTime;
+
+                int scrollX = 0;
+                if (t > 1000) {
+                    scrollX = (t - 1000) / scrollSpeed;
+                    if (scrollX > overflow) scrollX = overflow;
+                }
+
+                sprite.setViewport(15, yPos, maxWidth, 24);
+                sprite.setCursor(-scrollX, 0);
+                sprite.print(items[idx]);
+                sprite.resetViewport();
+            } else {
+                sprite.setCursor(15, yPos);
+                sprite.print(items[idx]);
+            }
         }
 
         if (numItems > 4) {
