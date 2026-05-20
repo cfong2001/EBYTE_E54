@@ -100,3 +100,6 @@
 ## 2024-05-20 - Stuck Tooltips on Button Release
 **Learning:** For transient UI states triggered by a long button press (e.g., using `OneButton`'s `attachLongPressStart`), explicitly reverting the state upon button release prevents stuck UI elements.
 **Action:** Always implement a dedicated release handler (e.g., `attachLongPressStop`) to clear transient states when the user releases the button.
+## 2024-05-20 - Auto-Scrolling Long Text
+**Learning:** For dynamic hardware UI menus where menu elements might extend beyond the available space, using dynamic text scrolling is an accessible way to keep elements informative without truncating or wrapping them clumsily.
+**Action:** When implementing text scrolling in constrained bounds with TFT_eSPI, `setViewport()` combined with an oscillating offset provides an easy built-in clipping and offset mechanic.
