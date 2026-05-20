@@ -73,10 +73,54 @@ void test_isInsideZone_edge_cases() {
     std::cout << "  ✓ test_isInsideZone_edge_cases passed" << std::endl;
 }
 
+void test_isWarning() {
+    std::cout << "Running test_isWarning..." << std::endl;
+    ZoneManager zm;
+    zm.setWarnPreset(ZONE_CLOSE);
+    zm.setFuzzingThreshold(50);
+    zm.setHistoryWindow(10);
+
+    // Simulate updating fuzzing with target out of zone (or no targets)
+    bool targetActive[3] = {false, false, false};
+    int16_t targetX[3] = {0, 0, 0};
+    int16_t targetY[3] = {0, 0, 0};
+
+    // Initially should be false (no history)
+    assert(zm.isWarning(0) == false);
+
+    // Update fuzzing where target 0 is inside the warning zone for 5 frames
+    targetActive[0] = true;
+    targetX[0] = 0;
+    targetY[0] = 1000; // Inside ZONE_CLOSE (0-2000)
+
+    for(int i = 0; i < 5; i++) {
+        zm.updateFuzzing(targetActive, targetX, targetY);
+    }
+
+    // History has 5 frames, hits = 5. percent = 100 >= 50, so true
+    assert(zm.isWarning(0) == true);
+
+    // Update fuzzing where target 0 is outside the warning zone for 6 frames
+    targetY[0] = 3000; // Outside ZONE_CLOSE (0-2000)
+    for(int i = 0; i < 6; i++) {
+        zm.updateFuzzing(targetActive, targetX, targetY);
+    }
+    // Now out of 10 frames, hits = 4 (because 1 out of 5 was shifted out, 6 frames false, 4 true)
+    // hits = 4. percent = 40. 40 < 50, so false
+    assert(zm.isWarning(0) == false);
+
+    // Test that when warnPreset is ZONE_OFF, isWarning is false
+    zm.setWarnPreset(ZONE_OFF);
+    assert(zm.isWarning(0) == false);
+
+    std::cout << "  ✓ test_isWarning passed" << std::endl;
+}
+
 void test_zone_manager_all() {
     std::cout << "Testing ZoneManager..." << std::endl;
     test_isInsideZone_distance();
     test_isInsideZone_angle();
     test_isInsideZone_edge_cases();
+    test_isWarning();
     std::cout << "All ZoneManager tests passed!" << std::endl;
 }
