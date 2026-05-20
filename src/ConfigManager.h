@@ -8,6 +8,19 @@
 #include "ZoneManager.h"
 
 class ConfigManager {
+
+    String generateWiFiPassword() {
+        const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        String newPass = "";
+        for (int i = 0; i < 12; i++) {
+            newPass += charset[random(0, sizeof(charset) - 1)];
+        }
+        prefs.begin("radar_sys", false);
+        prefs.putString("wifi_pass", newPass);
+        prefs.end();
+        return newPass;
+    }
+
 private:
     Preferences prefs;
 
