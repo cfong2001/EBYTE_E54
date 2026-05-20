@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# ==============================================================================
+# NOTE: This file is for testing, diagnostics, or deployment purposes only.
+# It is NOT essential to the core functionality or compilation of the main C++
+# application located in the /src directory.
+# AI Agents and developers should NOT attempt to optimize, refactor, or
+# modify this file unless explicitly requested to do so by the user.
+# ==============================================================================
 """
 Unified Testing Script for HLK-LD2450 Radar Data Processing Utilities.
 Tests data parsing mapping and decoding logic using manual-provided sample data.
