@@ -96,3 +96,7 @@
 ## 2024-05-18 - Exhaustive Hardware Menu Tooltips
 **Learning:** Hardcoded tooltips dynamically matched against hardware menu strings can easily miss newly added settings (e.g. `Broadcast AP:`) or stylistic sub-labels (e.g. `  [DISPLAY/HUD]`), causing generic fallbacks ("Adjust setting value.") which create cognitive dissonance and diminish the sense of a polished interface.
 **Action:** When adding or modifying strings in dynamic hardware configuration menus, cross-reference and update the tooltip rendering block to ensure exhaustive coverage of all text elements the user can select.
+
+## 2024-05-20 - Stuck Tooltips on Button Release
+**Learning:** For transient UI states triggered by a long button press (e.g., using `OneButton`'s `attachLongPressStart`), explicitly reverting the state upon button release prevents stuck UI elements.
+**Action:** Always implement a dedicated release handler (e.g., `attachLongPressStop`) to clear transient states when the user releases the button.
