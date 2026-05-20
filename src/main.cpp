@@ -290,20 +290,13 @@ void loop() {
         // Let's just create a test function that validates the classes.
         ui.selfTestSoftwareOk = true;
 
-        // MotionCompensation test
         MotionCompensation testMc;
-        testMc.init();
-        RadarTarget target = {true, 1000, 2000, 10, 50, false};
-        testMc.updateFilterState(0, 0.1f, 1000.0f, 2000.0f, 1000.0f, 2000.0f, target);
-        if (testMc.state[0].active != true || testMc.state[0].x != 1000.0f) {
+        if (!testMc.runSelfTest()) {
             ui.selfTestSoftwareOk = false;
             Serial.println("MotionCompensation test failed!");
         }
-
-        // ZoneManager test
         ZoneManager testZm;
-        RadialZone testZone = {1000, 3000, -90, 90};
-        if (!testZm.isInsideZone(0, 2000, testZone) || testZm.isInsideZone(0, 500, testZone)) {
+        if (!testZm.runSelfTest()) {
             ui.selfTestSoftwareOk = false;
             Serial.println("ZoneManager test failed!");
         }
