@@ -100,6 +100,10 @@
 ## 2024-05-20 - Stuck Tooltips on Button Release
 **Learning:** For transient UI states triggered by a long button press (e.g., using `OneButton`'s `attachLongPressStart`), explicitly reverting the state upon button release prevents stuck UI elements.
 **Action:** Always implement a dedicated release handler (e.g., `attachLongPressStop`) to clear transient states when the user releases the button.
+## $(date +%Y-%m-%d) - Scale UI rendering with a separate variable
+
+**Learning:** Separating UI scale from text size offers better user customization. Instead of combining the two, or using a simple offset `sprite.setViewport` which is only available in more modern or specific forks of graphic libraries, all sizes can be drawn independently using an adjustment float variable that applies to the draw metrics explicitly.
+**Action:** Implemented a new `uiScale` variable defaulting to 1.0 that's applied directly against rendering lengths and boundaries for icons, telemetry dots, tracking traces, radial zones, and sweeps within the `draw` layer. Bound this `uiScale` to `preferences` NVM alongside `uiTextSize` and provided a dedicated UI setting adjustable by the encoder.
 ## 2024-05-20 - Auto-Scrolling Long Text
 **Learning:** For dynamic hardware UI menus where menu elements might extend beyond the available space, using dynamic text scrolling is an accessible way to keep elements informative without truncating or wrapping them clumsily.
 **Action:** When implementing text scrolling in constrained bounds with TFT_eSPI, `setViewport()` combined with an oscillating offset provides an easy built-in clipping and offset mechanic.
@@ -107,3 +111,6 @@
 ## 2025-02-12 - Contextual Measurement Units in Menus
 **Learning:** Hardcoded numerical UI menu values for settings (like trails or smoothing averages) lacking explicit units significantly increase cognitive load and risk of misconfiguration.
 **Action:** Always append explicit measurement units (e.g., `mm`, `deg`, ` frames`) directly to numerical values in hardware configuration menus to ensure the interface is self-documenting.
+## 2024-05-21 - Add missing UI menu tooltips
+**Learning:** For dynamic, string-matched menu tooltips (e.g., using `String::startsWith`), items added to menus must also be explicitly handled in the tooltip logic to prevent generic fallback text or confusing blank descriptions that lower accessibility and increase cognitive load.
+**Action:** When adding new items to hardcoded menus, concurrently update any dependent UI handlers (such as tooltips or selection overlays) that match by string to ensure a complete and consistent user experience.
