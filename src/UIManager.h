@@ -1379,7 +1379,7 @@ public:
         snprintf(items[numItems++], 32, "Text Size: %d", uiTextSize);
         snprintf(items[numItems++], 32, "Sweep Line: %s", sweepLineEnabled ? "ON" : "OFF");
         snprintf(items[numItems++], 32, "Sweep Mode: %s", simulatedSweep ? "SIMULATED" : "VISUAL");
-        snprintf(items[numItems++], 32, "Trails: %d", trailLength);
+        snprintf(items[numItems++], 32, "Trails: %d frames", trailLength);
         snprintf(items[numItems++], 32, "Grid: %s", gridEnabled ? "ON" : "OFF");
         snprintf(items[numItems++], 32, "Boot Anim: %s", startupAnimEnabled ? "ON" : "OFF");
     }
@@ -1433,7 +1433,7 @@ public:
         snprintf(items[numItems++], 32, "%s", "<- Back");
         snprintf(items[numItems++], 32, "Telemetry: %s", tDataStr);
         snprintf(items[numItems++], 32, "Sensitivity: %d cm/s", sensitivity);
-        snprintf(items[numItems++], 32, "Loc Avg: %d", locationAveraging);
+        snprintf(items[numItems++], 32, "Loc Avg: %d frames", locationAveraging);
         snprintf(items[numItems++], 32, "Smoothing: %d", interDisp);
         snprintf(items[numItems++], 32, "%s", "[ Reset Tracking ]");
     }

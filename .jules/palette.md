@@ -103,3 +103,7 @@
 ## 2024-05-20 - Auto-Scrolling Long Text
 **Learning:** For dynamic hardware UI menus where menu elements might extend beyond the available space, using dynamic text scrolling is an accessible way to keep elements informative without truncating or wrapping them clumsily.
 **Action:** When implementing text scrolling in constrained bounds with TFT_eSPI, `setViewport()` combined with an oscillating offset provides an easy built-in clipping and offset mechanic.
+
+## 2025-02-12 - Contextual Measurement Units in Menus
+**Learning:** Hardcoded numerical UI menu values for settings (like trails or smoothing averages) lacking explicit units significantly increase cognitive load and risk of misconfiguration.
+**Action:** Always append explicit measurement units (e.g., `mm`, `deg`, ` frames`) directly to numerical values in hardware configuration menus to ensure the interface is self-documenting.
