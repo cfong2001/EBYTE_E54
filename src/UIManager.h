@@ -1563,8 +1563,14 @@ public:
             sprite.print("Compensate for host movement.");
         } else if (selItem.startsWith("Passthrough:")) {
             sprite.print("Raw UART to serial.");
+        } else if (selItem.startsWith("Broadcast AP:")) {
+            sprite.print("Host a local Wi-Fi network.");
         } else if (selItem.startsWith("Show StdDev:")) {
             sprite.print("Display data variance.");
+        } else if (selItem.startsWith("[ RUN SELF TEST ]")) {
+            sprite.print("Execute diagnostics.");
+        } else if (selItem.startsWith("[ REGEN WIFI PASS ]")) {
+            sprite.print("Generate new AP key.");
         } else if (selItem.startsWith("[ FACTORY RESET ]")) {
             sprite.print("Erase all settings.");
         } else if (selItem.startsWith("[ EXPORT CONFIG ]")) {
@@ -1713,6 +1719,10 @@ public:
                 sprite.print("Host a local Wi-Fi network.");
             } else if (selItem.startsWith("Show StdDev:")) {
                 sprite.print("Display data variance.");
+            } else if (selItem.startsWith("[ RUN SELF TEST ]")) {
+                sprite.print("Execute diagnostics.");
+            } else if (selItem.startsWith("[ REGEN WIFI PASS ]")) {
+                sprite.print("Generate new AP key.");
             } else if (selItem.startsWith("[ FACTORY RESET ]")) {
                 sprite.print("Erase all settings.");
             } else if (selItem.startsWith("[ EXPORT CONFIG ]")) {
