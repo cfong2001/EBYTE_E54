@@ -103,3 +103,6 @@
 ## 2024-05-20 - Auto-Scrolling Long Text
 **Learning:** For dynamic hardware UI menus where menu elements might extend beyond the available space, using dynamic text scrolling is an accessible way to keep elements informative without truncating or wrapping them clumsily.
 **Action:** When implementing text scrolling in constrained bounds with TFT_eSPI, `setViewport()` combined with an oscillating offset provides an easy built-in clipping and offset mechanic.
+## 2024-05-21 - Add missing UI menu tooltips
+**Learning:** For dynamic, string-matched menu tooltips (e.g., using `String::startsWith`), items added to menus must also be explicitly handled in the tooltip logic to prevent generic fallback text or confusing blank descriptions that lower accessibility and increase cognitive load.
+**Action:** When adding new items to hardcoded menus, concurrently update any dependent UI handlers (such as tooltips or selection overlays) that match by string to ensure a complete and consistent user experience.
