@@ -35,7 +35,7 @@ public:
                 rawLogBuf[rawByteCount - 1] = b;
                 if (rawByteCount == 60) rawLogReady = true;
             }
-            if (passthroughMode && Serial) {
+            if (passthroughMode) {
                 Serial.printf("[%lu] %02X ", millis(), b);
             }
             if (processByte(b)) {

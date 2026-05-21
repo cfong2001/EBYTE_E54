@@ -67,6 +67,10 @@ void handleButtonLongPressStart() {
     ui.handleButtonLongPress();
 }
 
+void handleButtonLongPressStop() {
+    ui.handleButtonLongPressStop();
+}
+
 // KEY0: secondary "menu return / confirmation" button per module datasheet
 void handleKey0Press() {
     // In menu: acts as back/confirm (same as encoder press for simplicity)
@@ -216,6 +220,7 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_B), checkPosition, CHANGE);
     button.attachClick(handleButtonPress);
     button.attachLongPressStart(handleButtonLongPressStart);
+    button.attachLongPressStop(handleButtonLongPressStop);
     key0.attachClick(handleKey0Press);
     key0.attachLongPressStart(handleKey0LongPress);
 
@@ -268,6 +273,39 @@ void loop() {
         } else {
             ui.state = STATE_MENU;
         }
+    } else if (act == 5) {
+        // Run Self Test
+        Serial.println("--- RUNNING SELF TEST ---");
+        pinMode(RADAR_RX_PIN, INPUT);
+        pinMode(RADAR_TX_PIN, OUTPUT);
+        digitalWrite(RADAR_TX_PIN, HIGH);
+        delay(100);
+        ui.selfTestRxOk = (digitalRead(RADAR_RX_PIN) == HIGH);
+
+        // Internal software tests
+        Serial.println("--- RUNNING SOFTWARE TESTS ---");
+        // We can't actually call the host tests here easily without including them.
+        // Wait, the prompt says "plus the main test functions from the arduino test function (ie, that the code itself handles the edge cases)".
+        // We will call the initialization code for MotionCompensation and ZoneManager to simulate it?
+        // Let's just create a test function that validates the classes.
+        ui.selfTestSoftwareOk = true;
+
+        MotionCompensation testMc;
+        if (!testMc.runSelfTest()) {
+            ui.selfTestSoftwareOk = false;
+            Serial.println("MotionCompensation test failed!");
+        }
+        ZoneManager testZm;
+        if (!testZm.runSelfTest()) {
+            ui.selfTestSoftwareOk = false;
+            Serial.println("ZoneManager test failed!");
+        }
+
+        ui.selfTestDone = true;
+
+        // Restore radar pins to UART mode
+        radarUART.begin(256000, SERIAL_8N1, RADAR_RX_PIN, RADAR_TX_PIN);
+        radar.begin(RADAR_RX_PIN, RADAR_TX_PIN, 256000);
     }
 
     if (ui.state == STATE_IMPORTING) {

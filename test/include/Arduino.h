@@ -55,3 +55,15 @@ typedef void* TaskHandle_t;
 inline int uxTaskGetNumberOfTasks() { return 1; }
 inline void vTaskDelay(int ticks) {}
 inline void xTaskCreatePinnedToCore(void (*task)(void*), const char* name, int stack, void* param, int prio, TaskHandle_t* handle, int core) {}
+
+
+#define SERIAL_8N1 0
+
+inline unsigned long micros() { return mock_millis * 1000; }
+class HardwareSerial {
+public:
+    void setRxBufferSize(size_t size) {}
+    void begin(long baud, int config, int rxPin, int txPin) {}
+    int available() { return 0; }
+    int read() { return 0; }
+};

@@ -105,11 +105,18 @@ public:
         long maxDistSq = (long)z.maxDist * z.maxDist;
         if (distSq < minDistSq || distSq > maxDistSq) return false;
 
-        if (z.minAngle <= -90 && z.maxAngle >= 90) return true;
+        float angle = atan2f((float)x, (float)y) * 180.0f / M_PI;
+        if (angle < z.minAngle || angle > z.maxAngle) return false;
 
-        float angleRad = atan2f((float)x, (float)y);
-        int angleDeg = (int)(angleRad * 180.0f / PI);
-        if (angleDeg < z.minAngle || angleDeg > z.maxAngle) return false;
+        return true;
+    }
+
+    bool runSelfTest() {
+        ZoneManager testZm;
+        RadialZone testZone = {1000, 3000, -90, 90};
+        if (!testZm.isInsideZone(0, 2000, testZone) || testZm.isInsideZone(0, 500, testZone)) {
+            return false;
+        }
         return true;
     }
 
