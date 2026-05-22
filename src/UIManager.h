@@ -311,7 +311,7 @@ public:
 
         if (state == STATE_CONFIRM_RESET || state == STATE_CONFIRM_WIFI_GEN) {
             sprite.fillSprite(themeDanger);
-            sprite.setTextColor(TFT_WHITE);
+            sprite.setTextColor(themeBg);
             sprite.setCursor(10, 100);
             sprite.print("WIPING PREFERENCES...");
             sprite.pushSprite(0, 0);
@@ -409,7 +409,7 @@ public:
             state = STATE_RADAR_VIEW;
         } else if (state == STATE_CONFIRM_RESET) {
             sprite.fillSprite(0xFDB5); // themeDanger
-            sprite.setTextColor(TFT_WHITE);
+            sprite.setTextColor(themeBg);
             sprite.setCursor(10, 100);
             sprite.print("WIPING PREFERENCES...");
             sprite.pushSprite(0, 0);
@@ -713,7 +713,7 @@ public:
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeDanger, themeBg);
             sprite.fillRect(10, 90, 220, 60, pulseColor);
-            sprite.setTextColor(TFT_WHITE, pulseColor);
+            sprite.setTextColor(themeBg, pulseColor);
             sprite.setCursor(20, 100);
             sprite.print("CONFIRM FACTORY RESET");
             sprite.setCursor(20, 115);
@@ -949,7 +949,7 @@ private:
 
             uint16_t baseColor;
             if (theme == THEME_MINIMAL) {
-                baseColor = TFT_WHITE;
+                baseColor = themePrimary;
             } else if (theme == THEME_ALIEN) {
                 baseColor = themePrimary;
             } else {
@@ -1493,7 +1493,7 @@ public:
     void drawMenuTooltip(const char* selectedItemText) {
         sprite.fillRect(10, 140, 220, 60, themeBg);
         sprite.drawRect(10, 140, 220, 60, themeWarning);
-        sprite.setTextColor(TFT_WHITE, themeBg);
+        sprite.setTextColor(themePrimary, themeBg);
         sprite.setTextSize(uiTextSize);
         sprite.setCursor(15, 145);
         sprite.print("INFO: ");
