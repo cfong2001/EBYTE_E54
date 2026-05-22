@@ -14,3 +14,9 @@
 **Vulnerability:** The `WiFi.softAP` function was called with an empty password string, creating an open WiFi access point without authentication or encryption.
 **Learning:** Hardcoding empty passwords for Access Points allows any nearby attacker to connect, potentially accessing sensitive telemetry or disrupting device functionality.
 **Prevention:** Always provide a strong password (minimum 8 characters) when initializing a soft AP to enable WPA2-PSK encryption, preventing unauthorized access.
+## YYYY-MM-DD - Sentinel: Wokwi Setup
+**Insight:** Wokwi needs specific `diagram.json` and a placeholder sketch to provide simulated inputs on a separate UART channel without changing standard core code structure for local compilation.
+**Action:** The user wanted to organize the wokwi files and provide a simulated input mechanism inside Wokwi. We created `wokwi/diagram.json` containing the ESP32 and UI peripherals. We provided a standalone `wokwi/sketch.ino` that feeds simulated byte streams to ESP32 RX over a loop so Wokwi users can test parsing algorithms directly without external python scripts or custom hardware logic.
+## YYYY-MM-DD - Sentinel: Wokwi README
+**Insight:** Users needed instructions on how to actually include their local `.cpp` and `.h` files into the Wokwi simulated environment.
+**Action:** Created `wokwi/README.md` detailing the two main approaches (Wokwi Web Editor vs VS Code Extension) and updated `sketch.ino` to act as an explicit template outlining how to structure the web tabs to compile correctly with standard `src/` core logic.

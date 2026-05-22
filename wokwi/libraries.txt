@@ -1,0 +1,6 @@
+# Wokwi Library List
+TFT_eSPI
+RotaryEncoder
+OneButton
+ESPAsyncWebServer
+ArduinoJson
