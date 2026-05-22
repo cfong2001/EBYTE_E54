@@ -2,8 +2,17 @@
  * Wokwi Simulation Sketch for ESP32 Radar Tracker
  *
  * This sketch simulates the HLK-LD2450 radar module by outputting a continuous
- * loop of fake radar data bytes over UART2. The main application (which would be
- * built alongside this in Wokwi) reads this data via E54_Radar on UART2.
+ * loop of fake radar data bytes over UART2.
+ *
+ * Instructions for Wokwi Web Editor:
+ * 1. Create a new tab for each file in the `src/` folder (e.g. `main.cpp`, `E54_Radar.h`, etc.)
+ * 2. Paste the contents of those files into the new Wokwi tabs.
+ * 3. Inside your Wokwi `main.cpp`, you MUST call:
+ *      setupSimulatedRadar(); inside `setup()`
+ *      loopSimulatedRadar(); inside `loop()`
+ *
+ * If running locally using the Wokwi VS Code Extension, this file is ignored,
+ * as Wokwi relies on `.pio/build/esp32-s3/firmware.elf` compiled natively.
  */
 
 #include <Arduino.h>
@@ -47,15 +56,16 @@ void loopSimulatedRadar() {
   }
 }
 
-// In Wokwi, you can paste the contents of src/main.cpp here,
-// and call setupSimulatedRadar() in setup() and loopSimulatedRadar() in loop().
-// For the sake of providing a valid wokwi folder:
+// In Wokwi Web, these overrides are required unless you modify your main.cpp to call them.
+// If you include the src tabs, rename this tab to `SimulatedRadar.h` and `#include "SimulatedRadar.h"` in main.
+#if !defined(MAIN_CPP_INCLUDED)
 void setup() {
   Serial.begin(115200);
-  Serial.println("Wokwi Simulation Environment Ready.");
+  Serial.println("Wokwi Simulation Environment Ready. Please include src/ files in tabs.");
   setupSimulatedRadar();
 }
 
 void loop() {
   loopSimulatedRadar();
 }
+#endif
