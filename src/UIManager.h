@@ -309,9 +309,9 @@ public:
             return;
         }
 
-        if (state == STATE_CONFIRM_RESET || state == STATE_CONFIRM_WIFI_GEN) {
+        if (state == STATE_CONFIRM_RESET) {
             sprite.fillSprite(themeDanger);
-            sprite.setTextColor(TFT_WHITE);
+            sprite.setTextColor(themeBg);
             sprite.setCursor(10, 100);
             sprite.print("WIPING PREFERENCES...");
             sprite.pushSprite(0, 0);
@@ -319,7 +319,7 @@ public:
             delay(1000);
             ESP.restart();
             return;
-                } else if (state == STATE_CONFIRM_WIFI_GEN) {
+        } else if (state == STATE_CONFIRM_WIFI_GEN) {
             sprite.fillSprite(themeWarning);
             sprite.setTextColor(themeBg);
             sprite.setCursor(10, 100);
@@ -347,60 +347,6 @@ public:
             delay(3000);
             ESP.restart();
             return;
-                } else if (state == STATE_CONFIRM_WIFI_GEN) {
-            sprite.fillSprite(themeWarning);
-            sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
-            sprite.print("REGEN WIFI PASS...");
-            sprite.pushSprite(0, 0);
-
-            const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            String newPass = "";
-            for (int i = 0; i < 12; i++) {
-                newPass += charset[random(0, sizeof(charset) - 1)];
-            }
-            preferences.begin("radar_sys", false);
-            preferences.putString("wifi_pass", newPass);
-            preferences.end();
-
-            sprite.fillSprite(themeWarning);
-            sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
-            sprite.print("NEW PASS:");
-            sprite.setCursor(10, 115);
-            sprite.print(newPass);
-            sprite.pushSprite(0, 0);
-
-            delay(3000);
-            ESP.restart();
-            return;
-                } else if (state == STATE_CONFIRM_WIFI_GEN) {
-            sprite.fillSprite(themeWarning);
-            sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
-            sprite.print("REGEN WIFI PASS...");
-            sprite.pushSprite(0, 0);
-
-            const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            String newPass = "";
-            for (int i = 0; i < 12; i++) {
-                newPass += charset[random(0, sizeof(charset) - 1)];
-            }
-            preferences.begin("radar_sys", false);
-            preferences.putString("wifi_pass", newPass);
-            preferences.end();
-
-            sprite.fillSprite(themeWarning);
-            sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
-            sprite.print("NEW PASS:");
-            sprite.setCursor(10, 115);
-            sprite.print(newPass);
-            sprite.pushSprite(0, 0);
-
-            delay(3000);
-            ESP.restart();
-            return;
         } else if (state == STATE_IMPORTING) {
             actionRequested = 4; // Apply batched changes
             state = STATE_MENU;
@@ -409,7 +355,7 @@ public:
             state = STATE_RADAR_VIEW;
         } else if (state == STATE_CONFIRM_RESET) {
             sprite.fillSprite(0xFDB5); // themeDanger
-            sprite.setTextColor(TFT_WHITE);
+            sprite.setTextColor(themeBg);
             sprite.setCursor(10, 100);
             sprite.print("WIPING PREFERENCES...");
             sprite.pushSprite(0, 0);
@@ -600,88 +546,17 @@ public:
 
         if (state == STATE_MENU || state == STATE_MENU_EDIT) {
             drawMenuOverlay();
-                } else if (state == STATE_CONFIRM_WIFI_GEN) {
-            sprite.fillSprite(themeWarning);
-            sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
-            sprite.print("REGENERATING WIFI PASSWORD...");
-            sprite.pushSprite(0, 0);
-
-            // To prevent circular include with ConfigManager.h inside UIManager.h
-            // We just update the preferences here directly
-            const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            String newPass = "";
-            for (int i = 0; i < 12; i++) {
-                newPass += charset[random(0, sizeof(charset) - 1)];
-            }
-            preferences.begin("radar_sys", false);
-            preferences.putString("wifi_pass", newPass);
-            preferences.end();
-
-            sprite.fillSprite(themePrimary);
-            sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
-            sprite.print("NEW PASS: ");
-            sprite.print(newPass);
-            sprite.pushSprite(0, 0);
-
-            delay(3000);
-            ESP.restart();
-            return;
-                } else if (state == STATE_CONFIRM_WIFI_GEN) {
-            sprite.fillSprite(themeWarning);
-            sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
-            sprite.print("REGEN WIFI PASS...");
-            sprite.pushSprite(0, 0);
-
-            const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            String newPass = "";
-            for (int i = 0; i < 12; i++) {
-                newPass += charset[random(0, sizeof(charset) - 1)];
-            }
-            preferences.begin("radar_sys", false);
-            preferences.putString("wifi_pass", newPass);
-            preferences.end();
-
-            sprite.fillSprite(themeWarning);
-            sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
-            sprite.print("NEW PASS:");
-            sprite.setCursor(10, 115);
-            sprite.print(newPass);
-            sprite.pushSprite(0, 0);
-
-            delay(3000);
-            ESP.restart();
-            return;
-                } else if (state == STATE_CONFIRM_WIFI_GEN) {
-            sprite.fillSprite(themeWarning);
-            sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
-            sprite.print("REGEN WIFI PASS...");
-            sprite.pushSprite(0, 0);
-
-            const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            String newPass = "";
-            for (int i = 0; i < 12; i++) {
-                newPass += charset[random(0, sizeof(charset) - 1)];
-            }
-            preferences.begin("radar_sys", false);
-            preferences.putString("wifi_pass", newPass);
-            preferences.end();
-
-            sprite.fillSprite(themeWarning);
-            sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
-            sprite.print("NEW PASS:");
-            sprite.setCursor(10, 115);
-            sprite.print(newPass);
-            sprite.pushSprite(0, 0);
-
-            delay(3000);
-            ESP.restart();
-            return;
+        } else if (state == STATE_CONFIRM_WIFI_GEN) {
+            float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
+            uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeWarning, themeBg);
+            sprite.fillRect(10, 90, 220, 60, pulseColor);
+            sprite.setTextColor(themeBg, pulseColor);
+            sprite.setCursor(20, 100);
+            sprite.print("CONFIRM WIFI KEY REGEN");
+            sprite.setCursor(20, 115);
+            sprite.print("[PRESS] TO REGEN");
+            sprite.setCursor(20, 130);
+            sprite.print("[TURN] TO CANCEL");
         } else if (state == STATE_IMPORTING) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeWarning, themeBg);
@@ -713,7 +588,7 @@ public:
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeDanger, themeBg);
             sprite.fillRect(10, 90, 220, 60, pulseColor);
-            sprite.setTextColor(TFT_WHITE, pulseColor);
+            sprite.setTextColor(themeBg, pulseColor);
             sprite.setCursor(20, 100);
             sprite.print("CONFIRM FACTORY RESET");
             sprite.setCursor(20, 115);
@@ -951,7 +826,7 @@ private:
 
             uint16_t baseColor;
             if (theme == THEME_MINIMAL) {
-                baseColor = TFT_WHITE;
+                baseColor = themePrimary;
             } else if (theme == THEME_ALIEN) {
                 baseColor = themePrimary;
             } else {
@@ -1302,11 +1177,26 @@ public:
         int minR = ((minDist * 180) / 6000) * uiScale;
         if (maxR > 180) maxR = 180;
         if (minR > 180) minR = 180;
+
+        // ⚡ Bolt: Replace per-iteration sinf()/cosf() with fixed vector rotation
+        // for iterative arcs, avoiding expensive FPU trigonometric evaluations.
+        // 1 degree in radians = 0.0174533f
+        // cos(1 degree) ≈ 0.999847695156f
+        // sin(1 degree) ≈ 0.017452406437f
+        constexpr float rotCos = 0.999847695156f;
+        constexpr float rotSin = 0.017452406437f;
+
+        float startRad = (minAngle - 90) * 0.0174533f;
+        float dirX = cosf(startRad);
+        float dirY = sinf(startRad);
+
         for (int a = minAngle; a <= maxAngle; a++) {
-            float rad = (a - 90) * 0.0174533f;
-            float cosA = cosf(rad);
-            float sinA = sinf(rad);
-            sprite.drawLine((tft.width() / 2) + minR*cosA, tft.width() + minR*sinA, (tft.width() / 2) + maxR*cosA, tft.width() + maxR*sinA, color);
+            sprite.drawLine((tft.width() / 2) + minR*dirX, tft.width() + minR*dirY, (tft.width() / 2) + maxR*dirX, tft.width() + maxR*dirY, color);
+
+            float nextX = dirX * rotCos - dirY * rotSin;
+            float nextY = dirY * rotCos + dirX * rotSin;
+            dirX = nextX;
+            dirY = nextY;
         }
     }
 
@@ -1470,8 +1360,6 @@ public:
             snprintf(items[numItems++], 32, "%s", "[ EXPORT CONFIG ]");
             snprintf(items[numItems++], 32, "%s", "[ IMPORT CONFIG ]");
             snprintf(items[numItems++], 32, "%s", "[ REGEN WIFI PASS ]");
-            snprintf(items[numItems++], 32, "%s", "[ REGEN WIFI PASS ]");
-            snprintf(items[numItems++], 32, "%s", "[ REGEN WIFI PASS ]");
         }
     }
 
@@ -1497,7 +1385,7 @@ public:
     void drawMenuTooltip(const char* selectedItemText) {
         sprite.fillRect(10, 140, 220, 60, themeBg);
         sprite.drawRect(10, 140, 220, 60, themeWarning);
-        sprite.setTextColor(TFT_WHITE, themeBg);
+        sprite.setTextColor(themePrimary, themeBg);
         sprite.setTextSize(uiTextSize);
         sprite.setCursor(15, 145);
         sprite.print("INFO: ");

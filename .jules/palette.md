@@ -114,3 +114,11 @@
 ## 2024-05-21 - Add missing UI menu tooltips
 **Learning:** For dynamic, string-matched menu tooltips (e.g., using `String::startsWith`), items added to menus must also be explicitly handled in the tooltip logic to prevent generic fallback text or confusing blank descriptions that lower accessibility and increase cognitive load.
 **Action:** When adding new items to hardcoded menus, concurrently update any dependent UI handlers (such as tooltips or selection overlays) that match by string to ensure a complete and consistent user experience.
+## 2024-11-20 - Theme Color Contrast and Hardware UX
+
+**Learning:** When developing hardware interfaces that support multiple themes (e.g., Alien, Minimal, Standard), hardcoding absolute colors like `TFT_WHITE` can cause severe legibility issues. For example, rendering hardcoded white text on top of a `themeDanger` background (which is light red/pink `#ffb4ab`) creates a low-contrast, nearly illegible experience. Additionally, tooltips layered over theme-aware backgrounds must rely on standard theme variables (like `themePrimary`) instead of hardcoded white to ensure they dynamically match the contrast needs of the chosen theme palette.
+
+**Action:** Always replace hardcoded absolute colors (`TFT_WHITE`, `TFT_BLACK`) with dynamic semantic theme variables (`themeBg`, `themePrimary`, `themeDanger`). Specifically, when rendering text over a light danger background, use `themeBg` (the dark background color) as the text color to significantly improve accessibility and ensure a high contrast ratio.
+## $(date +%Y-%m-%d) - Prevent Destructive Actions From Firing Immediately On Render Loop
+**Learning:** Hardcoded state blocks inside UI rendering loops (e.g. `renderLoop`) that execute critical state resets or variable generation (like `WIFI_PASS` generation) and immediately call `ESP.restart()` will cause the action to trigger as soon as the menu state is selected, bypassing any user intention or opportunity to abort.
+**Action:** When creating destructive or disruptive actions triggered from menu lists, split the UI state block. The `renderLoop()` should only ever draw a visual confirmation prompt, while explicit confirmation (e.g. pressing the button inside `handleButton`) actually executes the logic.
