@@ -1173,11 +1173,26 @@ public:
         int minR = ((minDist * 180) / 6000) * uiScale;
         if (maxR > 180) maxR = 180;
         if (minR > 180) minR = 180;
+
+        // ⚡ Bolt: Replace per-iteration sinf()/cosf() with fixed vector rotation
+        // for iterative arcs, avoiding expensive FPU trigonometric evaluations.
+        // 1 degree in radians = 0.0174533f
+        // cos(1 degree) ≈ 0.999847695156f
+        // sin(1 degree) ≈ 0.017452406437f
+        constexpr float rotCos = 0.999847695156f;
+        constexpr float rotSin = 0.017452406437f;
+
+        float startRad = (minAngle - 90) * 0.0174533f;
+        float dirX = cosf(startRad);
+        float dirY = sinf(startRad);
+
         for (int a = minAngle; a <= maxAngle; a++) {
-            float rad = (a - 90) * 0.0174533f;
-            float cosA = cosf(rad);
-            float sinA = sinf(rad);
-            sprite.drawLine((tft.width() / 2) + minR*cosA, tft.width() + minR*sinA, (tft.width() / 2) + maxR*cosA, tft.width() + maxR*sinA, color);
+            sprite.drawLine((tft.width() / 2) + minR*dirX, tft.width() + minR*dirY, (tft.width() / 2) + maxR*dirX, tft.width() + maxR*dirY, color);
+
+            float nextX = dirX * rotCos - dirY * rotSin;
+            float nextY = dirY * rotCos + dirX * rotSin;
+            dirX = nextX;
+            dirY = nextY;
         }
     }
 
