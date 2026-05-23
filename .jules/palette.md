@@ -114,3 +114,6 @@
 ## 2024-05-21 - Add missing UI menu tooltips
 **Learning:** For dynamic, string-matched menu tooltips (e.g., using `String::startsWith`), items added to menus must also be explicitly handled in the tooltip logic to prevent generic fallback text or confusing blank descriptions that lower accessibility and increase cognitive load.
 **Action:** When adding new items to hardcoded menus, concurrently update any dependent UI handlers (such as tooltips or selection overlays) that match by string to ensure a complete and consistent user experience.
+## $(date +%Y-%m-%d) - Prevent Destructive Actions From Firing Immediately On Render Loop
+**Learning:** Hardcoded state blocks inside UI rendering loops (e.g. `renderLoop`) that execute critical state resets or variable generation (like `WIFI_PASS` generation) and immediately call `ESP.restart()` will cause the action to trigger as soon as the menu state is selected, bypassing any user intention or opportunity to abort.
+**Action:** When creating destructive or disruptive actions triggered from menu lists, split the UI state block. The `renderLoop()` should only ever draw a visual confirmation prompt, while explicit confirmation (e.g. pressing the button inside `handleButton`) actually executes the logic.
