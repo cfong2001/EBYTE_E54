@@ -100,8 +100,9 @@ public:
         // Re-normalize the filtered quaternion/vector to prevent shrinking
         float mag = sqrtf(emaCosT * emaCosT + emaSinT * emaSinT);
         if (mag > 0.01f) {
-            emaCosT /= mag;
-            emaSinT /= mag;
+            float invMag = 1.0f / mag;
+            emaCosT *= invMag;
+            emaSinT *= invMag;
         } else {
             emaCosT = 1.0f;
             emaSinT = 0.0f;
@@ -273,8 +274,9 @@ private:
                 }
                 float M = sqrtf(C * C + S * S);
                 if (M > 1.0f) {
-                    cosT = C / M;
-                    sinT = S / M;
+                    float invM = 1.0f / M;
+                    cosT = C * invM;
+                    sinT = S * invM;
                 }
             }
         }
@@ -494,11 +496,13 @@ private:
 
             state[i].x = px + alpha * residualX;
             state[i].y = py + alpha * residualY;
-            state[i].velX = state[i].velX + (beta * residualX / dt);
-            state[i].velY = state[i].velY + (beta * residualY / dt);
+            float invDt = 1.0f / dt;
+            state[i].velX = state[i].velX + (beta * residualX * invDt);
+            state[i].velY = state[i].velY + (beta * residualY * invDt);
             float dt_sq_half = (dt * dt) * 0.5f;
-            state[i].accX = state[i].accX + (gamma * residualX / dt_sq_half);
-            state[i].accY = state[i].accY + (gamma * residualY / dt_sq_half);
+            float invDtSqHalf = 1.0f / dt_sq_half;
+            state[i].accX = state[i].accX + (gamma * residualX * invDtSqHalf);
+            state[i].accY = state[i].accY + (gamma * residualY * invDtSqHalf);
 
             float maxAcc = 5000.0f;
             state[i].accX = std::min(std::max(state[i].accX, -maxAcc), maxAcc);

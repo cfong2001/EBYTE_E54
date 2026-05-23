@@ -788,7 +788,7 @@ public:
 
                 if (simulatedSweep) {
                     float targetRad = atan2f(rawTargetX[i], rawTargetY[i]);
-                    int targetDeg = (int)(targetRad * 180.0f / PI);
+                    int targetDeg = (int)(targetRad * 57.2957795f);
 
                     int visualAngle = sweepAngle - 90;
 
@@ -898,8 +898,9 @@ private:
 
             if (absSpd > 10 && (fabsf(rawDx) > 0.5f || fabsf(rawDy) > 0.5f)) {
                 float len = sqrtf(rawDx*rawDx + rawDy*rawDy);
-                float nx = rawDx / len;
-                float ny = rawDy / len;
+                float invLen = 1.0f / len;
+                float nx = rawDx * invLen;
+                float ny = rawDy * invLen;
                 smoothVecX[i] = (smoothVecX[i] * 0.7f) + (nx * 0.3f);
                 smoothVecY[i] = (smoothVecY[i] * 0.7f) + (ny * 0.3f);
                 smoothSpeed[i] = (smoothSpeed[i] * 0.8f) + ((float)absSpd * 0.2f);
@@ -912,8 +913,9 @@ private:
                 if (stickLen > 25.0f * uiScale) stickLen = 25.0f * uiScale;
                 float sLen = sqrtf(smoothVecX[i]*smoothVecX[i] + smoothVecY[i]*smoothVecY[i]);
                 if (sLen > 0.01f) {
-                    float nSvx = smoothVecX[i] / sLen;
-                    float nSvy = smoothVecY[i] / sLen;
+                    float invSLen = 1.0f / sLen;
+                    float nSvx = smoothVecX[i] * invSLen;
+                    float nSvy = smoothVecY[i] * invSLen;
                     int ex = cx + (int)(nSvx * stickLen);
                     int ey = cy + (int)(nSvy * stickLen);
                     sprite.drawLine(cx, cy, ex, ey, color);
@@ -1032,8 +1034,9 @@ private:
 
                 if (absSpd > 10 && (fabsf(rawDx) > 0.5f || fabsf(rawDy) > 0.5f)) {
                     float len = sqrtf(rawDx*rawDx + rawDy*rawDy);
-                    float nx = rawDx / len;
-                    float ny = rawDy / len;
+                    float invLen = 1.0f / len;
+                    float nx = rawDx * invLen;
+                    float ny = rawDy * invLen;
                     smoothVecX[i] = (smoothVecX[i] * 0.7f) + (nx * 0.3f);
                     smoothVecY[i] = (smoothVecY[i] * 0.7f) + (ny * 0.3f);
                     smoothSpeed[i] = (smoothSpeed[i] * 0.8f) + ((float)absSpd * 0.2f);
@@ -1046,8 +1049,9 @@ private:
                     if (stickLen > 25.0f) stickLen = 25.0f;
                     float sLen = sqrtf(smoothVecX[i]*smoothVecX[i] + smoothVecY[i]*smoothVecY[i]);
                     if (sLen > 0.01f) {
-                        float nSvx = smoothVecX[i] / sLen;
-                        float nSvy = smoothVecY[i] / sLen;
+                        float invSLen = 1.0f / sLen;
+                        float nSvx = smoothVecX[i] * invSLen;
+                        float nSvy = smoothVecY[i] * invSLen;
                         int ex = cx + (int)(nSvx * stickLen);
                         int ey = cy + (int)(nSvy * stickLen);
                         sprite.drawLine(cx, cy, ex, ey, color);
@@ -1082,7 +1086,7 @@ private:
 
                 if (telemetryMode == TELEMETRY_DIST_ANG) {
                     float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) * 0.001f;
-                    int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 180.0f / PI);
+                    int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 57.2957795f);
                     sprite.printf("%.1fm %ddeg", dist_m, angle);
                 } else if (telemetryMode == TELEMETRY_VELOCITY) {
                     float speed_ms = (float)rawTargetSpeed[i] * 0.1f;
@@ -1091,7 +1095,7 @@ private:
                     sprite.printf("%dmm,%dmm", rawTargetX[i], rawTargetY[i]);
                 } else if (telemetryMode == TELEMETRY_ALL) {
                     float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) * 0.001f;
-                    int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 180.0f / PI);
+                    int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 57.2957795f);
                     float speed_ms = (float)rawTargetSpeed[i] * 0.1f;
                     sprite.printf("T%d %.1fm %ddeg", i+1, dist_m, angle);
                     sprite.setCursor(cx + 8, cy - 2);

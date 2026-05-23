@@ -79,3 +79,10 @@
 ## 2026-05-19 - [Explicit Single-Precision Float Math]
 **Learning:** Initializing variables via integer division or using un-suffixed float literals inside standard math functions (like `sqrt` or `atan2`) causes the ESP32 compiler to promote all calculations to double-precision software floating point. This significantly slows down rendering and calculation loops since standard ESP32 variants only have a single-precision hardware FPU.
 **Action:** Always explicitly cast variable inputs to `(float)`, append `f` to all float literals (e.g., `180.0f`), and strictly utilize single-precision functions (e.g., `sqrtf()`, `atan2f()`) to ensure the operations execute natively on the hardware FPU.
+## 2026-05-22 - Optimize Floating-Point Division with Reciprocal Multiplication
+**Learning:** Floating-point division operations (e.g., `x / len`) are computationally expensive on embedded hardware like the ESP32, requiring significantly more CPU cycles than multiplication. In high-frequency rendering and tracking loops (like those found in `MotionCompensation.h` and `UIManager.h`), repeated divisions during vector normalization form a major performance bottleneck.
+**Action:** When a divisor is calculated once and applied to multiple subsequent terms (like X and Y components), always compute the reciprocal once (`float invLen = 1.0f / len;`) and replace subsequent divisions with multiplications (`x * invLen`).
+
+## 2026-05-22 - Avoid Implicit Double-Precision Math Macros
+**Learning:** Standard C macros like `M_PI` and `PI` are typed as double-precision values. When used in otherwise single-precision float calculations (e.g., `* 180.0f / PI`), the ESP32 compiler implicitly promotes the entire expression to double precision. Because the ESP32 lacks a hardware double-precision FPU, this triggers extremely slow software emulation.
+**Action:** Avoid standard math macros in ESP32 float operations. Instead, precalculate and use single-precision `float` literals (e.g., `57.2957795f` for `180.0f / PI`) to ensure the math remains perfectly bound to the native hardware FPU.
