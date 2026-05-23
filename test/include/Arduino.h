@@ -6,6 +6,11 @@
 #include <vector>
 #include <cstdarg>
 #include <cstdio>
+#include <algorithm>
+#include <queue>
+
+using std::min;
+using std::max;
 
 #define PI 3.14159265358979323846
 
@@ -29,6 +34,10 @@ public:
 
     void clear() {
         log.clear();
+    }
+
+    operator bool() const {
+        return true;
     }
 };
 
@@ -57,13 +66,45 @@ inline void vTaskDelay(int ticks) {}
 inline void xTaskCreatePinnedToCore(void (*task)(void*), const char* name, int stack, void* param, int prio, TaskHandle_t* handle, int core) {}
 
 
-#define SERIAL_8N1 0
+#ifndef ARDUINO_H_ADDITIONS
+#define ARDUINO_H_ADDITIONS
+#ifndef SERIAL_8N1
+#define SERIAL_8N1 0x800001c
+#endif
 
-inline unsigned long micros() { return mock_millis * 1000; }
 class HardwareSerial {
 public:
-    void setRxBufferSize(size_t size) {}
-    void begin(long baud, int config, int rxPin, int txPin) {}
-    int available() { return 0; }
-    int read() { return 0; }
+    std::queue<uint8_t> rx_buffer;
+
+    void begin(unsigned long baud, uint32_t config=SERIAL_8N1, int8_t rxPin=-1, int8_t txPin=-1, bool invert=false, unsigned long timeout_ms = 20000UL) {}
+    void setRxBufferSize(size_t) {}
+
+    int available() { return rx_buffer.size(); }
+    int read() {
+        if (rx_buffer.empty()) return -1;
+        uint8_t val = rx_buffer.front();
+        rx_buffer.pop();
+        return val;
+    }
+    size_t write(uint8_t b) {
+        rx_buffer.push(b);
+        return 1;
+    }
+    size_t write(const uint8_t *buffer, size_t size) {
+        for(size_t i=0; i<size; i++) rx_buffer.push(buffer[i]);
+        return size;
+    }
 };
+
+#ifndef micros
+inline unsigned long micros() { return mock_millis * 1000; }
+#endif
+
+#endif
+
+namespace std {
+    template<class T>
+    constexpr const T& clamp(const T& v, const T& lo, const T& hi) {
+        return (v < lo) ? lo : (hi < v) ? hi : v;
+    }
+}
