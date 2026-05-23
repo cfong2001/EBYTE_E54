@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "author": "Jules",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-ili9341", "id": "tft", "top": -50, "left": 150, "attrs": {} },
+    { "type": "wokwi-pushbutton", "id": "btn", "top": 150, "left": 150, "attrs": { "color": "green", "label": "Push" } },
+    { "type": "wokwi-pushbutton", "id": "btn_key0", "top": 200, "left": 150, "attrs": { "color": "blue", "label": "KEY0" } },
+    { "type": "wokwi-ky-040", "id": "encoder", "top": 250, "left": 150, "attrs": {} }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+
+    [ "tft:VCC", "esp:3V3", "red", [] ],
+    [ "tft:GND", "esp:GND.1", "black", [] ],
+    [ "tft:CS", "esp:15", "orange", [] ],
+    [ "tft:RESET", "esp:4", "purple", [] ],
+    [ "tft:DC", "esp:2", "yellow", [] ],
+    [ "tft:MOSI", "esp:23", "blue", [] ],
+    [ "tft:SCK", "esp:18", "green", [] ],
+    [ "tft:MISO", "esp:19", "gray", [] ],
+
+    [ "btn:1.l", "esp:27", "green", [] ],
+    [ "btn:2.l", "esp:GND.2", "black", [] ],
+
+    [ "btn_key0:1.l", "esp:34", "blue", [] ],
+    [ "btn_key0:2.l", "esp:GND.2", "black", [] ],
+
+    [ "encoder:CLK", "esp:25", "yellow", [] ],
+    [ "encoder:DT", "esp:26", "blue", [] ],
+    [ "encoder:SW", "esp:27", "green", [] ],
+    [ "encoder:VCC", "esp:3V3", "red", [] ],
+    [ "encoder:GND", "esp:GND.2", "black", [] ]
+  ],
+  "dependencies": {}
+}
