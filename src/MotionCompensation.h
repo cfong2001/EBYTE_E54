@@ -273,8 +273,9 @@ private:
                 }
                 float M = sqrtf(C * C + S * S);
                 if (M > 1.0f) {
-                    cosT = C / M;
-                    sinT = S / M;
+                    float invM = 1.0f / M;
+                    cosT = C * invM;
+                    sinT = S * invM;
                 }
             }
         }
