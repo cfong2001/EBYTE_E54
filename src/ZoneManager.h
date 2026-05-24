@@ -105,7 +105,7 @@ public:
         long maxDistSq = (long)z.maxDist * z.maxDist;
         if (distSq < minDistSq || distSq > maxDistSq) return false;
 
-        float angle = atan2f((float)x, (float)y) * 180.0f / M_PI;
+        float angle = atan2f((float)x, (float)y) * 57.2957795f;
         if (angle < z.minAngle || angle > z.maxAngle) return false;
 
         return true;
