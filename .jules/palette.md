@@ -122,3 +122,6 @@
 ## $(date +%Y-%m-%d) - Prevent Destructive Actions From Firing Immediately On Render Loop
 **Learning:** Hardcoded state blocks inside UI rendering loops (e.g. `renderLoop`) that execute critical state resets or variable generation (like `WIFI_PASS` generation) and immediately call `ESP.restart()` will cause the action to trigger as soon as the menu state is selected, bypassing any user intention or opportunity to abort.
 **Action:** When creating destructive or disruptive actions triggered from menu lists, split the UI state block. The `renderLoop()` should only ever draw a visual confirmation prompt, while explicit confirmation (e.g. pressing the button inside `handleButton`) actually executes the logic.
+## 2024-05-24 - Dynamic Centering and Helpful Empty States
+**Learning:** Hardcoding coordinates for UI empty state messages breaks layout when users change text scaling. Furthermore, a single phrase like "NO CONTACTS" lacks context for new users.
+**Action:** Always dynamically center text using measurement functions like `textWidth()` when rendering UI messages. Additionally, expand empty states to provide helpful context or suggestions (e.g., "Waiting for movement...") to reduce confusion and improve the overall UX.
