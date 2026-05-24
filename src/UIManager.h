@@ -545,8 +545,14 @@ public:
             uint16_t emptyColor = sprite.alphaBlend((uint8_t)(pulse * 150.0f) + 50, themePrimary, themeBg);
             sprite.setTextColor(emptyColor, themeBg);
             sprite.setTextSize(uiTextSize);
-            sprite.setCursor(85, 116);
+            int tw = sprite.textWidth("NO CONTACTS");
+            sprite.setCursor((tft.width() - tw) / 2, 116);
             sprite.print("NO CONTACTS");
+
+            sprite.setTextSize(1);
+            int sw = sprite.textWidth("Waiting for movement...");
+            sprite.setCursor((tft.width() - sw) / 2, 116 + (8 * uiTextSize) + 4);
+            sprite.print("Waiting for movement...");
         }
 
         drawHUD();

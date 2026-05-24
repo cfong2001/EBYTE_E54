@@ -128,3 +128,6 @@
 ## 2024-06-25 - Dynamic Theme Text Coloring (Update)
 **Learning:** When updating UI state variables that depend on other state variables (like `themeText` depending on `themePrimary`), be careful of initialization order and stale state. If `themePrimary` hasn't been updated yet when the theme changes, `themeText` will capture the old color.
 **Action:** Used explicit color constants (`0x06DD`) instead of dependent variables to ensure immediate correctness during state transitions.
+## 2024-05-24 - Dynamic Centering and Helpful Empty States
+**Learning:** Hardcoding coordinates for UI empty state messages breaks layout when users change text scaling. Furthermore, a single phrase like "NO CONTACTS" lacks context for new users.
+**Action:** Always dynamically center text using measurement functions like `textWidth()` when rendering UI messages. Additionally, expand empty states to provide helpful context or suggestions (e.g., "Waiting for movement...") to reduce confusion and improve the overall UX.
