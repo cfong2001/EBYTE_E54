@@ -773,8 +773,9 @@ private:
 
             if (absSpd > 10 && (fabsf(rawDx) > 0.5f || fabsf(rawDy) > 0.5f)) {
                 float len = sqrtf(rawDx*rawDx + rawDy*rawDy);
-                float nx = rawDx / len;
-                float ny = rawDy / len;
+                float invLen = 1.0f / len;
+                float nx = rawDx * invLen;
+                float ny = rawDy * invLen;
                 smoothVecX[i] = (smoothVecX[i] * 0.7f) + (nx * 0.3f);
                 smoothVecY[i] = (smoothVecY[i] * 0.7f) + (ny * 0.3f);
                 smoothSpeed[i] = (smoothSpeed[i] * 0.8f) + ((float)absSpd * 0.2f);
@@ -787,8 +788,9 @@ private:
                 if (stickLen > 25.0f * uiScale) stickLen = 25.0f * uiScale;
                 float sLen = sqrtf(smoothVecX[i]*smoothVecX[i] + smoothVecY[i]*smoothVecY[i]);
                 if (sLen > 0.01f) {
-                    float nSvx = smoothVecX[i] / sLen;
-                    float nSvy = smoothVecY[i] / sLen;
+                    float invSLen = 1.0f / sLen;
+                    float nSvx = smoothVecX[i] * invSLen;
+                    float nSvy = smoothVecY[i] * invSLen;
                     int ex = cx + (int)(nSvx * stickLen);
                     int ey = cy + (int)(nSvy * stickLen);
                     sprite.drawLine(cx, cy, ex, ey, color);
@@ -907,8 +909,9 @@ private:
 
                 if (absSpd > 10 && (fabsf(rawDx) > 0.5f || fabsf(rawDy) > 0.5f)) {
                     float len = sqrtf(rawDx*rawDx + rawDy*rawDy);
-                    float nx = rawDx / len;
-                    float ny = rawDy / len;
+                    float invLen = 1.0f / len;
+                    float nx = rawDx * invLen;
+                    float ny = rawDy * invLen;
                     smoothVecX[i] = (smoothVecX[i] * 0.7f) + (nx * 0.3f);
                     smoothVecY[i] = (smoothVecY[i] * 0.7f) + (ny * 0.3f);
                     smoothSpeed[i] = (smoothSpeed[i] * 0.8f) + ((float)absSpd * 0.2f);
@@ -921,8 +924,9 @@ private:
                     if (stickLen > 25.0f) stickLen = 25.0f;
                     float sLen = sqrtf(smoothVecX[i]*smoothVecX[i] + smoothVecY[i]*smoothVecY[i]);
                     if (sLen > 0.01f) {
-                        float nSvx = smoothVecX[i] / sLen;
-                        float nSvy = smoothVecY[i] / sLen;
+                        float invSLen = 1.0f / sLen;
+                        float nSvx = smoothVecX[i] * invSLen;
+                        float nSvy = smoothVecY[i] * invSLen;
                         int ex = cx + (int)(nSvx * stickLen);
                         int ey = cy + (int)(nSvy * stickLen);
                         sprite.drawLine(cx, cy, ex, ey, color);
