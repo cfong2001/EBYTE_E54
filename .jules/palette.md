@@ -125,3 +125,6 @@
 ## 2024-05-24 - Dynamic Centering and Helpful Empty States
 **Learning:** Hardcoding coordinates for UI empty state messages breaks layout when users change text scaling. Furthermore, a single phrase like "NO CONTACTS" lacks context for new users.
 **Action:** Always dynamically center text using measurement functions like `textWidth()` when rendering UI messages. Additionally, expand empty states to provide helpful context or suggestions (e.g., "Waiting for movement...") to reduce confusion and improve the overall UX.
+## 2024-05-18 - UI Flow For Viewing Credentials
+**Learning:** Added a new transient state `STATE_VIEW_WIFI_PASS` for viewing the generated WiFi password from preferences. Reused existing menu framework and pulsing background logic for visual consistency without adding new dependencies.
+**Action:** Always provide non-destructive ways to view credentials or dynamic keys alongside options to regenerate them, lowering cognitive load and preventing accidental resets.

@@ -27,6 +27,7 @@ enum AppState {
     STATE_FALLBACK,
     STATE_CONFIRM_RESET,
     STATE_CONFIRM_WIFI_GEN,
+    STATE_VIEW_WIFI_PASS,
     STATE_SELF_TEST
 };
 
@@ -285,7 +286,7 @@ public:
             if (menuSelection < 0) menuSelection = maxMenuSelection;
         } else if (state == STATE_MENU_EDIT) {
             executeMenuEdit(dir);
-        } else if (state == STATE_CONFIRM_RESET || state == STATE_CONFIRM_WIFI_GEN) {
+        } else if (state == STATE_CONFIRM_RESET || state == STATE_CONFIRM_WIFI_GEN || state == STATE_VIEW_WIFI_PASS) {
             if (dir != 0) {
                 state = STATE_MENU;
             }
@@ -346,6 +347,9 @@ public:
 
             delay(3000);
             ESP.restart();
+            return;
+        } else if (state == STATE_VIEW_WIFI_PASS) {
+            state = STATE_MENU;
             return;
         } else if (state == STATE_IMPORTING) {
             actionRequested = 4; // Apply batched changes
@@ -563,6 +567,20 @@ public:
             sprite.print("[PRESS] TO REGEN");
             sprite.setCursor(20, 130);
             sprite.print("[TURN] TO CANCEL");
+        } else if (state == STATE_VIEW_WIFI_PASS) {
+            float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
+            uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themePrimary, themeBg);
+            sprite.fillRect(10, 90, 220, 60, pulseColor);
+            sprite.setTextColor(themeBg, pulseColor);
+            sprite.setCursor(20, 100);
+            sprite.print("CURRENT WIFI PASSWORD");
+            sprite.setCursor(20, 115);
+            preferences.begin("radar_sys", true);
+            String pass = preferences.getString("wifi_pass", "Not set");
+            preferences.end();
+            sprite.print(pass);
+            sprite.setCursor(20, 130);
+            sprite.print("[PRESS/TURN TO CLOSE]");
         } else if (state == STATE_IMPORTING) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeWarning, themeBg);
@@ -1365,6 +1383,7 @@ public:
             snprintf(items[numItems++], 32, "%s", "[ FACTORY RESET ]");
             snprintf(items[numItems++], 32, "%s", "[ EXPORT CONFIG ]");
             snprintf(items[numItems++], 32, "%s", "[ IMPORT CONFIG ]");
+            snprintf(items[numItems++], 32, "%s", "[ VIEW WIFI PASS ]");
             snprintf(items[numItems++], 32, "%s", "[ REGEN WIFI PASS ]");
         }
     }
@@ -1467,6 +1486,8 @@ public:
             sprite.print("Display data variance.");
         } else if (selItem.startsWith("[ RUN SELF TEST ]")) {
             sprite.print("Execute diagnostics.");
+        } else if (selItem.startsWith("[ VIEW WIFI PASS ]")) {
+            sprite.print("View AP key.");
         } else if (selItem.startsWith("[ REGEN WIFI PASS ]")) {
             sprite.print("Generate new AP key.");
         } else if (selItem.startsWith("[ FACTORY RESET ]")) {
@@ -1619,6 +1640,8 @@ public:
                 sprite.print("Display data variance.");
             } else if (selItem.startsWith("[ RUN SELF TEST ]")) {
                 sprite.print("Execute diagnostics.");
+            } else if (selItem.startsWith("[ VIEW WIFI PASS ]")) {
+                sprite.print("View AP key.");
             } else if (selItem.startsWith("[ REGEN WIFI PASS ]")) {
                 sprite.print("Generate new AP key.");
             } else if (selItem.startsWith("[ FACTORY RESET ]")) {
@@ -1779,10 +1802,11 @@ inline void DataMenuView::populateMenuPage(UIManager* ui, char items[][32], int&
 
 inline void DevMenuView::handleMenuClick(UIManager* ui) {
     if (ui->menuSelection == 0) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
-    else if (ui->menuSelection == ui->maxMenuSelection - 4 && ui->devRiskAccepted) { ui->actionRequested = 5; ui->state = STATE_SELF_TEST; ui->selfTestDone = false; }
-    else if (ui->menuSelection == ui->maxMenuSelection - 3 && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_RESET; }
-    else if (ui->menuSelection == ui->maxMenuSelection - 2 && ui->devRiskAccepted) { ui->actionRequested = 2; ui->state = STATE_RADAR_VIEW; }
-    else if (ui->menuSelection == ui->maxMenuSelection - 1 && ui->devRiskAccepted) { ui->state = STATE_IMPORTING; }
+    else if (ui->menuSelection == ui->maxMenuSelection - 5 && ui->devRiskAccepted) { ui->actionRequested = 5; ui->state = STATE_SELF_TEST; ui->selfTestDone = false; }
+    else if (ui->menuSelection == ui->maxMenuSelection - 4 && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_RESET; }
+    else if (ui->menuSelection == ui->maxMenuSelection - 3 && ui->devRiskAccepted) { ui->actionRequested = 2; ui->state = STATE_RADAR_VIEW; }
+    else if (ui->menuSelection == ui->maxMenuSelection - 2 && ui->devRiskAccepted) { ui->state = STATE_IMPORTING; }
+    else if (ui->menuSelection == ui->maxMenuSelection - 1 && ui->devRiskAccepted) { ui->state = STATE_VIEW_WIFI_PASS; }
     else if (ui->menuSelection == ui->maxMenuSelection && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_WIFI_GEN; }
     else { ui->state = STATE_MENU_EDIT; }
 }
