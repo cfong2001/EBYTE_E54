@@ -700,13 +700,29 @@ public:
         if (sweepLineEnabled && theme != THEME_MINIMAL) {
             sweepAngle = (sweepAngle + 4) % 180;
             uint16_t sweepColor = (theme == THEME_ALIEN) ? themePrimary : TFT_DARKGREY;
+
+            // ⚡ Bolt: Replace per-iteration sinf()/cosf() with fixed vector rotation.
+            // Stepping by -2 degrees per iteration.
+            // cos(-2 deg) ≈ 0.999390827f, sin(-2 deg) ≈ -0.034899496f
+            constexpr float rotCos = 0.999390827f;
+            constexpr float rotSin = -0.034899496f;
+
+            float startRad = (sweepAngle - 180) * 0.0174533f;
+            float dirX = cosf(startRad);
+            float dirY = sinf(startRad);
+
             for (int a = 0; a < 30; a += 2) {
-                float tr = (sweepAngle - a - 180) * 0.0174533f;
-                int tx = (tft.width() / 2) + (180 * uiScale) * cosf(tr);
-                int ty = tft.height() + (180 * uiScale) * sinf(tr);
+                int tx = (tft.width() / 2) + (180 * uiScale) * dirX;
+                int ty = tft.height() + (180 * uiScale) * dirY;
+
                 uint8_t alpha = 255 - ((a * 255) / 30);
                 uint16_t trailCol = sprite.alphaBlend(alpha, sweepColor, themeBg);
                 sprite.drawLine(120, 320, tx, ty, trailCol);
+
+                float nextX = dirX * rotCos - dirY * rotSin;
+                float nextY = dirY * rotCos + dirX * rotSin;
+                dirX = nextX;
+                dirY = nextY;
             }
         }
     }

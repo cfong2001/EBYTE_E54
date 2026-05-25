@@ -92,3 +92,6 @@
 ## 2026-05-24 - [Reciprocal Multiplication for Float Division]
 **Learning:** High-frequency rendering loops often calculate normalized vectors, leading to redundant float divisions by length (e.g., `x / len`, `y / len`). Because embedded FPU platforms like the ESP32 lack a hardware divide instruction, division operations execute much slower than multiplications.
 **Action:** Always replace multiple float divisions by the same denominator with a single reciprocal float division followed by float multiplications (e.g., `float invLen = 1.0f / len; x * invLen; y * invLen;`). This minimizes FPU pipeline stalls and provides a measurable speedup.
+## 2024-05-20 - Vector Rotation over Trigonometry in UI Rendering
+**Learning:** In deeply nested or frequent UI drawing loops (like `drawSweepLine` which iterates 15 times per frame), repeatedly calling `cosf()` and `sinf()` on a steadily incrementing angle introduces massive FPU overhead on embedded platforms like ESP32.
+**Action:** Replace dynamic angle evaluation with a fixed 2D vector rotation strategy. Pre-calculate the starting normalized direction vector once, then inside the loop, multiply the vector by a constant rotation matrix (`x*rotCos - y*rotSin`, `y*rotCos + x*rotSin`) derived from the fixed step angle. This effectively replaces expensive transcendentals with two multiplies and adds per coordinate.
