@@ -125,3 +125,7 @@
 ## 2024-05-24 - Dynamic Centering and Helpful Empty States
 **Learning:** Hardcoding coordinates for UI empty state messages breaks layout when users change text scaling. Furthermore, a single phrase like "NO CONTACTS" lacks context for new users.
 **Action:** Always dynamically center text using measurement functions like `textWidth()` when rendering UI messages. Additionally, expand empty states to provide helpful context or suggestions (e.g., "Waiting for movement...") to reduce confusion and improve the overall UX.
+
+## 2024-05-25 - Allow viewing Wi-Fi password
+**Learning:** For embedded/IoT devices, hiding connection credentials or only providing an option to regenerate them creates high friction. Providing a dedicated, non-destructive read-only view of dynamic keys (like AP passwords) directly on the hardware screen is a critical UX pattern that lowers cognitive load and prevents accidental resets.
+**Action:** When working with systems that generate dynamic keys or rely on local AP networks, ensure there is an accessible, non-destructive UI state to display these credentials to the user.

@@ -27,7 +27,8 @@ enum AppState {
     STATE_FALLBACK,
     STATE_CONFIRM_RESET,
     STATE_CONFIRM_WIFI_GEN,
-    STATE_SELF_TEST
+    STATE_SELF_TEST,
+    STATE_VIEW_WIFI
 };
 
 enum MenuPage {
@@ -117,6 +118,7 @@ public:
 
     ZoneManager zoneManager;
     Preferences preferences;
+    String currentWifiPass = "";
     bool devRiskAccepted = false;
     bool motionCompEnabled = true;
     bool passthroughMode = true;
@@ -269,6 +271,10 @@ public:
             state = STATE_MENU;
             return;
         }
+        if (state == STATE_VIEW_WIFI) {
+            state = STATE_MENU;
+            return;
+        }
         if (state == STATE_CONFIRM_RESET) {
             state = STATE_MENU;
             return;
@@ -305,6 +311,11 @@ public:
 
     void handleButton() {
         if (state == STATE_SELF_TEST) {
+            state = STATE_MENU;
+            return;
+        }
+
+        if (state == STATE_VIEW_WIFI) {
             state = STATE_MENU;
             return;
         }
@@ -506,6 +517,10 @@ public:
         }
         if (state == STATE_GUIDE) {
             drawGuideScreen();
+            return;
+        }
+        if (state == STATE_VIEW_WIFI) {
+            drawWifiPassScreen();
             return;
         }
 
@@ -1093,6 +1108,48 @@ public:
     int lastDrawnX[3];
     int lastDrawnY[3];
 
+    void drawWifiPassScreen() {
+        sprite.fillSprite(themeBg);
+
+        // Draw Header
+        sprite.fillRect(0, 0, 240, 30, themePrimary);
+        sprite.setTextColor(themeBg, themePrimary);
+        sprite.setTextSize(uiTextSize);
+        int titleTw = sprite.textWidth("WIFI AP KEY");
+        sprite.setCursor((tft.width() - titleTw) / 2, 8);
+        sprite.print("WIFI AP KEY");
+
+        // Draw Subtext
+        sprite.setTextColor(sprite.alphaBlend(150, themePrimary, themeBg), themeBg);
+        int subTw = sprite.textWidth("Current Broadcast Key");
+        sprite.setCursor((tft.width() - subTw) / 2, 60);
+        sprite.print("Current Broadcast Key");
+
+        // Draw Key Frame
+        int boxW = 200;
+        int boxH = 50;
+        int boxX = (tft.width() - boxW) / 2;
+        int boxY = 90;
+        sprite.fillRoundRect(boxX, boxY, boxW, boxH, 8, sprite.alphaBlend(40, themePrimary, themeBg));
+        sprite.drawRoundRect(boxX, boxY, boxW, boxH, 8, themePrimary);
+
+        // Draw Key String
+        sprite.setTextColor(themeSuccess, sprite.alphaBlend(40, themePrimary, themeBg));
+        sprite.setTextSize(2);
+        int keyTw = sprite.textWidth(currentWifiPass);
+        sprite.setCursor((tft.width() - keyTw) / 2, boxY + 18);
+        sprite.print(currentWifiPass);
+        sprite.setTextSize(uiTextSize);
+
+        // Draw Footer
+        sprite.setTextColor(themeWarning, themeBg);
+        int footTw = sprite.textWidth("Click or Turn to Exit");
+        sprite.setCursor((tft.width() - footTw) / 2, 280);
+        sprite.print("Click or Turn to Exit");
+
+        sprite.pushSprite(0, 0);
+    }
+
     void drawSelfTestScreen() {
         sprite.fillSprite(themeBg);
         sprite.setTextColor(themePrimary, themeBg);
@@ -1365,6 +1422,7 @@ public:
             snprintf(items[numItems++], 32, "%s", "[ FACTORY RESET ]");
             snprintf(items[numItems++], 32, "%s", "[ EXPORT CONFIG ]");
             snprintf(items[numItems++], 32, "%s", "[ IMPORT CONFIG ]");
+            snprintf(items[numItems++], 32, "%s", "[ VIEW WIFI PASS ]");
             snprintf(items[numItems++], 32, "%s", "[ REGEN WIFI PASS ]");
         }
     }
@@ -1467,6 +1525,8 @@ public:
             sprite.print("Display data variance.");
         } else if (selItem.startsWith("[ RUN SELF TEST ]")) {
             sprite.print("Execute diagnostics.");
+        } else if (selItem.startsWith("[ VIEW WIFI PASS ]")) {
+            sprite.print("Display current AP key.");
         } else if (selItem.startsWith("[ REGEN WIFI PASS ]")) {
             sprite.print("Generate new AP key.");
         } else if (selItem.startsWith("[ FACTORY RESET ]")) {
@@ -1779,10 +1839,16 @@ inline void DataMenuView::populateMenuPage(UIManager* ui, char items[][32], int&
 
 inline void DevMenuView::handleMenuClick(UIManager* ui) {
     if (ui->menuSelection == 0) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
-    else if (ui->menuSelection == ui->maxMenuSelection - 4 && ui->devRiskAccepted) { ui->actionRequested = 5; ui->state = STATE_SELF_TEST; ui->selfTestDone = false; }
-    else if (ui->menuSelection == ui->maxMenuSelection - 3 && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_RESET; }
-    else if (ui->menuSelection == ui->maxMenuSelection - 2 && ui->devRiskAccepted) { ui->actionRequested = 2; ui->state = STATE_RADAR_VIEW; }
-    else if (ui->menuSelection == ui->maxMenuSelection - 1 && ui->devRiskAccepted) { ui->state = STATE_IMPORTING; }
+    else if (ui->menuSelection == ui->maxMenuSelection - 5 && ui->devRiskAccepted) { ui->actionRequested = 5; ui->state = STATE_SELF_TEST; ui->selfTestDone = false; }
+    else if (ui->menuSelection == ui->maxMenuSelection - 4 && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_RESET; }
+    else if (ui->menuSelection == ui->maxMenuSelection - 3 && ui->devRiskAccepted) { ui->actionRequested = 2; ui->state = STATE_RADAR_VIEW; }
+    else if (ui->menuSelection == ui->maxMenuSelection - 2 && ui->devRiskAccepted) { ui->state = STATE_IMPORTING; }
+    else if (ui->menuSelection == ui->maxMenuSelection - 1 && ui->devRiskAccepted) {
+        ui->preferences.begin("radar_sys", true);
+        ui->currentWifiPass = ui->preferences.getString("wifi_pass", "Not Set");
+        ui->preferences.end();
+        ui->state = STATE_VIEW_WIFI;
+    }
     else if (ui->menuSelection == ui->maxMenuSelection && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_WIFI_GEN; }
     else { ui->state = STATE_MENU_EDIT; }
 }
