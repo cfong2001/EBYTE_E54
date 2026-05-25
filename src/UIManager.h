@@ -181,9 +181,16 @@ public:
         }
     }
 
+    void updateThemeText() {
+        if (theme == THEME_MINIMAL) themeText = 0xC618; // Light Grey
+        else if (theme == THEME_ALIEN) themeText = 0x06DD; // themePrimary
+        else themeText = TFT_WHITE;
+    }
+
     void loadSettings() {
         preferences.begin("radar_ui", false);
         theme = (ThemeStyle)preferences.getInt("theme", THEME_ALIEN);
+        updateThemeText();
         targetIcon = (TargetIcon)preferences.getInt("icon", ICON_SMART);
         sweepLineEnabled = preferences.getBool("sweep", true);
         trailLength = preferences.getInt("trails", 5);
@@ -436,14 +443,14 @@ public:
 
     void drawGuideScreen() {
         sprite.fillSprite(themeBg);
-        sprite.setTextColor(themePrimary, themeBg);
+        sprite.setTextColor(themeText, themeBg);
         sprite.setTextSize(uiTextSize);
         sprite.setCursor(10, 10);
 
         if (guidePage == 0) {
             sprite.print("GUIDE 1/3: TARGETS");
             sprite.setCursor(10, 40);
-            sprite.setTextColor(themePrimary, themeBg);
+            sprite.setTextColor(themeText, themeBg);
             sprite.print("The radar tracks up");
             sprite.setCursor(10, 55);
             sprite.print("to 3 targets at once.");
@@ -463,7 +470,7 @@ public:
         } else if (guidePage == 1) {
             sprite.print("GUIDE 2/3: CONTROLS");
             sprite.setCursor(10, 40);
-            sprite.setTextColor(themePrimary, themeBg);
+            sprite.setTextColor(themeText, themeBg);
             sprite.print("Navigate via the dial:");
 
             sprite.setCursor(20, 80); sprite.print("- TURN: Scroll/Adjust");
@@ -475,7 +482,7 @@ public:
         } else if (guidePage == 2) {
             sprite.print("GUIDE 3/3: ZONES");
             sprite.setCursor(10, 40);
-            sprite.setTextColor(themePrimary, themeBg);
+            sprite.setTextColor(themeText, themeBg);
             sprite.print("Zones highlight targets.");
 
             // Draw a mini radar zone
@@ -1028,7 +1035,7 @@ private:
         sprite.drawLine(0, 16, 240, 16, sprite.alphaBlend(100, themePrimary, themeBg));
         sprite.drawLine(0, 304, 240, 304, sprite.alphaBlend(100, themePrimary, themeBg));
 
-        sprite.setTextColor(themePrimary, themeBg);
+        sprite.setTextColor(themeText, themeBg);
         sprite.setTextSize(uiTextSize);
         sprite.setCursor(5, 4);
         sprite.print("((o)) RADAR_V1.0");
@@ -1047,7 +1054,7 @@ private:
 
         if (theme != THEME_MINIMAL) {
             if (anchorValid) {
-                sprite.setTextColor(themePrimary, themeBg);
+                sprite.setTextColor(themeText, themeBg);
                 sprite.setCursor(5, 5);
                 sprite.printf("Anchor: (%dmm, %dmm)", anchorX, anchorY);
             } else {
@@ -1074,6 +1081,7 @@ public:
     unsigned long bootStartTime;
 
     ThemeStyle theme;
+    uint16_t themeText;
     TargetIcon targetIcon;
     bool sweepLineEnabled;
     int trailLength;
@@ -1168,7 +1176,7 @@ public:
 
     void drawSelfTestScreen() {
         sprite.fillSprite(themeBg);
-        sprite.setTextColor(themePrimary, themeBg);
+        sprite.setTextColor(themeText, themeBg);
         sprite.setTextSize(uiTextSize);
         sprite.setCursor(10, 10);
         sprite.print("--- SELF TEST ---");
@@ -1187,7 +1195,7 @@ public:
                 sprite.print("FAIL: RX is LOW");
             }
 
-            sprite.setTextColor(themePrimary, themeBg);
+            sprite.setTextColor(themeText, themeBg);
             sprite.setCursor(10, 80);
             sprite.print("Software Logic Check:");
             sprite.setCursor(10, 100);
@@ -1238,7 +1246,7 @@ public:
             sprite.drawLine(tft.width() / 2, tft.width(), (tft.width() / 2) + maxR, tft.width(), gridColor);
         }
 
-        sprite.setTextColor(themePrimary, themeBg);
+        sprite.setTextColor(themeText, themeBg);
         sprite.setTextSize(uiTextSize);
         if (elapsed < 300) sprite.setCursor(100, 120), sprite.print("INIT");
         else if (elapsed < 600) sprite.setCursor(90, 120), sprite.print("CALIBRATING");
@@ -1335,7 +1343,7 @@ public:
 
 
     void populateMainMenu(char items[][32], int& numItems) {
-        sprite.setTextColor(themePrimary, themeBg);
+        sprite.setTextColor(themeText, themeBg);
         sprite.setCursor(15, 5); sprite.print("CONFIG MENU");
 
         snprintf(items[numItems++], 32, "%s", "VISUAL SETTINGS");
@@ -1350,7 +1358,7 @@ public:
     }
 
     void populateVisualsMenu(char items[][32], int& numItems) {
-        sprite.setTextColor(themePrimary, themeBg);
+        sprite.setTextColor(themeText, themeBg);
         sprite.setCursor(15, 5); sprite.print("--- VISUAL SETTINGS ---");
 
         const char* themeStr = (theme == THEME_STANDARD) ? "Standard" : (theme == THEME_ALIEN ? "Alien" : "Minimal");
@@ -1370,7 +1378,7 @@ public:
     }
 
     void populateZonesMenu(char items[][32], int& numItems) {
-        sprite.setTextColor(themePrimary, themeBg);
+        sprite.setTextColor(themeText, themeBg);
         sprite.setCursor(15, 5); sprite.print("--- ZONE CONFIG ---");
 
         const char* warnStr = (zoneManager.getWarnPreset() == ZONE_OFF) ? "OFF" :
@@ -1406,7 +1414,7 @@ public:
     }
 
     void populateDataMenu(char items[][32], int& numItems) {
-        sprite.setTextColor(themePrimary, themeBg);
+        sprite.setTextColor(themeText, themeBg);
         sprite.setCursor(15, 5); sprite.print("--- TARGET DATA ---");
 
         const char* tDataStr = (telemetryMode == TELEMETRY_OFF) ? "OFF" :
@@ -1465,7 +1473,7 @@ public:
     void drawMenuTooltip(const char* selectedItemText) {
         sprite.fillRect(10, 140, 220, 60, themeBg);
         sprite.drawRect(10, 140, 220, 60, themeWarning);
-        sprite.setTextColor(themePrimary, themeBg);
+        sprite.setTextColor(themeText, themeBg);
         sprite.setTextSize(uiTextSize);
         sprite.setCursor(15, 145);
         sprite.print("INFO: ");
@@ -1577,7 +1585,7 @@ public:
                     sprite.setTextColor(themeBg, themePrimary);
                 }
             } else {
-                sprite.setTextColor(themePrimary, themeBg);
+                sprite.setTextColor(themeText, themeBg);
             }
 
             int maxWidth = 210;
@@ -1613,7 +1621,7 @@ public:
             drawMenuTooltip(items[menuSelection]);
             sprite.fillRect(10, 140, 220, 60, themeBg);
             sprite.drawRect(10, 140, 220, 60, themeWarning);
-            sprite.setTextColor(themePrimary, themeBg);
+            sprite.setTextColor(themeText, themeBg);
             sprite.setTextSize(uiTextSize);
             sprite.setCursor(15, 145);
             sprite.print("INFO: ");
@@ -1761,6 +1769,7 @@ inline void VisualsMenuView::executeMenuEdit(UIManager* ui, int dir) {
         int t = (int)ui->theme + dir;
         if (t > 2) t = 0; if (t < 0) t = 2;
         ui->theme = (ThemeStyle)t;
+        ui->updateThemeText();
         if (ui->theme == THEME_ALIEN) { ui->sweepLineEnabled = true; ui->trailLength = 8; ui->gridEnabled = true; }
         else if (ui->theme == THEME_MINIMAL) { ui->sweepLineEnabled = false; ui->trailLength = 0; ui->gridEnabled = true; }
         else { ui->sweepLineEnabled = true; ui->trailLength = 3; ui->gridEnabled = true; }
