@@ -723,7 +723,7 @@ public:
             sweepAngle = (sweepAngle + 4) % 180;
             uint16_t sweepColor = (theme == THEME_ALIEN) ? themePrimary : TFT_DARKGREY;
 
-            // ⚡ Bolt: Replace per-iteration sinf()/cosf() with fixed vector rotation.
+            // Replace per-iteration sinf()/cosf() with fixed vector rotation.
             // Stepping by -2 degrees per iteration.
             // cos(-2 deg) ≈ 0.999390827f, sin(-2 deg) ≈ -0.034899496f
             constexpr float rotCos = 0.999390827f;
@@ -781,7 +781,7 @@ private:
             uint16_t wCol = sprite.alphaBlend(currentAlpha, dangerColor, themeBg);
 
             float pulseSpeed = 300.0f - (danger * 200.0f);
-            // ⚡ Bolt: Use single-precision sinf() to avoid implicit double conversion
+            // Use single-precision sinf() to avoid implicit double conversion
             // inside 30Hz display rendering loop, saving CPU cycles on ESP32 FPU.
             float pulse = (sinf(millis() / pulseSpeed) + 1.0f) * 0.5f;
             int r = (int)((6 + (pulse * 4.0f * danger)) * uiScale);
@@ -839,7 +839,7 @@ private:
                     int ey = cy + (int)(nSvy * stickLen);
                     sprite.drawLine(cx, cy, ex, ey, color);
 
-                    // ⚡ Bolt: Replace atan2f and cosf/sinf with fixed vector rotation.
+                    // Replace atan2f and cosf/sinf with fixed vector rotation.
                     // nSvx and nSvy are already the normalized direction vector.
                     // We can rotate this vector by +/- 0.5 radians using angle addition constants.
                     // cos(0.5) ≈ 0.87758256f, sin(0.5) ≈ 0.47942554f
@@ -919,7 +919,7 @@ private:
                 uint16_t wCol = sprite.alphaBlend(currentAlpha, dangerColor, themeBg);
 
                 float pulseSpeed = 300.0f - (danger * 200.0f);
-                // ⚡ Bolt: Use single-precision sinf() to avoid implicit double conversion
+                // Use single-precision sinf() to avoid implicit double conversion
                 // inside 30Hz display rendering loop, saving CPU cycles on ESP32 FPU.
                 float pulse = (sinf(millis() / pulseSpeed) + 1.0f) * 0.5f;
                 int r = (int)((6 + (pulse * 4.0f * danger)) * uiScale);
@@ -975,7 +975,7 @@ private:
                         int ey = cy + (int)(nSvy * stickLen);
                         sprite.drawLine(cx, cy, ex, ey, color);
 
-                        // ⚡ Bolt: Replace atan2f and cosf/sinf with fixed vector rotation.
+                        // Replace atan2f and cosf/sinf with fixed vector rotation.
                         // nSvx and nSvy are already the normalized direction vector.
                         // We can rotate this vector by +/- 0.5 radians using angle addition constants.
                         // cos(0.5) ≈ 0.87758256f, sin(0.5) ≈ 0.47942554f
@@ -1224,7 +1224,7 @@ public:
 
         uint16_t gridColor = (theme == THEME_ALIEN) ? themePrimary : themePrimary;
 
-        // ⚡ Bolt: Hoist trigonometry out of radial rendering loops
+        // Hoist trigonometry out of radial rendering loops
         for (int a = -180; a <= 180; a += 5) {
             float rad = a * 0.0174533f;
             float cosA = cosf(rad);
@@ -1265,7 +1265,7 @@ public:
         if (maxR > 180) maxR = 180;
         if (minR > 180) minR = 180;
 
-        // ⚡ Bolt: Replace per-iteration sinf()/cosf() with fixed vector rotation
+        // Replace per-iteration sinf()/cosf() with fixed vector rotation
         // for iterative arcs, avoiding expensive FPU trigonometric evaluations.
         // 1 degree in radians = 0.0174533f
         // cos(1 degree) ≈ 0.999847695156f
@@ -1318,7 +1318,7 @@ public:
                 sprite.drawRect((tft.width() / 2) - r, (tft.width() / 2) - r, r * 2, r * 2, sprite.alphaBlend(50, themePrimary, themeBg));
             }
             if (theme == THEME_ALIEN) {
-                // ⚡ Bolt: Hoist trigonometry out of radial rendering loops
+                // Hoist trigonometry out of radial rendering loops
                 for (int a=0; a<=180; a+=5) {
                     float rad = (a - 180) * 0.0174533f;
                     float cosA = cosf(rad);
