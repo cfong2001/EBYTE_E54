@@ -1483,11 +1483,11 @@ public:
 
         if (selItem.startsWith("<- Back")) {
             sprite.print("Return to previous menu.");
-        } else if (selItem.startsWith("VISUAL SETTINGS")) {
+        } else if (selItem.startsWith("VISUAL SETTINGS") || selItem.startsWith("  [DISPLAY/HUD]")) {
             sprite.print("Colors, icons, & layout.");
-        } else if (selItem.startsWith("ZONE CONFIG")) {
+        } else if (selItem.startsWith("ZONE CONFIG") || selItem.startsWith("  [BOUNDARIES]")) {
             sprite.print("Warning & dead zones.");
-        } else if (selItem.startsWith("TARGET DATA")) {
+        } else if (selItem.startsWith("TARGET DATA") || selItem.startsWith("  [GAIN/FILTER]")) {
             sprite.print("Data processing & limits.");
         } else if (selItem.startsWith("DEV OPTIONS")) {
             sprite.print("Advanced & experimental.");
@@ -1501,6 +1501,8 @@ public:
             sprite.print("Change target marker.");
         } else if (selItem.startsWith("Text Size:")) {
             sprite.print("UI text scale (1-2).");
+        } else if (selItem.startsWith("UI Scale:")) {
+            sprite.print("UI element scale.");
         } else if (selItem.startsWith("Sweep Line:")) {
             sprite.print("Toggle scanning line.");
         } else if (selItem.startsWith("Sweep Mode:")) {
@@ -1619,101 +1621,6 @@ public:
 
         if (showTooltip) {
             drawMenuTooltip(items[menuSelection]);
-            sprite.fillRect(10, 140, 220, 60, themeBg);
-            sprite.drawRect(10, 140, 220, 60, themeWarning);
-            sprite.setTextColor(themeText, themeBg);
-            sprite.setTextSize(uiTextSize);
-            sprite.setCursor(15, 145);
-            sprite.print("INFO: ");
-            sprite.setCursor(15, 160);
-
-            String selItem = String(items[menuSelection]);
-
-            if (selItem.startsWith("<- Back")) {
-                sprite.print("Return to previous menu.");
-            } else if (selItem.startsWith("VISUAL SETTINGS")) {
-                sprite.print("Colors, icons, & layout.");
-            } else if (selItem.startsWith("  [DISPLAY/HUD]")) {
-                sprite.print("Colors, icons, & layout.");
-            } else if (selItem.startsWith("ZONE CONFIG")) {
-                sprite.print("Warning & dead zones.");
-            } else if (selItem.startsWith("  [BOUNDARIES]")) {
-                sprite.print("Warning & dead zones.");
-            } else if (selItem.startsWith("TARGET DATA")) {
-                sprite.print("Data processing & limits.");
-            } else if (selItem.startsWith("  [GAIN/FILTER]")) {
-                sprite.print("Data processing & limits.");
-            } else if (selItem.startsWith("DEV OPTIONS")) {
-                sprite.print("Advanced & experimental.");
-            } else if (selItem.startsWith("USER GUIDE")) {
-                sprite.print("Help & instructions.");
-            } else if (selItem.startsWith("[ Exit Menu ]")) {
-                sprite.print("Return to radar view.");
-            } else if (selItem.startsWith("Theme:")) {
-                sprite.print("Change color palette.");
-            } else if (selItem.startsWith("Icon:")) {
-                sprite.print("Change target marker.");
-            } else if (selItem.startsWith("Text Size:")) {
-                sprite.print("UI text scale (1-2).");
-            } else if (selItem.startsWith("Sweep Line:")) {
-                sprite.print("Toggle scanning line.");
-            } else if (selItem.startsWith("Sweep Mode:")) {
-                sprite.print("Simulated vs physical.");
-            } else if (selItem.startsWith("Trails:")) {
-                sprite.print("Target history length.");
-            } else if (selItem.startsWith("Grid:")) {
-                sprite.print("Toggle background grid.");
-            } else if (selItem.startsWith("Boot Anim:")) {
-                sprite.print("Toggle startup sequence.");
-            } else if (selItem.startsWith("Warn Zone:")) {
-                sprite.print("Visual alert area.");
-            } else if (selItem.startsWith(" W-MinD:") || selItem.startsWith(" D-MinD:")) {
-                sprite.print("Minimum distance (mm).");
-            } else if (selItem.startsWith(" W-MaxD:") || selItem.startsWith(" D-MaxD:")) {
-                sprite.print("Maximum distance (mm).");
-            } else if (selItem.startsWith(" W-MinA:") || selItem.startsWith(" D-MinA:")) {
-                sprite.print("Left-most angle (deg).");
-            } else if (selItem.startsWith(" W-MaxA:") || selItem.startsWith(" D-MaxA:")) {
-                sprite.print("Right-most angle (deg).");
-            } else if (selItem.startsWith("Warn Fuzz:")) {
-                sprite.print("Boundary tolerance (%).");
-            } else if (selItem.startsWith("Warn Time:")) {
-                sprite.print("Time to trigger alert.");
-            } else if (selItem.startsWith("Dead Zone:")) {
-                sprite.print("Ignore targets area.");
-            } else if (selItem.startsWith("Telemetry:")) {
-                sprite.print("On-screen target data.");
-            } else if (selItem.startsWith("Sensitivity:")) {
-                sprite.print("Min target speed (cm/s).");
-            } else if (selItem.startsWith("Loc Avg:")) {
-                sprite.print("Position smoothing frames.");
-            } else if (selItem.startsWith("Smoothing:")) {
-                sprite.print("Movement interpolation.");
-            } else if (selItem.startsWith("[ Reset Tracking ]")) {
-                sprite.print("Clear all targets.");
-            } else if (selItem.startsWith("Accept Risk?")) {
-                sprite.print("Enable advanced features?");
-            } else if (selItem.startsWith("Motion Comp:")) {
-                sprite.print("Compensate for host movement.");
-            } else if (selItem.startsWith("Passthrough:")) {
-                sprite.print("Raw UART to serial.");
-            } else if (selItem.startsWith("Broadcast AP:")) {
-                sprite.print("Host a local Wi-Fi network.");
-            } else if (selItem.startsWith("Show StdDev:")) {
-                sprite.print("Display data variance.");
-            } else if (selItem.startsWith("[ RUN SELF TEST ]")) {
-                sprite.print("Execute diagnostics.");
-            } else if (selItem.startsWith("[ REGEN WIFI PASS ]")) {
-                sprite.print("Generate new AP key.");
-            } else if (selItem.startsWith("[ FACTORY RESET ]")) {
-                sprite.print("Erase all settings.");
-            } else if (selItem.startsWith("[ EXPORT CONFIG ]")) {
-                sprite.print("Save settings to SD.");
-            } else if (selItem.startsWith("[ IMPORT CONFIG ]")) {
-                sprite.print("Load settings from SD.");
-            } else {
-                sprite.print("Adjust setting value.");
-            }
         }
     }
 
