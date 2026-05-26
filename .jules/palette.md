@@ -139,3 +139,6 @@
 ## $(date +%Y-%m-%d) - Duplicated Tooltip Logic in Dynamic Menus
 **Learning:** Having duplicated string-matching logic for tooltips (e.g., one function that returns a tooltip string, and another place that inline renders it by matching strings again) is highly prone to bugs when adding new dynamic menu items. The inline duplicate inevitably falls out of sync, leading to missing tooltips (e.g., falling back to "Adjust setting value") for newly added items like `UI Scale:`.
 **Action:** Consolidate UI string matching and tooltip logic into a single source of truth function (`drawMenuTooltip`). In dynamic overlay menus, just call this single function instead of re-implementing the string matching logic to prevent diverging behavior and ensure complete accessibility context.
+## 2024-05-19 - Refactoring Tooltips to Data Structures
+**Learning:** Consolidating massive `if-else if` UI string-matching chains into static structural arrays (like `TooltipMapping`) significantly reduces boilerplate, lowers cognitive load for future additions, and improves readability. Adding missing mappings (like `Zoom:`) becomes trivial compared to hunting down the right `else if` block.
+**Action:** Extract repetitive tooltip or string-matching logic into configuration arrays or structs as a single source of truth when modifying large UI rendering functions.
