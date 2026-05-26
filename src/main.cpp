@@ -285,9 +285,6 @@ void loop() {
         // Internal software tests
         Serial.println("--- RUNNING SOFTWARE TESTS ---");
         // We can't actually call the host tests here easily without including them.
-        // Wait, the prompt says "plus the main test functions from the arduino test function (ie, that the code itself handles the edge cases)".
-        // We will call the initialization code for MotionCompensation and ZoneManager to simulate it?
-        // Let's just create a test function that validates the classes.
         ui.selfTestSoftwareOk = true;
 
         MotionCompensation testMc;

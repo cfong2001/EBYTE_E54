@@ -20,3 +20,6 @@
 ## YYYY-MM-DD - Sentinel: Wokwi README
 **Insight:** Users needed instructions on how to actually include their local `.cpp` and `.h` files into the Wokwi simulated environment.
 **Action:** Created `wokwi/README.md` detailing the two main approaches (Wokwi Web Editor vs VS Code Extension) and updated `sketch.ino` to act as an explicit template outlining how to structure the web tabs to compile correctly with standard `src/` core logic.
+## 2026-05-25 - Professional Code Standards
+**Learning:** Unprofessional comments, emojis, and internal monologue in source code reduce readability and professional standards.
+**Action:** Always maintain professional tone and remove internal monologues and excessive emojis.
