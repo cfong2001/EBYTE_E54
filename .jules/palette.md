@@ -135,3 +135,7 @@
 ## 2024-05-25 - Allow viewing Wi-Fi password
 **Learning:** For embedded/IoT devices, hiding connection credentials or only providing an option to regenerate them creates high friction. Providing a dedicated, non-destructive read-only view of dynamic keys (like AP passwords) directly on the hardware screen is a critical UX pattern that lowers cognitive load and prevents accidental resets.
 **Action:** When working with systems that generate dynamic keys or rely on local AP networks, ensure there is an accessible, non-destructive UI state to display these credentials to the user.
+
+## $(date +%Y-%m-%d) - Duplicated Tooltip Logic in Dynamic Menus
+**Learning:** Having duplicated string-matching logic for tooltips (e.g., one function that returns a tooltip string, and another place that inline renders it by matching strings again) is highly prone to bugs when adding new dynamic menu items. The inline duplicate inevitably falls out of sync, leading to missing tooltips (e.g., falling back to "Adjust setting value") for newly added items like `UI Scale:`.
+**Action:** Consolidate UI string matching and tooltip logic into a single source of truth function (`drawMenuTooltip`). In dynamic overlay menus, just call this single function instead of re-implementing the string matching logic to prevent diverging behavior and ensure complete accessibility context.
