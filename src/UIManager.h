@@ -1501,6 +1501,8 @@ public:
             sprite.print("Change target marker.");
         } else if (selItem.startsWith("Text Size:")) {
             sprite.print("UI text scale (1-2).");
+        } else if (selItem.startsWith("UI Scale:")) {
+            sprite.print("Visual radar zoom level.");
         } else if (selItem.startsWith("Sweep Line:")) {
             sprite.print("Toggle scanning line.");
         } else if (selItem.startsWith("Sweep Mode:")) {
@@ -1655,6 +1657,8 @@ public:
                 sprite.print("Change target marker.");
             } else if (selItem.startsWith("Text Size:")) {
                 sprite.print("UI text scale (1-2).");
+            } else if (selItem.startsWith("UI Scale:")) {
+                sprite.print("Visual radar zoom level.");
             } else if (selItem.startsWith("Sweep Line:")) {
                 sprite.print("Toggle scanning line.");
             } else if (selItem.startsWith("Sweep Mode:")) {

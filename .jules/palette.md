@@ -135,3 +135,7 @@
 ## 2024-05-25 - Allow viewing Wi-Fi password
 **Learning:** For embedded/IoT devices, hiding connection credentials or only providing an option to regenerate them creates high friction. Providing a dedicated, non-destructive read-only view of dynamic keys (like AP passwords) directly on the hardware screen is a critical UX pattern that lowers cognitive load and prevents accidental resets.
 **Action:** When working with systems that generate dynamic keys or rely on local AP networks, ensure there is an accessible, non-destructive UI state to display these credentials to the user.
+
+## 2026-05-26 - Missing Tooltip Fallback Prevention
+**Learning:** When adding items to dynamic, string-matched hardware UI menus (like `UIManager.h`), it's easy to overlook adding corresponding entries to the tooltip logic (`drawMenuTooltip`). This omission results in no explanation being displayed for new settings, hindering the user experience.
+**Action:** When adding or modifying options in string-matched menus, always ensure parallel updates to the tooltip switch/if-else chains to maintain a self-documenting UI and prevent silent UX regressions.
