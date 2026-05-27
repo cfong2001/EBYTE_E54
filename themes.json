@@ -1,0 +1,12 @@
+[
+  {"name": "Standard", "bg": "0x1082", "primary": "0x06DD", "danger": "0xFDB5", "success": "0x2F20", "warning": "0xFDCA", "text": "0xFFFF"},
+  {"name": "Minimal", "bg": "0x1082", "primary": "0x06DD", "danger": "0xFDB5", "success": "0x2F20", "warning": "0xFDCA", "text": "0xC618"},
+  {"name": "Cyberpunk", "bg": "0x18C3", "primary": "0x07E0", "danger": "0xF800", "success": "0xFFE0", "warning": "0xFD20", "text": "0xFFFF"},
+  {"name": "Synthwave", "bg": "0x2008", "primary": "0xF81F", "danger": "0xFC00", "success": "0x07E0", "warning": "0xFFE0", "text": "0xFFFF"},
+  {"name": "Forest", "bg": "0x0164", "primary": "0x07E0", "danger": "0xF800", "success": "0x2720", "warning": "0xFFE0", "text": "0xFFFF"},
+  {"name": "High Contrast", "bg": "0x0000", "primary": "0xFFFF", "danger": "0xF800", "success": "0x07E0", "warning": "0xFFE0", "text": "0xFFFF"},
+  {"name": "Sunset", "bg": "0x1000", "primary": "0xFD20", "danger": "0xF800", "success": "0x07E0", "warning": "0xFC00", "text": "0xFFFF"},
+  {"name": "Custom 1", "bg": "0x0000", "primary": "0xFFFF", "danger": "0xF800", "success": "0x07E0", "warning": "0xFFE0", "text": "0xFFFF"},
+  {"name": "Custom 2", "bg": "0x0000", "primary": "0xFFFF", "danger": "0xF800", "success": "0x07E0", "warning": "0xFFE0", "text": "0xFFFF"},
+  {"name": "Custom 3", "bg": "0x0000", "primary": "0xFFFF", "danger": "0xF800", "success": "0x07E0", "warning": "0xFFE0", "text": "0xFFFF"}
+]

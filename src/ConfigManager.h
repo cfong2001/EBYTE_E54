@@ -30,7 +30,7 @@ public:
 
         // Export UI Settings
         prefs.begin("radar_ui", true);
-        doc["theme"] = prefs.getInt("theme", THEME_ALIEN);
+        doc["theme"] = prefs.getInt("theme", 1);
         doc["icon"] = prefs.getInt("icon", ICON_SMART);
         doc["sweep"] = prefs.getBool("sweep", true);
         doc["trails"] = prefs.getInt("trails", 5);
@@ -121,7 +121,7 @@ public:
 
     void backupToFallback() {
         prefs.begin("radar_ui", true);
-        int theme = prefs.getInt("theme", THEME_ALIEN);
+        int theme = prefs.getInt("theme", 1);
         int icon = prefs.getInt("icon", ICON_SMART);
         bool sweep = prefs.getBool("sweep", true);
         int trails = prefs.getInt("trails", 5);
@@ -188,7 +188,7 @@ public:
 
     void restoreFromFallback() {
         prefs.begin("fb_ui", true);
-        int theme = prefs.getInt("theme", THEME_ALIEN);
+        int theme = prefs.getInt("theme", 1);
         int icon = prefs.getInt("icon", ICON_SMART);
         bool sweep = prefs.getBool("sweep", true);
         int trails = prefs.getInt("trails", 5);
