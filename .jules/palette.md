@@ -142,3 +142,6 @@
 ## 2024-05-19 - Refactoring Tooltips to Data Structures
 **Learning:** Consolidating massive `if-else if` UI string-matching chains into static structural arrays (like `TooltipMapping`) significantly reduces boilerplate, lowers cognitive load for future additions, and improves readability. Adding missing mappings (like `Zoom:`) becomes trivial compared to hunting down the right `else if` block.
 **Action:** Extract repetitive tooltip or string-matching logic into configuration arrays or structs as a single source of truth when modifying large UI rendering functions.
+## 2024-05-19 - Using Contextual Lookups in Dynamic Menus
+**Learning:** Hardcoding state machine routing and settings edits using numeric loops matching `ui->menuSelection` directly (like `if (idx++ == ui->menuSelection)`) makes adding new menu items extremely brittle. A single off-by-one error by adding a new setting breaks all subsequent selections in that menu.
+**Action:** When evaluating dynamic UI elements or menu overlays, always match based on the contextual content of the selection itself (e.g., `selItem.startsWith("Icon:")`) instead of abstract array positions.
