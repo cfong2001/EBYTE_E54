@@ -602,26 +602,39 @@ public:
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeDanger, themeBg);
             sprite.fillRect(10, 90, 220, 60, pulseColor);
-            sprite.setTextColor(themePrimary, pulseColor);
-            sprite.setCursor(20, 100);
+            sprite.setTextColor(themeBg, pulseColor);
+
+            int w1 = sprite.textWidth("NEW CONFIG LOADED");
+            sprite.setCursor((tft.width() - w1) / 2, 100);
             sprite.print("NEW CONFIG LOADED");
-            sprite.setCursor(20, 115);
+
+            int w2 = sprite.textWidth("PRESS BUTTON TO KEEP");
+            sprite.setCursor((tft.width() - w2) / 2, 115);
             sprite.print("PRESS BUTTON TO KEEP");
-            sprite.setCursor(20, 130);
 
             int dots = (millis() / 500) % 4;
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
-            sprite.printf("OR WAIT TO REVERT%-3s", dotStr);
+            char buf[32];
+            snprintf(buf, sizeof(buf), "OR WAIT TO REVERT%-3s", dotStr);
+            int w3 = sprite.textWidth(buf);
+            sprite.setCursor((tft.width() - w3) / 2, 130);
+            sprite.print(buf);
         } else if (state == STATE_CONFIRM_RESET) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeDanger, themeBg);
             sprite.fillRect(10, 90, 220, 60, pulseColor);
             sprite.setTextColor(themeBg, pulseColor);
-            sprite.setCursor(20, 100);
+
+            int w1 = sprite.textWidth("CONFIRM FACTORY RESET");
+            sprite.setCursor((tft.width() - w1) / 2, 100);
             sprite.print("CONFIRM FACTORY RESET");
-            sprite.setCursor(20, 115);
+
+            int w2 = sprite.textWidth("[PRESS] TO WIPE");
+            sprite.setCursor((tft.width() - w2) / 2, 115);
             sprite.print("[PRESS] TO WIPE");
-            sprite.setCursor(20, 130);
+
+            int w3 = sprite.textWidth("[TURN] TO CANCEL");
+            sprite.setCursor((tft.width() - w3) / 2, 130);
             sprite.print("[TURN] TO CANCEL");
         }
 

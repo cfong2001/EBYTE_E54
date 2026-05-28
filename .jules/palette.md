@@ -145,3 +145,6 @@
 ## 2024-05-19 - Using Contextual Lookups in Dynamic Menus
 **Learning:** Hardcoding state machine routing and settings edits using numeric loops matching `ui->menuSelection` directly (like `if (idx++ == ui->menuSelection)`) makes adding new menu items extremely brittle. A single off-by-one error by adding a new setting breaks all subsequent selections in that menu.
 **Action:** When evaluating dynamic UI elements or menu overlays, always match based on the contextual content of the selection itself (e.g., `selItem.startsWith("Icon:")`) instead of abstract array positions.
+## $(date +%Y-%m-%d) - Centered UI Text Blocks vs Absolute Coordinates
+**Learning:** Hardcoding X coordinates (like `sprite.setCursor(20, 100)`) for multi-line confirmation alerts results in misaligned, "ragged-right" blocks of text, especially when the text scale or string length changes. This reduces the professional look of the interface.
+**Action:** When drawing full-screen alerts or multi-line confirmation prompts, avoid absolute `x` positions. Always calculate the text width for each line independently (e.g., `(tft.width() - textWidth) / 2`) to ensure the entire block is uniformly center-aligned.
