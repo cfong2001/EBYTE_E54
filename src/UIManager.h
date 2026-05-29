@@ -602,7 +602,7 @@ public:
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeDanger, themeBg);
             sprite.fillRect(10, 90, 220, 60, pulseColor);
-            sprite.setTextColor(themePrimary, pulseColor);
+            sprite.setTextColor(themeBg, pulseColor);
             sprite.setCursor(20, 100);
             sprite.print("NEW CONFIG LOADED");
             sprite.setCursor(20, 115);
@@ -1258,9 +1258,17 @@ public:
 
         sprite.setTextColor(themeText, themeBg);
         sprite.setTextSize(uiTextSize);
-        if (elapsed < 300) sprite.setCursor(100, 120), sprite.print("INIT");
-        else if (elapsed < 600) sprite.setCursor(90, 120), sprite.print("CALIBRATING");
-        else if (elapsed < 1000) sprite.setCursor(95, 120), sprite.print("SCANNING...");
+
+        const char* bootText = "";
+        if (elapsed < 300) bootText = "INIT";
+        else if (elapsed < 600) bootText = "CALIBRATING";
+        else if (elapsed < 1000) bootText = "SCANNING...";
+
+        if (bootText[0] != '\0') {
+            int tw = sprite.textWidth(bootText);
+            sprite.setCursor((tft.width() - tw) / 2, 120);
+            sprite.print(bootText);
+        }
 
         tft.startWrite(); sprite.pushSprite(0, 0); tft.endWrite();  // PSRAM-safe push, full 240x320
 
