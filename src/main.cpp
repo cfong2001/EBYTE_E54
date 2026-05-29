@@ -3,6 +3,7 @@
 #include <RotaryEncoder.h>
 #include <OneButton.h>
 
+#include "Themes.h"
 Theme userThemes[10];
 int numUserThemes = 0;
 #include "E54_Radar.h"
