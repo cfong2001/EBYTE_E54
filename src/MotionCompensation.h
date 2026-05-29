@@ -256,10 +256,12 @@ private:
                 Cq_x += targets[i].x;
                 Cq_y += targets[i].y;
             }
-            Cp_x /= numAnchors;
-            Cp_y /= numAnchors;
-            Cq_x /= numAnchors;
-            Cq_y /= numAnchors;
+            // Optimization: Use reciprocal multiplication instead of division
+            float invNumAnchors = 1.0f / (float)numAnchors;
+            Cp_x *= invNumAnchors;
+            Cp_y *= invNumAnchors;
+            Cq_x *= invNumAnchors;
+            Cq_y *= invNumAnchors;
 
             if (numAnchors >= 2) {
                 float S = 0, C = 0;
