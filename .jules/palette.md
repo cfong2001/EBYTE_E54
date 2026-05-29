@@ -145,3 +145,6 @@
 ## 2024-05-19 - Using Contextual Lookups in Dynamic Menus
 **Learning:** Hardcoding state machine routing and settings edits using numeric loops matching `ui->menuSelection` directly (like `if (idx++ == ui->menuSelection)`) makes adding new menu items extremely brittle. A single off-by-one error by adding a new setting breaks all subsequent selections in that menu.
 **Action:** When evaluating dynamic UI elements or menu overlays, always match based on the contextual content of the selection itself (e.g., `selItem.startsWith("Icon:")`) instead of abstract array positions.
+## 2026-05-29 - High-Contrast Text over Alert Colors
+**Learning:** When rendering text over light or brightly colored alert backgrounds (e.g., `themeDanger` or derived colors like `pulseColor` in `STATE_FALLBACK`), using bright accent colors like `themePrimary` causes a severe drop in contrast and readability.
+**Action:** Always use the dark background variable `themeBg` for text superimposed on light alert backgrounds to ensure high contrast, readability, and accessibility compliance.
