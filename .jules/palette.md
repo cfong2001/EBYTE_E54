@@ -148,3 +148,10 @@
 ## $(date +%Y-%m-%d) - Centered UI Text Blocks vs Absolute Coordinates
 **Learning:** Hardcoding X coordinates (like `sprite.setCursor(20, 100)`) for multi-line confirmation alerts results in misaligned, "ragged-right" blocks of text, especially when the text scale or string length changes. This reduces the professional look of the interface.
 **Action:** When drawing full-screen alerts or multi-line confirmation prompts, avoid absolute `x` positions. Always calculate the text width for each line independently (e.g., `(tft.width() - textWidth) / 2`) to ensure the entire block is uniformly center-aligned.
+## 2024-05-28 - Dynamic Text Coloring on Alert Backgrounds
+**Learning:** Drawing text with bright accent colors (`themePrimary`) over bright, pulsing alert backgrounds (like `themeDanger` variations) severely diminishes text legibility and contrast, creating an inaccessible UI state.
+**Action:** Always ensure that text rendered over light or bright background components uses `themeBg` (the dark background variable) to maintain a high-contrast ratio and clear readability across all themes.
+
+## 2024-05-27 - Dynamic UI Text Centering
+**Learning:** Using hardcoded 'X' coordinates for UI elements like text breaks layout alignment when users change dynamic text scaling (`uiTextSize`). This leads to a poorly polished look under varying user settings.
+**Action:** Use functions like `sprite.textWidth()` along with layout formulas (e.g. `(tft.width() - textWidth) / 2`) to dynamically center UI elements to ensure a responsive, accessible interface regardless of user-selected scale factors.
