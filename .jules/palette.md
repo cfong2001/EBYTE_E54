@@ -145,6 +145,9 @@
 ## 2024-05-19 - Using Contextual Lookups in Dynamic Menus
 **Learning:** Hardcoding state machine routing and settings edits using numeric loops matching `ui->menuSelection` directly (like `if (idx++ == ui->menuSelection)`) makes adding new menu items extremely brittle. A single off-by-one error by adding a new setting breaks all subsequent selections in that menu.
 **Action:** When evaluating dynamic UI elements or menu overlays, always match based on the contextual content of the selection itself (e.g., `selItem.startsWith("Icon:")`) instead of abstract array positions.
+## 2024-05-28 - Dynamic Text Coloring on Alert Backgrounds
+**Learning:** Drawing text with bright accent colors (`themePrimary`) over bright, pulsing alert backgrounds (like `themeDanger` variations) severely diminishes text legibility and contrast, creating an inaccessible UI state.
+**Action:** Always ensure that text rendered over light or bright background components uses `themeBg` (the dark background variable) to maintain a high-contrast ratio and clear readability across all themes.
 
 ## 2024-05-27 - Dynamic UI Text Centering
 **Learning:** Using hardcoded 'X' coordinates for UI elements like text breaks layout alignment when users change dynamic text scaling (`uiTextSize`). This leads to a poorly polished look under varying user settings.
