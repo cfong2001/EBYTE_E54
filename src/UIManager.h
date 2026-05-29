@@ -109,6 +109,7 @@ public:
 
 class UIManager {
 public:
+    float globalWarningPulse = 0.0f;
     IView* mainMenuView;
     IView* visualsMenuView;
     IView* zonesMenuView;
@@ -398,10 +399,11 @@ public:
     void setTargetMotion(int index, float vx, float vy, float ax, float ay, float stdDev = 0.0f) {
         if (index >= 0 && index < 3) {
             // Convert mm/s to screen pixels
-            targetVelX[index] = vx * (tft.width() / 2) / 5000;
-            targetVelY[index] = -vy * tft.width() / 5000; // Y is inverted on screen
-            targetAccX[index] = ax * (tft.width() / 2) / 5000;
-            targetAccY[index] = -ay * tft.width() / 5000;
+            // 1.0f / 5000.0f = 0.0002f
+            targetVelX[index] = vx * (tft.width() / 2) * 0.0002f;
+            targetVelY[index] = -vy * tft.width() * 0.0002f; // Y is inverted on screen
+            targetAccX[index] = ax * (tft.width() / 2) * 0.0002f;
+            targetAccY[index] = -ay * tft.width() * 0.0002f;
         }
     }
 
@@ -421,8 +423,8 @@ public:
                 if (absSpeed < sensitivity && sensitivity > 1) {
                     targetActive[i] = false;
                 } else {
-                    targetGoalX[i] = (tft.width() / 2) + (targets[i].x * (tft.width() / 2) / 5000) * uiScale;
-                    targetGoalY[i] = tft.height() - ((targets[i].y * tft.height() / 5000) * uiScale);
+                    targetGoalX[i] = (tft.width() / 2) + (targets[i].x * (tft.width() / 2) * 0.0002f) * uiScale;
+                    targetGoalY[i] = tft.height() - ((targets[i].y * tft.height() * 0.0002f) * uiScale);
 
                     rawTargetX[i] = targets[i].x;
                     rawTargetY[i] = targets[i].y;
@@ -514,6 +516,8 @@ public:
     }
 
     void renderLoop() {
+        globalWarningPulse = (sinf(millis() * 0.0066667f) + 1.0f) * 0.5f;
+
         if (state == STATE_BOOT) {
             drawBootScreen();
             return;
@@ -768,11 +772,10 @@ private:
 
     void drawTargetWarning(int i, int cx, int cy, uint8_t currentAlpha) {
         if (zoneManager.isWarning(i)) {
-            float pulse = (sinf(millis() / 150.0f) + 1.0f) * 0.5f;
-            uint8_t blendRatio = (uint8_t)(pulse * 255.0f);
+            uint8_t blendRatio = (uint8_t)(globalWarningPulse * 255.0f);
             uint16_t blendColor = sprite.alphaBlend(blendRatio, themeDanger, themeWarning);
             uint16_t wCol = sprite.alphaBlend(currentAlpha, blendColor, themeBg);
-            int pr = (int)((8 + (pulse * 2.0f)) * uiScale);
+            int pr = (int)((8 + (globalWarningPulse * 2.0f)) * uiScale);
             sprite.drawCircle(cx, cy, pr, wCol);
         }
         float danger = zoneManager.getTargetDangerLevel(i);
@@ -781,9 +784,10 @@ private:
             uint16_t wCol = sprite.alphaBlend(currentAlpha, dangerColor, themeBg);
 
             float pulseSpeed = 300.0f - (danger * 200.0f);
+            float invPulseSpeed = 1.0f / pulseSpeed;
             // Use single-precision sinf() to avoid implicit double conversion
             // inside 30Hz display rendering loop, saving CPU cycles on ESP32 FPU.
-            float pulse = (sinf(millis() / pulseSpeed) + 1.0f) * 0.5f;
+            float pulse = (sinf(millis() * invPulseSpeed) + 1.0f) * 0.5f;
             int r = (int)((6 + (pulse * 4.0f * danger)) * uiScale);
 
             sprite.drawCircle(cx, cy, r, wCol);
@@ -906,11 +910,10 @@ private:
             }
 
             if (zoneManager.isWarning(i)) {
-                float pulse = (sinf(millis() * 0.0066667f) + 1.0f) * 0.5f;
-                uint8_t blendRatio = (uint8_t)(pulse * 255.0f);
+                uint8_t blendRatio = (uint8_t)(globalWarningPulse * 255.0f);
                 uint16_t blendColor = sprite.alphaBlend(blendRatio, themeDanger, themeWarning);
                 uint16_t wCol = sprite.alphaBlend(currentAlpha, blendColor, themeBg);
-                int pr = (int)((8 + (pulse * 2.0f)) * uiScale);
+                int pr = (int)((8 + (globalWarningPulse * 2.0f)) * uiScale);
                 sprite.drawCircle(cx, cy, pr, wCol);
             }
             float danger = zoneManager.getTargetDangerLevel(i);
@@ -919,9 +922,10 @@ private:
                 uint16_t wCol = sprite.alphaBlend(currentAlpha, dangerColor, themeBg);
 
                 float pulseSpeed = 300.0f - (danger * 200.0f);
+                float invPulseSpeed = 1.0f / pulseSpeed;
                 // Use single-precision sinf() to avoid implicit double conversion
                 // inside 30Hz display rendering loop, saving CPU cycles on ESP32 FPU.
-                float pulse = (sinf(millis() / pulseSpeed) + 1.0f) * 0.5f;
+                float pulse = (sinf(millis() * invPulseSpeed) + 1.0f) * 0.5f;
                 int r = (int)((6 + (pulse * 4.0f * danger)) * uiScale);
 
                 sprite.drawCircle(cx, cy, r, wCol);
@@ -1262,8 +1266,9 @@ public:
     }
 
     void drawRadialWedge(int minDist, int maxDist, int minAngle, int maxAngle, uint16_t color) {
-        int maxR = ((maxDist * 180) / 6000) * uiScale;
-        int minR = ((minDist * 180) / 6000) * uiScale;
+        // 180.0f / 6000.0f = 0.03f
+        int maxR = (maxDist * 0.03f) * uiScale;
+        int minR = (minDist * 0.03f) * uiScale;
         if (maxR > 180) maxR = 180;
         if (minR > 180) minR = 180;
 
