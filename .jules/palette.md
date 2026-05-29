@@ -100,7 +100,7 @@
 ## 2024-05-20 - Stuck Tooltips on Button Release
 **Learning:** For transient UI states triggered by a long button press (e.g., using `OneButton`'s `attachLongPressStart`), explicitly reverting the state upon button release prevents stuck UI elements.
 **Action:** Always implement a dedicated release handler (e.g., `attachLongPressStop`) to clear transient states when the user releases the button.
-## $(date +%Y-%m-%d) - Scale UI rendering with a separate variable
+## 2026-05-29 - Scale UI rendering with a separate variable
 
 **Learning:** Separating UI scale from text size offers better user customization. Instead of combining the two, or using a simple offset `sprite.setViewport` which is only available in more modern or specific forks of graphic libraries, all sizes can be drawn independently using an adjustment float variable that applies to the draw metrics explicitly.
 **Action:** Implemented a new `uiScale` variable defaulting to 1.0 that's applied directly against rendering lengths and boundaries for icons, telemetry dots, tracking traces, radial zones, and sweeps within the `draw` layer. Bound this `uiScale` to `preferences` NVM alongside `uiTextSize` and provided a dedicated UI setting adjustable by the encoder.
@@ -119,7 +119,7 @@
 **Learning:** When developing hardware interfaces that support multiple themes (e.g., Alien, Minimal, Standard), hardcoding absolute colors like `TFT_WHITE` can cause severe legibility issues. For example, rendering hardcoded white text on top of a `themeDanger` background (which is light red/pink `#ffb4ab`) creates a low-contrast, nearly illegible experience. Additionally, tooltips layered over theme-aware backgrounds must rely on standard theme variables (like `themePrimary`) instead of hardcoded white to ensure they dynamically match the contrast needs of the chosen theme palette.
 
 **Action:** Always replace hardcoded absolute colors (`TFT_WHITE`, `TFT_BLACK`) with dynamic semantic theme variables (`themeBg`, `themePrimary`, `themeDanger`). Specifically, when rendering text over a light danger background, use `themeBg` (the dark background color) as the text color to significantly improve accessibility and ensure a high contrast ratio.
-## $(date +%Y-%m-%d) - Prevent Destructive Actions From Firing Immediately On Render Loop
+## 2026-05-29 - Prevent Destructive Actions From Firing Immediately On Render Loop
 **Learning:** Hardcoded state blocks inside UI rendering loops (e.g. `renderLoop`) that execute critical state resets or variable generation (like `WIFI_PASS` generation) and immediately call `ESP.restart()` will cause the action to trigger as soon as the menu state is selected, bypassing any user intention or opportunity to abort.
 **Action:** When creating destructive or disruptive actions triggered from menu lists, split the UI state block. The `renderLoop()` should only ever draw a visual confirmation prompt, while explicit confirmation (e.g. pressing the button inside `handleButton`) actually executes the logic.
 ## 2024-06-25 - Dynamic Theme Text Coloring
@@ -136,7 +136,7 @@
 **Learning:** For embedded/IoT devices, hiding connection credentials or only providing an option to regenerate them creates high friction. Providing a dedicated, non-destructive read-only view of dynamic keys (like AP passwords) directly on the hardware screen is a critical UX pattern that lowers cognitive load and prevents accidental resets.
 **Action:** When working with systems that generate dynamic keys or rely on local AP networks, ensure there is an accessible, non-destructive UI state to display these credentials to the user.
 
-## $(date +%Y-%m-%d) - Duplicated Tooltip Logic in Dynamic Menus
+## 2026-05-29 - Duplicated Tooltip Logic in Dynamic Menus
 **Learning:** Having duplicated string-matching logic for tooltips (e.g., one function that returns a tooltip string, and another place that inline renders it by matching strings again) is highly prone to bugs when adding new dynamic menu items. The inline duplicate inevitably falls out of sync, leading to missing tooltips (e.g., falling back to "Adjust setting value") for newly added items like `UI Scale:`.
 **Action:** Consolidate UI string matching and tooltip logic into a single source of truth function (`drawMenuTooltip`). In dynamic overlay menus, just call this single function instead of re-implementing the string matching logic to prevent diverging behavior and ensure complete accessibility context.
 ## 2024-05-19 - Refactoring Tooltips to Data Structures
@@ -145,3 +145,6 @@
 ## 2024-05-19 - Using Contextual Lookups in Dynamic Menus
 **Learning:** Hardcoding state machine routing and settings edits using numeric loops matching `ui->menuSelection` directly (like `if (idx++ == ui->menuSelection)`) makes adding new menu items extremely brittle. A single off-by-one error by adding a new setting breaks all subsequent selections in that menu.
 **Action:** When evaluating dynamic UI elements or menu overlays, always match based on the contextual content of the selection itself (e.g., `selItem.startsWith("Icon:")`) instead of abstract array positions.
+## 2026-05-29 - Continuous Feedback for Blocking States
+**Learning:** Asynchronous or blocking states (like running hardware self-tests) should provide continuous visual feedback (such as pulsing colors and animated text). Static states (like just "Running tests...") during potentially long operations can appear as a frozen UI, leading to user confusion and diminished trust.
+**Action:** Always provide non-blocking visual animation (e.g., using `sinf(millis())`) to explicitly reassure the user that the system is active during prolonged waiting periods.
