@@ -410,6 +410,9 @@ private:
                     float meanX = 0;
                     float meanY = 0;
 
+                    // Optimization: Precompute inverse window size squared to replace expensive FPU division in the loop
+                    float invWindowSq = -9.0f / (window_size * window_size);
+
                     for (int j = 0; j < state[i].historyCount; j++) {
                         // Calculate index in circular buffer
                         int histIdx = (state[i].historyHead - 1 - j + TargetState::HISTORY_SIZE) % TargetState::HISTORY_SIZE;
@@ -425,7 +428,7 @@ private:
 
                         // To heavily weight recent frames when the window is small (moving target),
                         // we also apply a baseline exponential time decay factor.
-                        float weight = expf((-9.0f * (r_t * r_t)) / (window_size * window_size));
+                        float weight = expf((r_t * r_t) * invWindowSq);
 
                         // Only add weight if it is statistically significant (speeds up loop and rejects stale data for fast targets)
                         if (weight > 0.05f) {
@@ -434,12 +437,16 @@ private:
                             totalWeight += weight;
                         }
                     }
-                    smoothX = sumX / totalWeight;
-                    smoothY = sumY / totalWeight;
+
+                    // Optimization: Use reciprocal multiplication instead of division
+                    float invTotalWeight = 1.0f / totalWeight;
+                    smoothX = sumX * invTotalWeight;
+                    smoothY = sumY * invTotalWeight;
 
                     // Calculate unweighted Standard Deviation (Variance spread) of the coordinate history buffer for UI
-                    meanX /= (float)state[i].historyCount;
-                    meanY /= (float)state[i].historyCount;
+                    float invCount = 1.0f / (float)state[i].historyCount;
+                    meanX *= invCount;
+                    meanY *= invCount;
                     float varSum = 0;
                     for (int j = 0; j < state[i].historyCount; j++) {
                          int histIdx = (state[i].historyHead - 1 - j + TargetState::HISTORY_SIZE) % TargetState::HISTORY_SIZE;
@@ -447,7 +454,7 @@ private:
                          float dy = state[i].historyY[histIdx] - meanY;
                          varSum += (dx*dx + dy*dy);
                     }
-                    state[i].stdDev = sqrtf(varSum / (float)state[i].historyCount);
+                    state[i].stdDev = sqrtf(varSum * invCount);
                 }
             }
 
