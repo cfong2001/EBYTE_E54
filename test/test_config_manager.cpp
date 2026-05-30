@@ -7,7 +7,7 @@ class UIManager {};
 #define TELEMETRY_OFF 0
 
 #include "ZoneManager.h"
-#include "Themes.h"
+#include "../src/Themes.h"
 
 #define private public
 #include "ConfigManager.h"
