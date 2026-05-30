@@ -1173,9 +1173,9 @@ public:
         sprite.setCursor(10, 40);
         if (!selfTestDone) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
-            uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeWarning, themeBg);
+            uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, activeTheme.warning, activeTheme.bg);
             sprite.fillRect(10, 40, 220, 40, pulseColor);
-            sprite.setTextColor(themeBg, pulseColor);
+            sprite.setTextColor(activeTheme.bg, pulseColor);
             sprite.setCursor(20, 55);
 
             int dots = (millis() / 500) % 4;
