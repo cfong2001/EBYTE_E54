@@ -50,6 +50,8 @@ inline unsigned long millis() { return mock_millis; }
 // Mock ESP
 class MockESP {
 public:
+    void restart() {}
+public:
     uint32_t getFreeHeap() { return 100000; }
     uint32_t getMaxAllocHeap() { return 50000; }
     uint32_t getMinFreeHeap() { return 20000; }
@@ -108,3 +110,6 @@ namespace std {
         return (v < lo) ? lo : (hi < v) ? hi : v;
     }
 }
+inline void delay(int ms) {}
+#include "WString.h"
+inline long random(long min, long max) { return min; }

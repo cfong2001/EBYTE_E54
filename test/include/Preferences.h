@@ -1,5 +1,4 @@
 #pragma once
-
 #include <string>
 #include <map>
 
@@ -19,6 +18,25 @@ public:
     void putInt(const char* key, int value) {
         _intValues[key] = value;
     }
+
+    bool getBool(const char* key, bool defaultValue) {
+        return defaultValue;
+    }
+
+    void putBool(const char* key, bool value) {}
+
+    float getFloat(const char* key, float defaultValue) {
+        return defaultValue;
+    }
+
+    void putFloat(const char* key, float value) {}
+
+    std::string getString(const char* key, const char* defaultValue) {
+        return std::string(defaultValue);
+    }
+
+    void putString(const char* key, const class String& value) {}
+    void clear() {}
 
 private:
     std::map<std::string, int> _intValues;
