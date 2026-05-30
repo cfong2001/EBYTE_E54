@@ -1757,7 +1757,6 @@ inline void DevMenuView::handleMenuClick(UIManager* ui) {
     else if (ui->menuSelection == ui->maxMenuSelection - 2 && ui->devRiskAccepted) { ui->state = STATE_IMPORTING; }
     else if (ui->menuSelection == ui->maxMenuSelection - 1 && ui->devRiskAccepted) {
         ui->currentWifiPass = BroadcastServer::getWiFiPassword();
-        if (ui->currentWifiPass == "") ui->currentWifiPass = "Not Set";
         ui->state = STATE_VIEW_WIFI;
     }
     else if (ui->menuSelection == ui->maxMenuSelection && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_WIFI_GEN; }
