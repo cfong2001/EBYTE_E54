@@ -338,7 +338,7 @@ public:
             const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
             String newPass = "";
             for (int i = 0; i < 12; i++) {
-                newPass += charset[random(0, sizeof(charset) - 1)];
+                newPass += charset[esp_random() % (sizeof(charset) - 1)];
             }
             preferences.begin("radar_sys", false);
             preferences.putString("wifi_pass", newPass);
