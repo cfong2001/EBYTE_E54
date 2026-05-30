@@ -110,14 +110,13 @@ public:
 
         return true;
     }
-
-    bool runSelfTest() {
+    int runSelfTest() {
         ZoneManager testZm;
         RadialZone testZone = {1000, 3000, -90, 90};
         if (!testZm.isInsideZone(0, 2000, testZone) || testZm.isInsideZone(0, 500, testZone)) {
-            return false;
+            return 2;
         }
-        return true;
+        return 0;
     }
 
     bool isDead(int16_t x, int16_t y) {

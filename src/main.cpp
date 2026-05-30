@@ -290,16 +290,22 @@ void loop() {
         Serial.println("--- RUNNING SOFTWARE TESTS ---");
         // We can't actually call the host tests here easily without including them.
         ui.selfTestSoftwareOk = true;
+        ui.selfTestErrorCode = 0;
 
         MotionCompensation testMc;
-        if (!testMc.runSelfTest()) {
+        int mcErr = testMc.runSelfTest();
+        if (mcErr != 0) {
             ui.selfTestSoftwareOk = false;
+            ui.selfTestErrorCode = mcErr;
             Serial.println("MotionCompensation test failed!");
-        }
-        ZoneManager testZm;
-        if (!testZm.runSelfTest()) {
-            ui.selfTestSoftwareOk = false;
-            Serial.println("ZoneManager test failed!");
+        } else {
+            ZoneManager testZm;
+            int zmErr = testZm.runSelfTest();
+            if (zmErr != 0) {
+                ui.selfTestSoftwareOk = false;
+                ui.selfTestErrorCode = zmErr;
+                Serial.println("ZoneManager test failed!");
+            }
         }
 
         ui.selfTestDone = true;

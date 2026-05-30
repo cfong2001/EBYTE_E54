@@ -146,16 +146,15 @@ public:
     float getTargetStdDev(int i) const { return state[i].stdDev; }
 
     void forceReset() { init(); }
-
-    bool runSelfTest() {
+    int runSelfTest() {
         MotionCompensation testMc;
         testMc.init();
         RadarTarget target = {true, 1000, 2000, 10, 50, false};
         testMc.updateFilterState(0, 0.1f, 1000.0f, 2000.0f, 1000.0f, 2000.0f, target);
         if (testMc.state[0].active != true || testMc.state[0].x != 1000.0f) {
-            return false;
+            return 1;
         }
-        return true;
+        return 0;
     }
 
 private:

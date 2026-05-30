@@ -123,3 +123,12 @@ Settings are managed via the rotary encoder and stored in NVS (`Preferences.h`).
 ### Parameters
 - **Tracking Reset**: Recalibrates motion compensation filters.
 - **Location Averaging**: Adjusts predictive smoothing strength (higher = less jitter, more latency).
+
+### Self-Test Error Codes
+
+If the internal software tests fail during a diagnostic run, an error code will be displayed.
+
+| Error Code | Description |
+|---|---|
+| `1` | Motion Compensation test failed. Filter state logic is flawed. |
+| `2` | Zone Manager test failed. Zone boundary calculations are flawed. |

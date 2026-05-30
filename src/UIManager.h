@@ -1088,6 +1088,7 @@ public:
     bool selfTestDone = false;
     bool selfTestRxOk = false;
     bool selfTestSoftwareOk = false;
+    int selfTestErrorCode = 0;
 
     bool anchorValid;
     int16_t anchorX;
@@ -1201,7 +1202,11 @@ public:
                 sprite.print("PASS: Tests passed");
             } else {
                 sprite.setTextColor(activeTheme.danger, activeTheme.bg);
-                sprite.print("FAIL: Tests failed");
+                if (selfTestErrorCode != 0) {
+                    sprite.printf("FAIL: Code %d", selfTestErrorCode);
+                } else {
+                    sprite.print("FAIL: Tests failed");
+                }
             }
         }
 
