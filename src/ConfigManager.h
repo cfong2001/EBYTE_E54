@@ -25,81 +25,12 @@ private:
     Preferences prefs;
 
 public:
-    void loadThemes() {
-        numUserThemes = 0;
-        userThemes[numUserThemes++] = FALLBACK_THEME;
-
-        prefs.begin("radar_ui", true);
-        String themeJson = prefs.getString("theme_data", "");
-        prefs.end();
-
-        if (themeJson.length() > 0) {
-            JsonDocument doc;
-            DeserializationError error = deserializeJson(doc, themeJson);
-            if (!error && doc.is<JsonArray>()) {
-                JsonArray arr = doc.as<JsonArray>();
-                for (JsonVariant v : arr) {
-                    if (numUserThemes < 10) {
-                        Theme t;
-                        t.name = v["name"].as<String>();
-                        t.bg = strtol(v["bg"].as<const char*>(), NULL, 16);
-                        t.primary = strtol(v["primary"].as<const char*>(), NULL, 16);
-                        t.danger = strtol(v["danger"].as<const char*>(), NULL, 16);
-                        t.success = strtol(v["success"].as<const char*>(), NULL, 16);
-                        t.warning = strtol(v["warning"].as<const char*>(), NULL, 16);
-                        t.text = strtol(v["text"].as<const char*>(), NULL, 16);
-                        userThemes[numUserThemes++] = t;
-                    }
-                }
-            }
-        }
-
-        // If no user themes loaded, load defaults
-        if (numUserThemes == 1) {
-            Theme defaults[] = {
-                {"Standard", 0x1082, 0x06DD, 0xFDB5, 0x2F20, 0xFDCA, TFT_WHITE},
-                {"Minimal", 0x1082, 0x06DD, 0xFDB5, 0x2F20, 0xFDCA, 0xC618},
-                {"Cyberpunk", 0x18C3, 0x07E0, 0xF800, 0xFFE0, 0xFD20, 0xFFFF},
-                {"Synthwave", 0x2008, 0xF81F, 0xFC00, 0x07E0, 0xFFE0, 0xFFFF},
-                {"Forest", 0x0164, 0x07E0, 0xF800, 0x2720, 0xFFE0, 0xFFFF},
-                {"High Contrast", 0x0000, 0xFFFF, 0xF800, 0x07E0, 0xFFE0, 0xFFFF},
-                {"Sunset", 0x1000, 0xFD20, 0xF800, 0x07E0, 0xFC00, 0xFFFF}
-            };
-            for (Theme t : defaults) {
-                userThemes[numUserThemes++] = t;
-            }
-        }
-    }
-
-    void saveThemes() {
-        JsonDocument doc;
-        JsonArray arr = doc.to<JsonArray>();
-        // Skip fallback theme (index 0)
-        for (int i = 1; i < numUserThemes; i++) {
-            JsonObject obj = arr.add<JsonObject>();
-            obj["name"] = userThemes[i].name;
-
-            char hex[10];
-            sprintf(hex, "0x%04X", userThemes[i].bg); obj["bg"] = hex;
-            sprintf(hex, "0x%04X", userThemes[i].primary); obj["primary"] = hex;
-            sprintf(hex, "0x%04X", userThemes[i].danger); obj["danger"] = hex;
-            sprintf(hex, "0x%04X", userThemes[i].success); obj["success"] = hex;
-            sprintf(hex, "0x%04X", userThemes[i].warning); obj["warning"] = hex;
-            sprintf(hex, "0x%04X", userThemes[i].text); obj["text"] = hex;
-        }
-        String out;
-        serializeJson(doc, out);
-
-        prefs.begin("radar_ui", false);
-        prefs.putString("theme_data", out);
-        prefs.end();
-    }
     void exportConfig(UIManager& ui) {
         JsonDocument doc;
 
         // Export UI Settings
         prefs.begin("radar_ui", true);
-        doc["theme"] = prefs.getInt("theme", 1);
+        doc["theme"] = prefs.getInt("theme", THEME_ALIEN);
         doc["icon"] = prefs.getInt("icon", ICON_SMART);
         doc["sweep"] = prefs.getBool("sweep", true);
         doc["trails"] = prefs.getInt("trails", 5);
@@ -190,7 +121,7 @@ public:
 
     void backupToFallback() {
         prefs.begin("radar_ui", true);
-        int theme = prefs.getInt("theme", 1);
+        int theme = prefs.getInt("theme", THEME_ALIEN);
         int icon = prefs.getInt("icon", ICON_SMART);
         bool sweep = prefs.getBool("sweep", true);
         int trails = prefs.getInt("trails", 5);
@@ -257,7 +188,7 @@ public:
 
     void restoreFromFallback() {
         prefs.begin("fb_ui", true);
-        int theme = prefs.getInt("theme", 1);
+        int theme = prefs.getInt("theme", THEME_ALIEN);
         int icon = prefs.getInt("icon", ICON_SMART);
         bool sweep = prefs.getBool("sweep", true);
         int trails = prefs.getInt("trails", 5);
