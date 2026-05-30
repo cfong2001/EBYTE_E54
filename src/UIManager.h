@@ -579,24 +579,31 @@ public:
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeWarning, themeBg);
             sprite.fillRect(10, 90, 220, 60, pulseColor);
             sprite.setTextColor(themeBg, pulseColor);
-            sprite.setCursor(20, 100);
+            int w1 = sprite.textWidth("CONFIRM WIFI KEY REGEN");
+            sprite.setCursor((240 - w1) / 2, 100);
             sprite.print("CONFIRM WIFI KEY REGEN");
-            sprite.setCursor(20, 115);
+            int w2 = sprite.textWidth("[PRESS] TO REGEN");
+            sprite.setCursor((240 - w2) / 2, 115);
             sprite.print("[PRESS] TO REGEN");
-            sprite.setCursor(20, 130);
+            int w3 = sprite.textWidth("[TURN] TO CANCEL");
+            sprite.setCursor((240 - w3) / 2, 130);
             sprite.print("[TURN] TO CANCEL");
         } else if (state == STATE_IMPORTING) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeWarning, themeBg);
             sprite.fillRect(10, 100, 220, 40, pulseColor);
             sprite.setTextColor(themeBg, pulseColor);
-            sprite.setCursor(20, 110);
 
             int dots = (millis() / 500) % 4;
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
-            sprite.printf("WAITING FOR CONFIG%-3s", dotStr);
+            char buf[32];
+            snprintf(buf, sizeof(buf), "WAITING FOR CONFIG%-3s", dotStr);
+            int w_dots = sprite.textWidth(buf);
+            sprite.setCursor((240 - w_dots) / 2, 110);
+            sprite.print(buf);
 
-            sprite.setCursor(20, 125);
+            int w_apply = sprite.textWidth("[PRESS BUTTON TO APPLY]");
+            sprite.setCursor((240 - w_apply) / 2, 125);
             sprite.print("[PRESS BUTTON TO APPLY]");
         } else if (state == STATE_FALLBACK) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;

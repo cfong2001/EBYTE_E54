@@ -148,3 +148,6 @@
 ## 2024-05-30 - Centered UI Text Blocks vs Absolute Coordinates
 **Learning:** Hardcoding X coordinates (like `sprite.setCursor(20, 100)`) for multi-line confirmation alerts results in misaligned, "ragged-right" blocks of text, especially when the text scale or string length changes. This reduces the professional look of the interface.
 **Action:** When drawing full-screen alerts or multi-line confirmation prompts, avoid absolute `x` positions. Always calculate the text width for each line independently (e.g., `(tft.width() - textWidth) / 2`) to ensure the entire block is uniformly center-aligned.
+## 2026-05-30 - Dynamic Formatting String Centering
+**Learning:** Dynamic formatting strings (like `printf` with changing animated dots "... ") cannot be centered simply by hardcoding X coordinates, as their string length constantly changes.
+**Action:** When centering dynamically generated text in UI prompts, always format the full string into a buffer first using `snprintf(buf, sizeof(buf), ...)` before calculating its true bounding width via `sprite.textWidth(buf)` and rendering it.
