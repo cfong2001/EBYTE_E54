@@ -102,3 +102,6 @@
 ## 2024-05-27 - [Reciprocal Multiplication for Centroid Calculations]
 **Learning:** During Rigid-body Procrustes analysis (`calculateTransform`), standard implementations sum coordinate subsets and then calculate the centroid by executing float division repeatedly in a row (e.g. `Cp_x /= numAnchors; Cp_y /= numAnchors;`). Using multiple distinct floating point divisions for the same denominator blocks the ESP32 FPU pipeline unnecessarily.
 **Action:** When calculating centroids or normalizing sets of values by the same count, hoist the reciprocal calculation (`float invCount = 1.0f / count;`) and execute sequential multiplications (`Cp_x *= invCount; Cp_y *= invCount;`) to save execution cycles.
+## 2026-05-30 - [Secure PRNG for Security-Sensitive Generation]
+**Learning:** Arduino's standard `random()` function uses a pseudo-random number generator (PRNG) that is predictable, especially if not seeded securely. For generating cryptographic material like Wi-Fi passwords, a hardware true random number generator (TRNG) should always be used to prevent prediction and security breaches.
+**Action:** When operating on the ESP32 platform, always use `esp_random()` from `<esp_random.h>` instead of `random()` for generating sensitive strings or cryptographic keys.

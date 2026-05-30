@@ -1,4 +1,5 @@
 #include "BroadcastServer.h"
+#include <esp_random.h>
 
 BroadcastServer::BroadcastServer() : server(80), isRunning(false) {
     bcastMutex = xSemaphoreCreateMutex();
@@ -24,7 +25,7 @@ void BroadcastServer::begin() {
         const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         wifiPass = "";
         for (int i = 0; i < 12; i++) {
-            wifiPass += charset[random(0, sizeof(charset) - 1)];
+            wifiPass += charset[esp_random() % (sizeof(charset) - 1)];
         }
         prefs.begin("radar_sys", false);
         prefs.putString("wifi_pass", wifiPass);
