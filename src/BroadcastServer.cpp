@@ -181,12 +181,16 @@ void BroadcastServer::setupRoutes() {
             }
             xSemaphoreGive(bcastMutex);
         } else {
-            request->send(503, "application/json", "{\"error\":\"Server busy\"}");
+            AsyncWebServerResponse *response503 = request->beginResponse(503, "application/json", "{\"error\":\"Server busy\"}");
+            response503->addHeader("Access-Control-Allow-Origin", "*");
+            request->send(response503);
             return;
         }
 
         String response;
         serializeJson(doc, response);
-        request->send(200, "application/json", response);
+        AsyncWebServerResponse *wsResponse = request->beginResponse(200, "application/json", response);
+        wsResponse->addHeader("Access-Control-Allow-Origin", "*");
+        request->send(wsResponse);
     });
 }
