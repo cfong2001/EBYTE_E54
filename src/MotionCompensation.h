@@ -256,10 +256,12 @@ private:
                 Cq_x += targets[i].x;
                 Cq_y += targets[i].y;
             }
-            Cp_x /= numAnchors;
-            Cp_y /= numAnchors;
-            Cq_x /= numAnchors;
-            Cq_y /= numAnchors;
+            // Optimization: Use reciprocal multiplication instead of division
+            float invNumAnchors = 1.0f / (float)numAnchors;
+            Cp_x *= invNumAnchors;
+            Cp_y *= invNumAnchors;
+            Cq_x *= invNumAnchors;
+            Cq_y *= invNumAnchors;
 
             if (numAnchors >= 2) {
                 float S = 0, C = 0;
@@ -410,9 +412,6 @@ private:
                     float meanX = 0;
                     float meanY = 0;
 
-                    // Optimization: Precompute inverse window size squared to replace expensive FPU division in the loop
-                    float invWindowSq = -9.0f / (window_size * window_size);
-
                     for (int j = 0; j < state[i].historyCount; j++) {
                         // Calculate index in circular buffer
                         int histIdx = (state[i].historyHead - 1 - j + TargetState::HISTORY_SIZE) % TargetState::HISTORY_SIZE;
@@ -428,7 +427,7 @@ private:
 
                         // To heavily weight recent frames when the window is small (moving target),
                         // we also apply a baseline exponential time decay factor.
-                        float weight = expf((r_t * r_t) * invWindowSq);
+                        float weight = expf((-9.0f * (r_t * r_t)) / (window_size * window_size));
 
                         // Only add weight if it is statistically significant (speeds up loop and rejects stale data for fast targets)
                         if (weight > 0.05f) {
@@ -437,16 +436,12 @@ private:
                             totalWeight += weight;
                         }
                     }
-
-                    // Optimization: Use reciprocal multiplication instead of division
-                    float invTotalWeight = 1.0f / totalWeight;
-                    smoothX = sumX * invTotalWeight;
-                    smoothY = sumY * invTotalWeight;
+                    smoothX = sumX / totalWeight;
+                    smoothY = sumY / totalWeight;
 
                     // Calculate unweighted Standard Deviation (Variance spread) of the coordinate history buffer for UI
-                    float invCount = 1.0f / (float)state[i].historyCount;
-                    meanX *= invCount;
-                    meanY *= invCount;
+                    meanX /= (float)state[i].historyCount;
+                    meanY /= (float)state[i].historyCount;
                     float varSum = 0;
                     for (int j = 0; j < state[i].historyCount; j++) {
                          int histIdx = (state[i].historyHead - 1 - j + TargetState::HISTORY_SIZE) % TargetState::HISTORY_SIZE;
@@ -454,7 +449,7 @@ private:
                          float dy = state[i].historyY[histIdx] - meanY;
                          varSum += (dx*dx + dy*dy);
                     }
-                    state[i].stdDev = sqrtf(varSum * invCount);
+                    state[i].stdDev = sqrtf(varSum / (float)state[i].historyCount);
                 }
             }
 
