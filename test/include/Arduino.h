@@ -9,16 +9,60 @@
 #include <algorithm>
 #include <queue>
 
+class String : public std::string {
+public:
+    String() : std::string() {}
+    String(const char* s) : std::string(s) {}
+    String(const std::string& s) : std::string(s) {}
+
+    String& operator+=(const char* s) {
+        std::string::operator+=(s);
+        return *this;
+    }
+
+    String& operator+=(char c) {
+        std::string::operator+=(c);
+        return *this;
+    }
+
+    size_t length() const { return std::string::length(); }
+    const char* c_str() const { return std::string::c_str(); }
+
+    bool startsWith(const char* prefix) const {
+        return std::string::find(prefix) == 0;
+    }
+    bool startsWith(const String& prefix) const {
+        return std::string::find(prefix.c_str()) == 0;
+    }
+
+};
+
+
 using std::min;
 using std::max;
 
 #define PI 3.14159265358979323846
+
+#include <cstdlib>
+inline long random(long min, long max) {
+    if (min >= max) return min;
+    long diff = max - min;
+    return min + (std::rand() % diff);
+}
+inline long random(long max) {
+    if (max == 0) return 0;
+    return std::rand() % max;
+}
+
 
 // Mock Serial
 class MockSerial {
 public:
     std::vector<std::string> log;
 
+    void print(const char* s) {
+        log.push_back(std::string(s));
+    }
     void println(const char* s) {
         log.push_back(std::string(s));
     }
@@ -49,6 +93,8 @@ inline unsigned long millis() { return mock_millis; }
 
 // Mock ESP
 class MockESP {
+public:
+    void restart() {}
 public:
     uint32_t getFreeHeap() { return 100000; }
     uint32_t getMaxAllocHeap() { return 50000; }
@@ -108,3 +154,5 @@ namespace std {
         return (v < lo) ? lo : (hi < v) ? hi : v;
     }
 }
+
+inline void delay(unsigned long) {}

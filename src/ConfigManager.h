@@ -8,6 +8,7 @@
 #include "ZoneManager.h"
 
 class ConfigManager {
+public:
 
     String generateWiFiPassword() {
         const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
