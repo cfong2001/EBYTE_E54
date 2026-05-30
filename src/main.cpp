@@ -3,6 +3,9 @@
 #include <RotaryEncoder.h>
 #include <OneButton.h>
 
+#include "Themes.h"
+Theme userThemes[10];
+int numUserThemes = 0;
 #include "E54_Radar.h"
 #include "MotionCompensation.h"
 #include "UIManager.h"
@@ -162,6 +165,7 @@ void setup() {
 
 
     // Fallback logic
+    configManager.loadThemes();
     if (configManager.checkFallback()) {
         ui.state = STATE_FALLBACK;
         fallbackStart = millis();
