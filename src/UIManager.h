@@ -1771,6 +1771,7 @@ inline void DataMenuView::executeMenuEdit(UIManager* ui, int dir) {
 inline void DataMenuView::populateMenuPage(UIManager* ui, char items[][32], int& numItems) { ui->populateDataMenu(items, numItems); }
 
 inline void DevMenuView::handleMenuClick(UIManager* ui) {
+    String selItem = String(ui->currentMenuItems[ui->menuSelection]);
     if (ui->menuSelection == 0) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
     else if (ui->menuSelection == ui->maxMenuSelection - 5 && ui->devRiskAccepted) { ui->actionRequested = 5; ui->state = STATE_SELF_TEST; ui->selfTestDone = false; }
     else if (ui->menuSelection == ui->maxMenuSelection - 4 && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_RESET; }
