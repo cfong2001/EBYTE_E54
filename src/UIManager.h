@@ -534,6 +534,8 @@ public:
         drawZones();
         drawSweepLine();
 
+        animWarningPulse = (sinf(millis() * 0.0066667f) + 1.0f) * 0.5f;
+
         bool anyActive = false;
         for (int i = 0; i < 3; i++) {
             if (targetActive[i] && simAlpha[i] > 0.01f) {
@@ -775,7 +777,7 @@ private:
 
     void drawTargetWarning(int i, int cx, int cy, uint8_t currentAlpha) {
         if (zoneManager.isWarning(i)) {
-            float pulse = (sinf(millis() / 150.0f) + 1.0f) * 0.5f;
+            float pulse = animWarningPulse;
             uint8_t blendRatio = (uint8_t)(pulse * 255.0f);
             uint16_t blendColor = sprite.alphaBlend(blendRatio, themeDanger, themeWarning);
             uint16_t wCol = sprite.alphaBlend(currentAlpha, blendColor, themeBg);
@@ -913,7 +915,7 @@ private:
             }
 
             if (zoneManager.isWarning(i)) {
-                float pulse = (sinf(millis() * 0.0066667f) + 1.0f) * 0.5f;
+                float pulse = animWarningPulse;
                 uint8_t blendRatio = (uint8_t)(pulse * 255.0f);
                 uint16_t blendColor = sprite.alphaBlend(blendRatio, themeDanger, themeWarning);
                 uint16_t wCol = sprite.alphaBlend(currentAlpha, blendColor, themeBg);
@@ -1105,6 +1107,7 @@ public:
 
     int sweepAngle;
     int actionRequested;
+    float animWarningPulse = 0.0f;
     bool selfTestDone = false;
     bool selfTestRxOk = false;
     bool selfTestSoftwareOk = false;
