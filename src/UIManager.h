@@ -326,7 +326,8 @@ public:
         if (state == STATE_CONFIRM_RESET) {
             sprite.fillSprite(themeDanger);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int tw = sprite.textWidth("WIPING PREFERENCES...");
+            sprite.setCursor((tft.width() - tw) / 2, 100);
             sprite.print("WIPING PREFERENCES...");
             sprite.pushSprite(0, 0);
             preferences.clear();
@@ -336,7 +337,8 @@ public:
         } else if (state == STATE_CONFIRM_WIFI_GEN) {
             sprite.fillSprite(themeWarning);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int w1 = sprite.textWidth("REGENERATING WIFI PASSWORD...");
+            sprite.setCursor((tft.width() - w1) / 2, 100);
             sprite.print("REGENERATING WIFI PASSWORD...");
             sprite.pushSprite(0, 0);
 
@@ -344,9 +346,11 @@ public:
 
             sprite.fillSprite(themePrimary);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
-            sprite.print("NEW PASS: ");
-            sprite.print(newPass);
+            char buf[64];
+            snprintf(buf, sizeof(buf), "NEW PASS: %s", newPass.c_str());
+            int passTw = sprite.textWidth(buf);
+            sprite.setCursor((tft.width() - passTw) / 2, 100);
+            sprite.print(buf);
             sprite.pushSprite(0, 0);
 
             delay(3000);
@@ -361,7 +365,8 @@ public:
         } else if (state == STATE_CONFIRM_RESET) {
             sprite.fillSprite(0xFDB5); // themeDanger
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int tw = sprite.textWidth("WIPING PREFERENCES...");
+            sprite.setCursor((tft.width() - tw) / 2, 100);
             sprite.print("WIPING PREFERENCES...");
             sprite.pushSprite(0, 0);
             preferences.clear();
@@ -1257,9 +1262,9 @@ public:
 
         sprite.setTextColor(themeText, themeBg);
         sprite.setTextSize(uiTextSize);
-        if (elapsed < 300) sprite.setCursor(100, 120), sprite.print("INIT");
-        else if (elapsed < 600) sprite.setCursor(90, 120), sprite.print("CALIBRATING");
-        else if (elapsed < 1000) sprite.setCursor(95, 120), sprite.print("SCANNING...");
+        if (elapsed < 300) { int w = sprite.textWidth("INIT"); sprite.setCursor((tft.width() - w) / 2, 120); sprite.print("INIT"); }
+        else if (elapsed < 600) { int w = sprite.textWidth("CALIBRATING"); sprite.setCursor((tft.width() - w) / 2, 120); sprite.print("CALIBRATING"); }
+        else if (elapsed < 1000) { int w = sprite.textWidth("SCANNING..."); sprite.setCursor((tft.width() - w) / 2, 120); sprite.print("SCANNING..."); }
 
         tft.startWrite(); sprite.pushSprite(0, 0); tft.endWrite();  // PSRAM-safe push, full 240x320
 
