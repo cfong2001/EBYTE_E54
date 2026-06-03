@@ -14,21 +14,9 @@ BroadcastServer::BroadcastServer() : server(80), isRunning(false) {
 void BroadcastServer::begin() {
     if (isRunning) return;
 
-
-    Preferences prefs;
-    prefs.begin("radar_sys", true);
-    String wifiPass = prefs.getString("wifi_pass", "");
-    prefs.end();
-
+    String wifiPass = getWiFiPassword();
     if (wifiPass == "") {
-        const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        wifiPass = "";
-        for (int i = 0; i < 12; i++) {
-            wifiPass += charset[random(0, sizeof(charset) - 1)];
-        }
-        prefs.begin("radar_sys", false);
-        prefs.putString("wifi_pass", wifiPass);
-        prefs.end();
+        wifiPass = generateWiFiPassword();
     }
 
     WiFi.softAP("ESP32-Radar-Tracker", wifiPass.c_str()); // Secured AP
@@ -189,4 +177,26 @@ void BroadcastServer::setupRoutes() {
         serializeJson(doc, response);
         request->send(200, "application/json", response);
     });
+}
+
+String BroadcastServer::getWiFiPassword() {
+    Preferences prefs;
+    prefs.begin("radar_sys", true);
+    String wifiPass = prefs.getString("wifi_pass", "Not Set");
+    if (wifiPass == "Not Set") wifiPass = "";
+    prefs.end();
+    return wifiPass;
+}
+
+String BroadcastServer::generateWiFiPassword() {
+    const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    String newPass = "";
+    for (int i = 0; i < 12; i++) {
+        newPass += charset[random(0, sizeof(charset) - 1)];
+    }
+    Preferences prefs;
+    prefs.begin("radar_sys", false);
+    prefs.putString("wifi_pass", newPass);
+    prefs.end();
+    return newPass;
 }
