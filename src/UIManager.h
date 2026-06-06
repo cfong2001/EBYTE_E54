@@ -542,40 +542,44 @@ public:
             drawTarget(i);
         }
 
+
         if (!anyActive) {
             float pulse = (sinf(millis() * 0.00125f) + 1.0f) * 0.5f;
             uint16_t emptyColor = sprite.alphaBlend((uint8_t)(pulse * 150.0f) + 50, themePrimary, themeBg);
             sprite.setTextColor(emptyColor, themeBg);
             sprite.setTextSize(uiTextSize);
             int tw = sprite.textWidth("NO CONTACTS");
-            sprite.setCursor((tft.width() - tw) / 2, 116);
+            sprite.setCursor((tft.width() - tw) / 2, tft.height() / 2 - 10);
             sprite.print("NO CONTACTS");
 
             sprite.setTextSize(1);
             int sw = sprite.textWidth("Waiting for movement...");
-            sprite.setCursor((tft.width() - sw) / 2, 116 + (8 * uiTextSize) + 4);
+            sprite.setCursor((tft.width() - sw) / 2, tft.height() / 2 - 10 + (8 * uiTextSize) + 4);
             sprite.print("Waiting for movement...");
         }
+
 
         drawHUD();
 
         if (state == STATE_MENU || state == STATE_MENU_EDIT) {
             drawMenuOverlay();
+
         } else if (state == STATE_CONFIRM_WIFI_GEN) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeWarning, themeBg);
             sprite.fillRect(10, 90, 220, 60, pulseColor);
             sprite.setTextColor(themeBg, pulseColor);
             int w1 = sprite.textWidth("CONFIRM WIFI KEY REGEN");
-            sprite.setCursor((240 - w1) / 2, 100);
+            sprite.setCursor((tft.width() - w1) / 2, 100);
             sprite.print("CONFIRM WIFI KEY REGEN");
             int w2 = sprite.textWidth("[PRESS] TO REGEN");
-            sprite.setCursor((240 - w2) / 2, 115);
+            sprite.setCursor((tft.width() - w2) / 2, 115);
             sprite.print("[PRESS] TO REGEN");
             int w3 = sprite.textWidth("[TURN] TO CANCEL");
-            sprite.setCursor((240 - w3) / 2, 130);
+            sprite.setCursor((tft.width() - w3) / 2, 130);
             sprite.print("[TURN] TO CANCEL");
         } else if (state == STATE_IMPORTING) {
+
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeWarning, themeBg);
             sprite.fillRect(10, 100, 220, 40, pulseColor);
@@ -586,11 +590,11 @@ public:
             char buf[32];
             snprintf(buf, sizeof(buf), "WAITING FOR CONFIG%-3s", dotStr);
             int w_dots = sprite.textWidth(buf);
-            sprite.setCursor((240 - w_dots) / 2, 110);
+            sprite.setCursor((tft.width() - w_dots) / 2, 110);
             sprite.print(buf);
 
             int w_apply = sprite.textWidth("[PRESS BUTTON TO APPLY]");
-            sprite.setCursor((240 - w_apply) / 2, 125);
+            sprite.setCursor((tft.width() - w_apply) / 2, 125);
             sprite.print("[PRESS BUTTON TO APPLY]");
         } else if (state == STATE_FALLBACK) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
@@ -599,11 +603,11 @@ public:
             sprite.setTextColor(themeBg, pulseColor);
 
             int w1 = sprite.textWidth("NEW CONFIG LOADED");
-            sprite.setCursor((240 - w1) / 2, 100);
+            sprite.setCursor((tft.width() - w1) / 2, 100);
             sprite.print("NEW CONFIG LOADED");
 
             int w2 = sprite.textWidth("PRESS BUTTON TO KEEP");
-            sprite.setCursor((240 - w2) / 2, 115);
+            sprite.setCursor((tft.width() - w2) / 2, 115);
             sprite.print("PRESS BUTTON TO KEEP");
 
             int dots = (millis() / 500) % 4;
@@ -611,7 +615,7 @@ public:
             char buf[32];
             snprintf(buf, sizeof(buf), "OR WAIT TO REVERT%-3s", dotStr);
             int w3 = sprite.textWidth(buf);
-            sprite.setCursor((240 - w3) / 2, 130);
+            sprite.setCursor((tft.width() - w3) / 2, 130);
             sprite.print(buf);
         } else if (state == STATE_CONFIRM_RESET) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
@@ -620,17 +624,18 @@ public:
             sprite.setTextColor(themeBg, pulseColor);
 
             int w1 = sprite.textWidth("CONFIRM FACTORY RESET");
-            sprite.setCursor((240 - w1) / 2, 100);
+            sprite.setCursor((tft.width() - w1) / 2, 100);
             sprite.print("CONFIRM FACTORY RESET");
 
             int w2 = sprite.textWidth("[PRESS] TO WIPE");
-            sprite.setCursor((240 - w2) / 2, 115);
+            sprite.setCursor((tft.width() - w2) / 2, 115);
             sprite.print("[PRESS] TO WIPE");
 
             int w3 = sprite.textWidth("[TURN] TO CANCEL");
-            sprite.setCursor((240 - w3) / 2, 130);
+            sprite.setCursor((tft.width() - w3) / 2, 130);
             sprite.print("[TURN] TO CANCEL");
         }
+
 
         tft.startWrite();
         sprite.pushSprite(0, 0);  // PSRAM-safe: no DMA required
@@ -1255,11 +1260,25 @@ public:
             sprite.drawLine(tft.width() / 2, tft.width(), (tft.width() / 2) + maxR, tft.width(), gridColor);
         }
 
+
         sprite.setTextColor(themeText, themeBg);
         sprite.setTextSize(uiTextSize);
-        if (elapsed < 300) sprite.setCursor(100, 120), sprite.print("INIT");
-        else if (elapsed < 600) sprite.setCursor(90, 120), sprite.print("CALIBRATING");
-        else if (elapsed < 1000) sprite.setCursor(95, 120), sprite.print("SCANNING...");
+        if (elapsed < 300) {
+            int tw = sprite.textWidth("INIT");
+            sprite.setCursor((tft.width() - tw) / 2, tft.height() / 2);
+            sprite.print("INIT");
+        }
+        else if (elapsed < 600) {
+            int tw = sprite.textWidth("CALIBRATING");
+            sprite.setCursor((tft.width() - tw) / 2, tft.height() / 2);
+            sprite.print("CALIBRATING");
+        }
+        else if (elapsed < 1000) {
+            int tw = sprite.textWidth("SCANNING...");
+            sprite.setCursor((tft.width() - tw) / 2, tft.height() / 2);
+            sprite.print("SCANNING...");
+        }
+
 
         tft.startWrite(); sprite.pushSprite(0, 0); tft.endWrite();  // PSRAM-safe push, full 240x320
 
