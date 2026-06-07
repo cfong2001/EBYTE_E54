@@ -305,6 +305,23 @@ void loop() {
                 ui.selfTestSoftwareOk = false;
                 ui.selfTestErrorCode = zmErr;
                 Serial.println("ZoneManager test failed!");
+            } else {
+                HardwareSerial dummySerial(2); // Mock serial
+                E54_Radar testRadar(dummySerial);
+                int radarErr = testRadar.runSelfTest();
+                if (radarErr != 0) {
+                    ui.selfTestSoftwareOk = false;
+                    ui.selfTestErrorCode = radarErr;
+                    Serial.println("E54_Radar test failed!");
+                } else {
+                    PerformanceMonitor testPerf;
+                    int perfErr = testPerf.runSelfTest();
+                    if (perfErr != 0) {
+                        ui.selfTestSoftwareOk = false;
+                        ui.selfTestErrorCode = perfErr;
+                        Serial.println("PerformanceMonitor test failed!");
+                    }
+                }
             }
         }
 

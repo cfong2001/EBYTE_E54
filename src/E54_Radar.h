@@ -59,6 +59,25 @@ public:
 
     RadarTarget targets[3];
 
+    int runSelfTest() {
+        uint8_t testPayload[] = {
+            0xAA, 0xFF, 0x03, 0x00,
+            0x4D, 0x01, 0x82, 0x86, 0x11, 0x00, 0xE8, 0x03, // Target 1
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Target 2 (empty)
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Target 3 (empty)
+            0x55, 0xCC
+        };
+        for (int i=0; i<sizeof(testPayload); i++) {
+            if (processByte(testPayload[i])) {
+                if (targets[0].active && targets[0].x == -333 && targets[0].y == 1666 && !targets[1].active) {
+                    return 0; // Success
+                }
+                return 3; // Parsed but logic failed
+            }
+        }
+        return 3; // Failed to parse
+    }
+
 private:
     HardwareSerial& radarSerial;
     uint8_t buffer[64];

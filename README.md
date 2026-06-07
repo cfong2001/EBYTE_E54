@@ -132,3 +132,5 @@ If the internal software tests fail during a diagnostic run, an error code will 
 |---|---|
 | `1` | Motion Compensation test failed. Filter state logic is flawed. |
 | `2` | Zone Manager test failed. Zone boundary calculations are flawed. |
+| `3` | Radar Protocol test failed. Payload parsing logic is flawed. |
+| `4` | Performance Monitor test failed. Delta time tracking is flawed. |

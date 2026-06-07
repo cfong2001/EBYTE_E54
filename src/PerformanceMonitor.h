@@ -42,6 +42,15 @@ public:
     // For testing purposes
     int getFrames() { return framesThisSecond; }
 
+    int runSelfTest() {
+        PerformanceMonitor testPerf;
+        testPerf.incrementFrames();
+        testPerf.incrementFrames();
+        testPerf.incrementUartErrors();
+        if (testPerf.getFrames() != 2) return 4;
+        return 0; // Success
+    }
+
 private:
     int framesThisSecond = 0;
     int uartErrorsThisSecond = 0;
