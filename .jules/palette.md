@@ -151,3 +151,6 @@
 ## 2026-05-30 - Dynamic Formatting String Centering
 **Learning:** Dynamic formatting strings (like `printf` with changing animated dots "... ") cannot be centered simply by hardcoding X coordinates, as their string length constantly changes.
 **Action:** When centering dynamically generated text in UI prompts, always format the full string into a buffer first using `snprintf(buf, sizeof(buf), ...)` before calculating its true bounding width via `sprite.textWidth(buf)` and rendering it.
+## 2026-06-07 - Centered Transient UI Text Blocks
+**Learning:** Hardcoding X coordinates for multi-line or temporary UI text blocks (like boot sequences or alerts) results in ragged layout when text strings vary in length, preventing a polished visual hierarchy.
+**Action:** Always dynamically center text blocks using `sprite.textWidth()` and layout math instead of absolute positioning.

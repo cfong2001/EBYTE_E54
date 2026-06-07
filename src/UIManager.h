@@ -1257,9 +1257,17 @@ public:
 
         sprite.setTextColor(themeText, themeBg);
         sprite.setTextSize(uiTextSize);
-        if (elapsed < 300) sprite.setCursor(100, 120), sprite.print("INIT");
-        else if (elapsed < 600) sprite.setCursor(90, 120), sprite.print("CALIBRATING");
-        else if (elapsed < 1000) sprite.setCursor(95, 120), sprite.print("SCANNING...");
+
+        const char* msg = "";
+        if (elapsed < 300) msg = "INIT";
+        else if (elapsed < 600) msg = "CALIBRATING";
+        else if (elapsed < 1000) msg = "SCANNING...";
+
+        if (msg[0] != '\0') {
+            int textW = sprite.textWidth(msg);
+            sprite.setCursor((tft.width() - textW) / 2, 120);
+            sprite.print(msg);
+        }
 
         tft.startWrite(); sprite.pushSprite(0, 0); tft.endWrite();  // PSRAM-safe push, full 240x320
 
