@@ -1258,15 +1258,15 @@ public:
         sprite.setTextColor(themeText, themeBg);
         sprite.setTextSize(uiTextSize);
 
-        const char* bootText = "";
-        if (elapsed < 300) bootText = "INIT";
-        else if (elapsed < 600) bootText = "CALIBRATING";
-        else if (elapsed < 1000) bootText = "SCANNING...";
+        const char* statusText = "";
+        if (elapsed < 300) statusText = "INIT";
+        else if (elapsed < 600) statusText = "CALIBRATING";
+        else if (elapsed < 1000) statusText = "SCANNING...";
 
-        if (bootText[0] != '\0') {
-            int tw = sprite.textWidth(bootText);
-            sprite.setCursor((tft.width() - tw) / 2, 120);
-            sprite.print(bootText);
+        if (statusText[0] != '\0') {
+            int textW = sprite.textWidth(statusText);
+            sprite.setCursor((tft.width() - textW) / 2, 120);
+            sprite.print(statusText);
         }
 
         tft.startWrite(); sprite.pushSprite(0, 0); tft.endWrite();  // PSRAM-safe push, full 240x320
@@ -1771,6 +1771,7 @@ inline void DataMenuView::executeMenuEdit(UIManager* ui, int dir) {
 inline void DataMenuView::populateMenuPage(UIManager* ui, char items[][32], int& numItems) { ui->populateDataMenu(items, numItems); }
 
 inline void DevMenuView::handleMenuClick(UIManager* ui) {
+    String selItem = String(ui->currentMenuItems[ui->menuSelection]);
     if (ui->menuSelection == 0) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
     else if (ui->menuSelection == ui->maxMenuSelection - 5 && ui->devRiskAccepted) { ui->actionRequested = 5; ui->state = STATE_SELF_TEST; ui->selfTestDone = false; }
     else if (ui->menuSelection == ui->maxMenuSelection - 4 && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_RESET; }
