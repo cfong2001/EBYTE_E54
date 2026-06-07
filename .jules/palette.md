@@ -151,3 +151,6 @@
 ## 2026-05-30 - Dynamic Formatting String Centering
 **Learning:** Dynamic formatting strings (like `printf` with changing animated dots "... ") cannot be centered simply by hardcoding X coordinates, as their string length constantly changes.
 **Action:** When centering dynamically generated text in UI prompts, always format the full string into a buffer first using `snprintf(buf, sizeof(buf), ...)` before calculating its true bounding width via `sprite.textWidth(buf)` and rendering it.
+## 2026-05-31 - Dynamic Text Centering in Transient States
+**Learning:** Hardcoding coordinates for text strings in transient UI states (like boot screens or temporary overlays) breaks visual alignment when accessibility settings like text scaling are modified. What looks centered at scale 1.0 looks broken at scale 2.0.
+**Action:** Always use responsive measurement functions like `textWidth()` combined with boundary calculations (e.g., `(tft.width() - textWidth) / 2`) to dynamically center text, ensuring the interface remains polished across all accessibility settings.
