@@ -534,6 +534,8 @@ public:
         drawZones();
         drawSweepLine();
 
+        animWarningPulse = (sinf(millis() * 0.0066667f) + 1.0f) * 0.5f;
+
         bool anyActive = false;
         for (int i = 0; i < 3; i++) {
             if (targetActive[i] && simAlpha[i] > 0.01f) {
@@ -775,7 +777,7 @@ private:
 
     void drawTargetWarning(int i, int cx, int cy, uint8_t currentAlpha) {
         if (zoneManager.isWarning(i)) {
-            float pulse = (sinf(millis() / 150.0f) + 1.0f) * 0.5f;
+            float pulse = animWarningPulse;
             uint8_t blendRatio = (uint8_t)(pulse * 255.0f);
             uint16_t blendColor = sprite.alphaBlend(blendRatio, themeDanger, themeWarning);
             uint16_t wCol = sprite.alphaBlend(currentAlpha, blendColor, themeBg);
@@ -913,7 +915,7 @@ private:
             }
 
             if (zoneManager.isWarning(i)) {
-                float pulse = (sinf(millis() * 0.0066667f) + 1.0f) * 0.5f;
+                float pulse = animWarningPulse;
                 uint8_t blendRatio = (uint8_t)(pulse * 255.0f);
                 uint16_t blendColor = sprite.alphaBlend(blendRatio, themeDanger, themeWarning);
                 uint16_t wCol = sprite.alphaBlend(currentAlpha, blendColor, themeBg);
@@ -1105,6 +1107,7 @@ public:
 
     int sweepAngle;
     int actionRequested;
+    float animWarningPulse = 0.0f;
     bool selfTestDone = false;
     bool selfTestRxOk = false;
     bool selfTestSoftwareOk = false;
@@ -1257,9 +1260,17 @@ public:
 
         sprite.setTextColor(themeText, themeBg);
         sprite.setTextSize(uiTextSize);
-        if (elapsed < 300) sprite.setCursor(100, 120), sprite.print("INIT");
-        else if (elapsed < 600) sprite.setCursor(90, 120), sprite.print("CALIBRATING");
-        else if (elapsed < 1000) sprite.setCursor(95, 120), sprite.print("SCANNING...");
+
+        const char* statusText = "";
+        if (elapsed < 300) statusText = "INIT";
+        else if (elapsed < 600) statusText = "CALIBRATING";
+        else if (elapsed < 1000) statusText = "SCANNING...";
+
+        if (statusText[0] != '\0') {
+            int textW = sprite.textWidth(statusText);
+            sprite.setCursor((tft.width() - textW) / 2, 120);
+            sprite.print(statusText);
+        }
 
         tft.startWrite(); sprite.pushSprite(0, 0); tft.endWrite();  // PSRAM-safe push, full 240x320
 
@@ -1774,7 +1785,7 @@ inline void DevMenuView::handleMenuClick(UIManager* ui) {
         if (ui->currentWifiPass == "") ui->currentWifiPass = "Not Set";
         ui->state = STATE_VIEW_WIFI;
     }
-    else if (selItem.startsWith("[ REGEN WIFI PASS ]") && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_WIFI_GEN; }
+    else if (String(ui->currentMenuItems[ui->menuSelection]).startsWith("[ REGEN WIFI PASS ]") && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_WIFI_GEN; }
     else { ui->state = STATE_MENU_EDIT; }
 }
 inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
