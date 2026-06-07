@@ -1,11 +1,15 @@
+#include <cmath>
 #include <iostream>
 #include <cassert>
+#define private public
 #include "ZoneManager.h"
+#undef private
 
 void test_isInsideZone_distance() {
     std::cout << "Running test_isInsideZone_distance..." << std::endl;
     ZoneManager zm;
-    RadialZone z = {1000, 3000, -90, 90}; // Dist: 1000 to 3000, Angle: full frontal half-plane
+    RadialZone z = {1000, 3000, -90, 90, 0.0f, 0.0f};
+    if (z.minAngle > -90 && z.maxAngle < 90) { z.minTan = tanf(z.minAngle / 57.2957795f); z.maxTan = tanf(z.maxAngle / 57.2957795f); } // Dist: 1000 to 3000, Angle: full frontal half-plane
 
     // Test inside
     assert(zm.isInsideZone(0, 2000, z) == true);
@@ -28,7 +32,8 @@ void test_isInsideZone_distance() {
 void test_isInsideZone_angle() {
     std::cout << "Running test_isInsideZone_angle..." << std::endl;
     ZoneManager zm;
-    RadialZone z = {1000, 3000, -30, 30}; // Dist: 1000 to 3000, Angle: -30 to 30 degrees
+    RadialZone z = {1000, 3000, -30, 30, 0.0f, 0.0f};
+    if (z.minAngle > -90 && z.maxAngle < 90) { z.minTan = tanf(z.minAngle / 57.2957795f); z.maxTan = tanf(z.maxAngle / 57.2957795f); } // Dist: 1000 to 3000, Angle: -30 to 30 degrees
 
     // Test straight ahead (0 degrees)
     assert(zm.isInsideZone(0, 2000, z) == true);
@@ -55,7 +60,8 @@ void test_isInsideZone_angle() {
 void test_isInsideZone_edge_cases() {
     std::cout << "Running test_isInsideZone_edge_cases..." << std::endl;
     ZoneManager zm;
-    RadialZone z = {1000, 3000, -30, 30};
+    RadialZone z = {1000, 3000, -30, 30, 0.0f, 0.0f};
+    if (z.minAngle > -90 && z.maxAngle < 90) { z.minTan = tanf(z.minAngle / 57.2957795f); z.maxTan = tanf(z.maxAngle / 57.2957795f); }
 
     // Test origin (0, 0)
     assert(zm.isInsideZone(0, 0, z) == false);
@@ -64,7 +70,8 @@ void test_isInsideZone_edge_cases() {
     assert(zm.isInsideZone(0, -2000, z) == false);
 
     // Test full 360 circle zone
-    RadialZone full_circle = {1000, 3000, -180, 180};
+    RadialZone full_circle = {1000, 3000, -180, 180, 0.0f, 0.0f};
+    if (full_circle.minAngle > -90 && full_circle.maxAngle < 90) { full_circle.minTan = tanf(full_circle.minAngle / 57.2957795f); full_circle.maxTan = tanf(full_circle.maxAngle / 57.2957795f); }
     assert(zm.isInsideZone(0, 2000, full_circle) == true);
     assert(zm.isInsideZone(2000, 0, full_circle) == true);
     assert(zm.isInsideZone(-2000, 0, full_circle) == true);
@@ -73,10 +80,83 @@ void test_isInsideZone_edge_cases() {
     std::cout << "  ✓ test_isInsideZone_edge_cases passed" << std::endl;
 }
 
+
+void test_getTargetDangerLevel_edge_cases() {
+    std::cout << "Running test_getTargetDangerLevel_edge_cases..." << std::endl;
+    ZoneManager zm;
+
+    // Case 1: warnPreset == ZONE_OFF
+    zm.warnPreset = ZONE_OFF;
+    assert(zm.getTargetDangerLevel(0) == 0.0f);
+
+    // Setup for other cases
+    zm.warnPreset = ZONE_CUSTOM; // Any active zone
+    zm.historyWindow = 10;
+    zm.historyCount[0] = 0; // Empty history
+
+    // Case 2: historyCount == 0
+    assert(zm.getTargetDangerLevel(0) == 0.0f);
+
+    // Populate history (10 frames)
+    zm.historyCount[0] = 10;
+
+    // Helper to set hits
+    auto setHits = [&](int hits) {
+        for(int i=0; i<10; i++) {
+            zm.warnHistory[0][i] = (i < hits);
+        }
+    };
+
+    // Case 3: 0 hits
+    setHits(0);
+    assert(zm.getTargetDangerLevel(0) == 0.0f);
+
+    // Case 4: hits > 0 but below fuzzing threshold
+    zm.fuzzingThreshold = 50; // Need 5 hits
+    setHits(2); // 20%
+    // Danger calculation: percent = 2/10 = 0.2
+    // Danger = 0.2 / (50 * 0.01) = 0.4
+    assert(std::abs(zm.getTargetDangerLevel(0) - 0.4f) < 0.001f);
+
+    // Case 5: hits exactly at fuzzing threshold
+    setHits(5); // 50%
+    // Danger calculation: percent = 5/10 = 0.5
+    // Danger = 0.5 / (50 * 0.01) = 1.0
+    assert(std::abs(zm.getTargetDangerLevel(0) - 1.0f) < 0.001f);
+
+    // Case 6: hits above fuzzing threshold (should cap at 1.0)
+    setHits(8); // 80%
+    // Danger = 0.8 / 0.5 = 1.6 -> capped to 1.0
+    assert(zm.getTargetDangerLevel(0) == 1.0f);
+
+    // Case 7: hits = 100%
+    setHits(10); // 100%
+    assert(zm.getTargetDangerLevel(0) == 1.0f);
+
+    // Case 8: historyCount < historyWindow
+    zm.historyWindow = 10;
+    zm.historyCount[0] = 5; // only 5 frames available
+    setHits(2); // 2 out of 5 hits = 40%
+    zm.fuzzingThreshold = 80; // 80% threshold
+    // percent = 2/5 = 0.4
+    // danger = 0.4 / (80 * 0.01) = 0.4 / 0.8 = 0.5
+    assert(std::abs(zm.getTargetDangerLevel(0) - 0.5f) < 0.001f);
+
+    // Case 9: fuzzing threshold is 0
+    zm.historyCount[0] = 10;
+    zm.fuzzingThreshold = 0;
+    setHits(5); // 50% hits
+    // Should fallback to danger = 1.0
+    assert(zm.getTargetDangerLevel(0) == 1.0f);
+
+    std::cout << "  ✓ test_getTargetDangerLevel_edge_cases passed" << std::endl;
+}
+
 void test_zone_manager_all() {
     std::cout << "Testing ZoneManager..." << std::endl;
     test_isInsideZone_distance();
     test_isInsideZone_angle();
     test_isInsideZone_edge_cases();
+    test_getTargetDangerLevel_edge_cases();
     std::cout << "All ZoneManager tests passed!" << std::endl;
 }
