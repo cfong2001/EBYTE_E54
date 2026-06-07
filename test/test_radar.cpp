@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cmath>
 #include <cassert>
 #include "E54_Radar.h"
 
@@ -101,9 +102,31 @@ void test_radar_parse_payload_empty() {
     std::cout << "  ✓ test_radar_parse_payload_empty passed" << std::endl;
 }
 
+
+void test_radar_get_delta_time_sec() {
+    std::cout << "Running test_radar_get_delta_time_sec..." << std::endl;
+
+    HardwareSerial mockSerial;
+    E54_Radar radar(mockSerial);
+
+    // Test default 10Hz fallback
+    radar.frameDeltaMicros = 0;
+    assert(std::abs(radar.getDeltaTimeSec() - 0.1f) < 1e-5);
+
+    // Test valid microsecond conversion
+    radar.frameDeltaMicros = 500000;
+    assert(std::abs(radar.getDeltaTimeSec() - 0.5f) < 1e-5);
+
+    radar.frameDeltaMicros = 1000000;
+    assert(std::abs(radar.getDeltaTimeSec() - 1.0f) < 1e-5);
+
+    std::cout << "  ✓ test_radar_get_delta_time_sec passed" << std::endl;
+}
+
 void test_radar_all() {
     std::cout << "Testing E54_Radar..." << std::endl;
     test_radar_parse_payload_positive_negative();
     test_radar_parse_payload_empty();
+    test_radar_get_delta_time_sec();
     std::cout << "All E54_Radar tests passed!\n" << std::endl;
 }
