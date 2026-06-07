@@ -309,7 +309,12 @@ void loop() {
         while (Serial.available()) {
             char c = Serial.read();
             serialBuffer += c;
-            if (serialBuffer.endsWith("}")) {
+
+            // Security: Prevent buffer overflow (OOM) from unbounded string concatenation
+            if (serialBuffer.length() > 2048) {
+                Serial.println("Error: Import buffer size exceeded. Buffer cleared.");
+                serialBuffer = "";
+            } else if (serialBuffer.endsWith("}")) {
                 configManager.importConfig(serialBuffer);
                 serialBuffer = "";
             }
