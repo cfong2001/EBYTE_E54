@@ -14,6 +14,8 @@ public:
     void begin();
     void stop();
     void updateData(const RadarTarget targets[3]);
+    static String getWiFiPassword();
+    static String generateWiFiPassword();
 
 private:
     AsyncWebServer server;

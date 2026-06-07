@@ -18,6 +18,8 @@ struct RadialZone {
     int maxDist;   // mm
     int minAngle;  // degrees (-90 to 90, 0 is straight ahead)
     int maxAngle;  // degrees
+    float minTan;  // precomputed tangent of minAngle (for optimization)
+    float maxTan;  // precomputed tangent of maxAngle (for optimization)
 };
 
 #include <Preferences.h>
@@ -29,8 +31,10 @@ public:
     ZoneManager() {
         warnPreset = ZONE_OFF;
         deadPreset = ZONE_OFF;
-        warnCustom = {1000, 3000, -30, 30};
-        deadCustom = {0, 1000, -90, 90};
+        warnCustom = {1000, 3000, -30, 30, 0.0f, 0.0f};
+        deadCustom = {0, 1000, -90, 90, 0.0f, 0.0f};
+        updateTangents(warnCustom);
+        updateTangents(deadCustom);
         fuzzingThreshold = 50;
         historyWindow = 10;
 
@@ -55,6 +59,8 @@ public:
         fuzzingThreshold = preferences.getInt("fuzzT", 50);
         historyWindow = preferences.getInt("histW", 10);
         preferences.end();
+        updateTangents(warnCustom);
+        updateTangents(deadCustom);
     }
 
     void saveSettings() {
@@ -76,8 +82,8 @@ public:
 
     void setWarnPreset(ZonePreset p) { warnPreset = p; flagDirty(); }
     void setDeadPreset(ZonePreset p) { deadPreset = p; flagDirty(); }
-    void setWarnCustom(RadialZone z) { warnCustom = z; flagDirty(); }
-    void setDeadCustom(RadialZone z) { deadCustom = z; flagDirty(); }
+    void setWarnCustom(RadialZone z) { warnCustom = z; updateTangents(warnCustom); flagDirty(); }
+    void setDeadCustom(RadialZone z) { deadCustom = z; updateTangents(deadCustom); flagDirty(); }
     void setFuzzingThreshold(int percent) { fuzzingThreshold = percent; flagDirty(); }
     void setHistoryWindow(int frames) {
         if (frames > 30) frames = 30;
@@ -98,22 +104,34 @@ public:
     RadialZone getActiveWarnZone() { return getZoneFromPreset(warnPreset, warnCustom); }
     RadialZone getActiveDeadZone() { return getZoneFromPreset(deadPreset, deadCustom); }
 
-    bool isInsideZone(int16_t x, int16_t y, RadialZone z) {
+    bool isInsideZone(int16_t x, int16_t y, RadialZone z) const {
         if (x == 0 && y == 0) return false;
         long distSq = (long)x*x + (long)y*y;
         long minDistSq = (long)z.minDist * z.minDist;
         long maxDistSq = (long)z.maxDist * z.maxDist;
         if (distSq < minDistSq || distSq > maxDistSq) return false;
 
-        float angle = atan2f((float)x, (float)y) * 57.2957795f;
-        if (angle < z.minAngle || angle > z.maxAngle) return false;
+        // Fast path for full 360 zone
+        if (z.minAngle <= -180 && z.maxAngle >= 180) return true;
+
+        // Fast tangent check when target is directly in front (y > 0)
+        // Avoids expensive atan2f() function call by using tangent ratios
+        if (y > 0 && z.minAngle > -90 && z.maxAngle < 90) {
+            float y_f = (float)y;
+            float x_f = (float)x;
+            if (x_f < z.minTan * y_f || x_f > z.maxTan * y_f) return false;
+        } else {
+            // Fallback for edge cases, behind sensor, or 180+ FOV
+            float angle = atan2f((float)x, (float)y) * 57.2957795f;
+            if (angle < z.minAngle || angle > z.maxAngle) return false;
+        }
 
         return true;
     }
 
     bool runSelfTest() {
         ZoneManager testZm;
-        RadialZone testZone = {1000, 3000, -90, 90};
+        RadialZone testZone = {1000, 3000, -90, 90, 0.0f, 0.0f};
         if (!testZm.isInsideZone(0, 2000, testZone) || testZm.isInsideZone(0, 500, testZone)) {
             return false;
         }
@@ -205,6 +223,13 @@ public:
     }
 
 private:
+    void updateTangents(RadialZone& z) {
+        if (z.minAngle > -90 && z.maxAngle < 90) {
+            z.minTan = tanf(z.minAngle / 57.2957795f);
+            z.maxTan = tanf(z.maxAngle / 57.2957795f);
+        }
+    }
+
     ZonePreset warnPreset;
     ZonePreset deadPreset;
     RadialZone warnCustom;
@@ -216,11 +241,11 @@ private:
 
     RadialZone getZoneFromPreset(ZonePreset p, RadialZone custom) {
         switch(p) {
-            case ZONE_CLOSE:  return {0, 2000, -90, 90};
-            case ZONE_MEDIUM: return {2000, 4000, -90, 90};
-            case ZONE_FAR:    return {4000, 6000, -90, 90};
+            case ZONE_CLOSE:  return {0, 2000, -90, 90, 0.0f, 0.0f};
+            case ZONE_MEDIUM: return {2000, 4000, -90, 90, 0.0f, 0.0f};
+            case ZONE_FAR:    return {4000, 6000, -90, 90, 0.0f, 0.0f};
             case ZONE_CUSTOM: return custom;
-            default:          return {0, 0, 0, 0};
+            default:          return {0, 0, 0, 0, 0.0f, 0.0f};
         }
     }
 };

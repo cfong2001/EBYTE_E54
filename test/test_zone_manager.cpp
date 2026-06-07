@@ -1,3 +1,4 @@
+#include <cmath>
 #include <iostream>
 #include <cassert>
 #define private public
@@ -7,7 +8,8 @@
 void test_isInsideZone_distance() {
     std::cout << "Running test_isInsideZone_distance..." << std::endl;
     ZoneManager zm;
-    RadialZone z = {1000, 3000, -90, 90}; // Dist: 1000 to 3000, Angle: full frontal half-plane
+    RadialZone z = {1000, 3000, -90, 90, 0.0f, 0.0f};
+    if (z.minAngle > -90 && z.maxAngle < 90) { z.minTan = tanf(z.minAngle / 57.2957795f); z.maxTan = tanf(z.maxAngle / 57.2957795f); } // Dist: 1000 to 3000, Angle: full frontal half-plane
 
     // Test inside
     assert(zm.isInsideZone(0, 2000, z) == true);
@@ -30,7 +32,8 @@ void test_isInsideZone_distance() {
 void test_isInsideZone_angle() {
     std::cout << "Running test_isInsideZone_angle..." << std::endl;
     ZoneManager zm;
-    RadialZone z = {1000, 3000, -30, 30}; // Dist: 1000 to 3000, Angle: -30 to 30 degrees
+    RadialZone z = {1000, 3000, -30, 30, 0.0f, 0.0f};
+    if (z.minAngle > -90 && z.maxAngle < 90) { z.minTan = tanf(z.minAngle / 57.2957795f); z.maxTan = tanf(z.maxAngle / 57.2957795f); } // Dist: 1000 to 3000, Angle: -30 to 30 degrees
 
     // Test straight ahead (0 degrees)
     assert(zm.isInsideZone(0, 2000, z) == true);
@@ -57,7 +60,8 @@ void test_isInsideZone_angle() {
 void test_isInsideZone_edge_cases() {
     std::cout << "Running test_isInsideZone_edge_cases..." << std::endl;
     ZoneManager zm;
-    RadialZone z = {1000, 3000, -30, 30};
+    RadialZone z = {1000, 3000, -30, 30, 0.0f, 0.0f};
+    if (z.minAngle > -90 && z.maxAngle < 90) { z.minTan = tanf(z.minAngle / 57.2957795f); z.maxTan = tanf(z.maxAngle / 57.2957795f); }
 
     // Test origin (0, 0)
     assert(zm.isInsideZone(0, 0, z) == false);
@@ -66,7 +70,8 @@ void test_isInsideZone_edge_cases() {
     assert(zm.isInsideZone(0, -2000, z) == false);
 
     // Test full 360 circle zone
-    RadialZone full_circle = {1000, 3000, -180, 180};
+    RadialZone full_circle = {1000, 3000, -180, 180, 0.0f, 0.0f};
+    if (full_circle.minAngle > -90 && full_circle.maxAngle < 90) { full_circle.minTan = tanf(full_circle.minAngle / 57.2957795f); full_circle.maxTan = tanf(full_circle.maxAngle / 57.2957795f); }
     assert(zm.isInsideZone(0, 2000, full_circle) == true);
     assert(zm.isInsideZone(2000, 0, full_circle) == true);
     assert(zm.isInsideZone(-2000, 0, full_circle) == true);
@@ -156,5 +161,6 @@ void test_zone_manager_all() {
     test_isInsideZone_angle();
     test_isInsideZone_edge_cases();
     test_updateFuzzing();
+    test_getTargetDangerLevel_edge_cases();
     std::cout << "All ZoneManager tests passed!" << std::endl;
 }
