@@ -100,7 +100,7 @@
 ## 2024-05-20 - Stuck Tooltips on Button Release
 **Learning:** For transient UI states triggered by a long button press (e.g., using `OneButton`'s `attachLongPressStart`), explicitly reverting the state upon button release prevents stuck UI elements.
 **Action:** Always implement a dedicated release handler (e.g., `attachLongPressStop`) to clear transient states when the user releases the button.
-## 2026-05-29 - Scale UI rendering with a separate variable
+## 2024-05-30 - Scale UI rendering with a separate variable
 
 **Learning:** Separating UI scale from text size offers better user customization. Instead of combining the two, or using a simple offset `sprite.setViewport` which is only available in more modern or specific forks of graphic libraries, all sizes can be drawn independently using an adjustment float variable that applies to the draw metrics explicitly.
 **Action:** Implemented a new `uiScale` variable defaulting to 1.0 that's applied directly against rendering lengths and boundaries for icons, telemetry dots, tracking traces, radial zones, and sweeps within the `draw` layer. Bound this `uiScale` to `preferences` NVM alongside `uiTextSize` and provided a dedicated UI setting adjustable by the encoder.
@@ -119,7 +119,7 @@
 **Learning:** When developing hardware interfaces that support multiple themes (e.g., Alien, Minimal, Standard), hardcoding absolute colors like `TFT_WHITE` can cause severe legibility issues. For example, rendering hardcoded white text on top of a `themeDanger` background (which is light red/pink `#ffb4ab`) creates a low-contrast, nearly illegible experience. Additionally, tooltips layered over theme-aware backgrounds must rely on standard theme variables (like `themePrimary`) instead of hardcoded white to ensure they dynamically match the contrast needs of the chosen theme palette.
 
 **Action:** Always replace hardcoded absolute colors (`TFT_WHITE`, `TFT_BLACK`) with dynamic semantic theme variables (`themeBg`, `themePrimary`, `themeDanger`). Specifically, when rendering text over a light danger background, use `themeBg` (the dark background color) as the text color to significantly improve accessibility and ensure a high contrast ratio.
-## 2026-05-29 - Prevent Destructive Actions From Firing Immediately On Render Loop
+## 2024-05-30 - Prevent Destructive Actions From Firing Immediately On Render Loop
 **Learning:** Hardcoded state blocks inside UI rendering loops (e.g. `renderLoop`) that execute critical state resets or variable generation (like `WIFI_PASS` generation) and immediately call `ESP.restart()` will cause the action to trigger as soon as the menu state is selected, bypassing any user intention or opportunity to abort.
 **Action:** When creating destructive or disruptive actions triggered from menu lists, split the UI state block. The `renderLoop()` should only ever draw a visual confirmation prompt, while explicit confirmation (e.g. pressing the button inside `handleButton`) actually executes the logic.
 ## 2024-06-25 - Dynamic Theme Text Coloring
@@ -136,7 +136,7 @@
 **Learning:** For embedded/IoT devices, hiding connection credentials or only providing an option to regenerate them creates high friction. Providing a dedicated, non-destructive read-only view of dynamic keys (like AP passwords) directly on the hardware screen is a critical UX pattern that lowers cognitive load and prevents accidental resets.
 **Action:** When working with systems that generate dynamic keys or rely on local AP networks, ensure there is an accessible, non-destructive UI state to display these credentials to the user.
 
-## 2026-05-29 - Duplicated Tooltip Logic in Dynamic Menus
+## 2024-05-30 - Duplicated Tooltip Logic in Dynamic Menus
 **Learning:** Having duplicated string-matching logic for tooltips (e.g., one function that returns a tooltip string, and another place that inline renders it by matching strings again) is highly prone to bugs when adding new dynamic menu items. The inline duplicate inevitably falls out of sync, leading to missing tooltips (e.g., falling back to "Adjust setting value") for newly added items like `UI Scale:`.
 **Action:** Consolidate UI string matching and tooltip logic into a single source of truth function (`drawMenuTooltip`). In dynamic overlay menus, just call this single function instead of re-implementing the string matching logic to prevent diverging behavior and ensure complete accessibility context.
 ## 2024-05-19 - Refactoring Tooltips to Data Structures
@@ -145,16 +145,12 @@
 ## 2024-05-19 - Using Contextual Lookups in Dynamic Menus
 **Learning:** Hardcoding state machine routing and settings edits using numeric loops matching `ui->menuSelection` directly (like `if (idx++ == ui->menuSelection)`) makes adding new menu items extremely brittle. A single off-by-one error by adding a new setting breaks all subsequent selections in that menu.
 **Action:** When evaluating dynamic UI elements or menu overlays, always match based on the contextual content of the selection itself (e.g., `selItem.startsWith("Icon:")`) instead of abstract array positions.
-## 2026-05-29 - High-Contrast Text over Alert Colors
-**Learning:** When rendering text over light or brightly colored alert backgrounds (e.g., `themeDanger` or derived colors like `pulseColor` in `STATE_FALLBACK`), using bright accent colors like `themePrimary` causes a severe drop in contrast and readability.
-**Action:** Always use the dark background variable `themeBg` for text superimposed on light alert backgrounds to ensure high contrast, readability, and accessibility compliance.
-## 2026-05-29 - Continuous Feedback for Blocking States
-**Learning:** Asynchronous or blocking states (like running hardware self-tests) should provide continuous visual feedback (such as pulsing colors and animated text). Static states (like just "Running tests...") during potentially long operations can appear as a frozen UI, leading to user confusion and diminished trust.
-**Action:** Always provide non-blocking visual animation (e.g., using `sinf(millis())`) to explicitly reassure the user that the system is active during prolonged waiting periods.
-## 2024-05-28 - Dynamic Text Coloring on Alert Backgrounds
-**Learning:** Drawing text with bright accent colors (`themePrimary`) over bright, pulsing alert backgrounds (like `themeDanger` variations) severely diminishes text legibility and contrast, creating an inaccessible UI state.
-**Action:** Always ensure that text rendered over light or bright background components uses `themeBg` (the dark background variable) to maintain a high-contrast ratio and clear readability across all themes.
-
-## 2024-05-27 - Dynamic UI Text Centering
-**Learning:** Using hardcoded 'X' coordinates for UI elements like text breaks layout alignment when users change dynamic text scaling (`uiTextSize`). This leads to a poorly polished look under varying user settings.
-**Action:** Use functions like `sprite.textWidth()` along with layout formulas (e.g. `(tft.width() - textWidth) / 2`) to dynamically center UI elements to ensure a responsive, accessible interface regardless of user-selected scale factors.
+## 2024-05-30 - Centered UI Text Blocks vs Absolute Coordinates
+**Learning:** Hardcoding X coordinates (like `sprite.setCursor(20, 100)`) for multi-line confirmation alerts results in misaligned, "ragged-right" blocks of text, especially when the text scale or string length changes. This reduces the professional look of the interface.
+**Action:** When drawing full-screen alerts or multi-line confirmation prompts, avoid absolute `x` positions. Always calculate the text width for each line independently (e.g., `(tft.width() - textWidth) / 2`) to ensure the entire block is uniformly center-aligned.
+## 2026-05-30 - Dynamic Formatting String Centering
+**Learning:** Dynamic formatting strings (like `printf` with changing animated dots "... ") cannot be centered simply by hardcoding X coordinates, as their string length constantly changes.
+**Action:** When centering dynamically generated text in UI prompts, always format the full string into a buffer first using `snprintf(buf, sizeof(buf), ...)` before calculating its true bounding width via `sprite.textWidth(buf)` and rendering it.
+## 2026-05-31 - Dynamic Text Centering in Transient States
+**Learning:** Hardcoding coordinates for text strings in transient UI states (like boot screens or temporary overlays) breaks visual alignment when accessibility settings like text scaling are modified. What looks centered at scale 1.0 looks broken at scale 2.0.
+**Action:** Always use responsive measurement functions like `textWidth()` combined with boundary calculations (e.g., `(tft.width() - textWidth) / 2`) to dynamically center text, ensuring the interface remains polished across all accessibility settings.
