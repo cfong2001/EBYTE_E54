@@ -98,17 +98,34 @@ public:
     RadialZone getActiveWarnZone() { return getZoneFromPreset(warnPreset, warnCustom); }
     RadialZone getActiveDeadZone() { return getZoneFromPreset(deadPreset, deadCustom); }
 
-    bool isInsideZone(int16_t x, int16_t y, RadialZone z) {
+    bool isInsideZoneFast(int16_t x, int16_t y, const RadialZone& z, float minTan, float maxTan) const {
         if (x == 0 && y == 0) return false;
         long distSq = (long)x*x + (long)y*y;
         long minDistSq = (long)z.minDist * z.minDist;
         long maxDistSq = (long)z.maxDist * z.maxDist;
         if (distSq < minDistSq || distSq > maxDistSq) return false;
 
-        float angle = atan2f((float)x, (float)y) * 57.2957795f;
-        if (angle < z.minAngle || angle > z.maxAngle) return false;
+        // Fast tangent bounds checking avoids atan2f
+        float fx = (float)x;
+        float fy = (float)y;
+
+        // Ensure y is positive for target coordinates (usually standard for radar output)
+        // Adjust standard ratio checking if y can be 0 or negative
+        // Also fallback to atan2f for extreme angles near +/-90 where tan goes to infinity
+        if (fy <= 0.0f || z.minAngle <= -89 || z.maxAngle >= 89) {
+            float angle = atan2f(fx, fy) * 57.2957795f;
+            return (angle >= z.minAngle && angle <= z.maxAngle);
+        }
+
+        if (fx < minTan * fy || fx > maxTan * fy) return false;
 
         return true;
+    }
+
+    bool isInsideZone(int16_t x, int16_t y, const RadialZone& z) const {
+        float minTan = tanf(z.minAngle * 0.0174533f);
+        float maxTan = tanf(z.maxAngle * 0.0174533f);
+        return isInsideZoneFast(x, y, z, minTan, maxTan);
     }
 
     bool runSelfTest() {
@@ -128,12 +145,20 @@ public:
     void updateFuzzing(bool* targetActive, int16_t* targetX, int16_t* targetY) {
         RadialZone z = getActiveWarnZone();
         bool warnEnabled = (warnPreset != ZONE_OFF);
+
+        float minTan = 0.0f;
+        float maxTan = 0.0f;
+        if (warnEnabled) {
+            minTan = tanf(z.minAngle * 0.0174533f);
+            maxTan = tanf(z.maxAngle * 0.0174533f);
+        }
+
         for (int i=0; i<3; i++) {
             for (int h=29; h>0; h--) {
                 warnHistory[i][h] = warnHistory[i][h-1];
             }
             if (targetActive[i] && warnEnabled) {
-                warnHistory[i][0] = isInsideZone(targetX[i], targetY[i], z);
+                warnHistory[i][0] = isInsideZoneFast(targetX[i], targetY[i], z, minTan, maxTan);
                 if (historyCount[i] < historyWindow) historyCount[i]++;
             } else {
                 warnHistory[i][0] = false;
