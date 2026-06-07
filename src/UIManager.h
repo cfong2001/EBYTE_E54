@@ -340,7 +340,16 @@ public:
             sprite.print("REGENERATING WIFI PASSWORD...");
             sprite.pushSprite(0, 0);
 
-            String newPass = BroadcastServer::generateWiFiPassword();
+            // To prevent circular include with ConfigManager.h inside UIManager.h
+            // We just update the preferences here directly
+            const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            String newPass = "";
+            for (int i = 0; i < 12; i++) {
+                newPass += charset[esp_random() % (sizeof(charset) - 1)];
+            }
+            preferences.begin("radar_sys", false);
+            preferences.putString("wifi_pass", newPass);
+            preferences.end();
 
             sprite.fillSprite(themePrimary);
             sprite.setTextColor(themeBg);
