@@ -154,3 +154,9 @@
 ## 2026-05-31 - Dynamic Text Centering in Transient States
 **Learning:** Hardcoding coordinates for text strings in transient UI states (like boot screens or temporary overlays) breaks visual alignment when accessibility settings like text scaling are modified. What looks centered at scale 1.0 looks broken at scale 2.0.
 **Action:** Always use responsive measurement functions like `textWidth()` combined with boundary calculations (e.g., `(tft.width() - textWidth) / 2`) to dynamically center text, ensuring the interface remains polished across all accessibility settings.
+## $(date +%Y-%m-%d) - Centering Dynamic Text
+**Learning:** Hardcoding starting X coordinates (like `sprite.setCursor(10, 100)`) for transient alerts containing text combinations, animated trailing ellipses ("... "), or dynamic buffers (like keys) breaks visual alignment, especially under scalable settings.
+**Action:** Use responsive bounding measurements like `sprite.textWidth()` against pre-formatted `snprintf` strings instead of arbitrary integers when rendering dynamic text inside pop-ups to ensure horizontal balance regardless of the output configuration.
+## 2026-06-08 - Centering Dynamic Text
+**Learning:** Hardcoding starting X coordinates (like `sprite.setCursor(10, 100)`) for transient alerts containing text combinations, animated trailing ellipses ("... "), or dynamic buffers (like keys) breaks visual alignment, especially under scalable settings.
+**Action:** Use responsive bounding measurements like `sprite.textWidth()` against pre-formatted `snprintf` strings instead of arbitrary integers when rendering dynamic text inside pop-ups to ensure horizontal balance regardless of the output configuration.

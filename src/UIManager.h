@@ -326,7 +326,8 @@ public:
         if (state == STATE_CONFIRM_RESET) {
             sprite.fillSprite(themeDanger);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int tw_wipe = sprite.textWidth("WIPING PREFERENCES...");
+            sprite.setCursor((240 - tw_wipe) / 2, 100);
             sprite.print("WIPING PREFERENCES...");
             sprite.pushSprite(0, 0);
             preferences.clear();
@@ -336,7 +337,8 @@ public:
         } else if (state == STATE_CONFIRM_WIFI_GEN) {
             sprite.fillSprite(themeWarning);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int tw_regen = sprite.textWidth("REGENERATING WIFI PASSWORD...");
+            sprite.setCursor((240 - tw_regen) / 2, 100);
             sprite.print("REGENERATING WIFI PASSWORD...");
             sprite.pushSprite(0, 0);
 
@@ -353,9 +355,11 @@ public:
 
             sprite.fillSprite(themePrimary);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
-            sprite.print("NEW PASS: ");
-            sprite.print(newPass);
+            char buf[32];
+            snprintf(buf, sizeof(buf), "NEW PASS: %s", newPass.c_str());
+            int tw_newpass = sprite.textWidth(buf);
+            sprite.setCursor((240 - tw_newpass) / 2, 100);
+            sprite.print(buf);
             sprite.pushSprite(0, 0);
 
             delay(3000);
@@ -370,7 +374,8 @@ public:
         } else if (state == STATE_CONFIRM_RESET) {
             sprite.fillSprite(0xFDB5); // themeDanger
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int tw_wipe2 = sprite.textWidth("WIPING PREFERENCES...");
+            sprite.setCursor((240 - tw_wipe2) / 2, 100);
             sprite.print("WIPING PREFERENCES...");
             sprite.pushSprite(0, 0);
             preferences.clear();
@@ -1212,7 +1217,11 @@ public:
 
             int dots = (millis() / 500) % 4;
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
-            sprite.printf("RUNNING TESTS%-3s", dotStr);
+            char buf[32];
+            snprintf(buf, sizeof(buf), "RUNNING TESTS%-3s", dotStr);
+            int tw = sprite.textWidth(buf);
+            sprite.setCursor((240 - tw) / 2, 55);
+            sprite.print(buf);
         } else {
             sprite.print("Wiring / RX Check:");
             sprite.setCursor(10, 60);
@@ -1816,7 +1825,8 @@ inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
             ui->state = STATE_CONFIRM_RESET;
             ui->sprite.fillSprite(0xFDB5); // themeDanger
             ui->sprite.setTextColor(themePrimary);
-            ui->sprite.setCursor(10, 100);
+            int tw_wipe = ui->sprite.textWidth("WIPING PREFERENCES...");
+            ui->sprite.setCursor((240 - tw_wipe) / 2, 100);
             ui->sprite.print("WIPING PREFERENCES...");
             ui->sprite.pushSprite(0, 0);
             ui->preferences.clear();
