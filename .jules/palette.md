@@ -154,3 +154,9 @@
 ## 2026-05-31 - Dynamic Text Centering in Transient States
 **Learning:** Hardcoding coordinates for text strings in transient UI states (like boot screens or temporary overlays) breaks visual alignment when accessibility settings like text scaling are modified. What looks centered at scale 1.0 looks broken at scale 2.0.
 **Action:** Always use responsive measurement functions like `textWidth()` combined with boundary calculations (e.g., `(tft.width() - textWidth) / 2`) to dynamically center text, ensuring the interface remains polished across all accessibility settings.
+## 2024-06-08 - Prevent Missing Options in Settings
+**Learning:** Adding an option to the UI menu (like `Broadcast AP:`) but forgetting to implement the actual state toggle inside the edit logic (`executeMenuEdit`) creates a broken UI experience where users attempt to change a setting and receive no response.
+**Action:** When adding new interactive elements to the settings menu via `populate` functions, always ensure the corresponding interaction logic is fully implemented in the `executeMenuEdit` handler.
+## 2024-06-08 - Prevent Destructive Actions Firing Immediately from Menu Toggle
+**Learning:** Hardcoded reset logic blocks inside menu edit handlers (like `executeMenuEdit`) that call `ESP.restart()` immediately when a menu item is toggled, bypass the confirmation state (`STATE_CONFIRM_RESET`) intended by the menu click handler (`handleMenuClick`). This violates the UX standard of preventing destructive actions from firing immediately on render loop.
+**Action:** Remove hardcoded, uncentered immediate execution blocks from menu edit handlers, relying instead on the established state machine (`STATE_CONFIRM_RESET` -> `handleButtonLongPress` -> `renderLoop`) to properly draw the prompt and wait for user confirmation.

@@ -1811,19 +1811,8 @@ inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
     if (ui->devRiskAccepted) {
         if (selItem.startsWith("Motion Comp:")) { ui->motionCompEnabled = !ui->motionCompEnabled; return; }
         if (selItem.startsWith("Passthrough:")) { ui->passthroughMode = !ui->passthroughMode; return; }
+        if (selItem.startsWith("Broadcast AP:")) { ui->broadcastModeEnabled = !ui->broadcastModeEnabled; return; }
         if (selItem.startsWith("Show StdDev:")) { ui->showStdDev = !ui->showStdDev; return; }
-        if (selItem.startsWith("[ FACTORY RESET ]")) {
-            ui->state = STATE_CONFIRM_RESET;
-            ui->sprite.fillSprite(0xFDB5); // themeDanger
-            ui->sprite.setTextColor(themePrimary);
-            ui->sprite.setCursor(10, 100);
-            ui->sprite.print("WIPING PREFERENCES...");
-            ui->sprite.pushSprite(0, 0);
-            ui->preferences.clear();
-            delay(1000);
-            ESP.restart();
-            return;
-        }
     }
 }
 inline void DevMenuView::populateMenuPage(UIManager* ui, char items[][32], int& numItems) { ui->populateDevMenu(items, numItems); }
