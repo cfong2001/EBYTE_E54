@@ -60,30 +60,28 @@ void IRAM_ATTR checkPosition() {
 }
 
 void handleButtonPress() {
-    ui.handleButton();
+    ui.handleRawInput(INPUT_ENC_PRESS);
 }
 
 void handleButtonLongPressStart() {
-    ui.handleButtonLongPress();
+    ui.handleRawInput(INPUT_ENC_LONG);
 }
 
 void handleButtonLongPressStop() {
-    ui.handleButtonLongPressStop();
+    ui.handleRawInputStop(INPUT_ENC_LONG);
 }
 
 // KEY0: secondary "menu return / confirmation" button per module datasheet
 void handleKey0Press() {
-    // In menu: acts as back/confirm (same as encoder press for simplicity)
-    // In radar view: same as encoder press (open menu)
-    ui.handleButton();
+    ui.handleRawInput(INPUT_KEY0_PRESS);
 }
 
 void handleKey0LongPress() {
-    // Long-press KEY0: open the guide screen
-    if (ui.state == STATE_RADAR_VIEW) {
-        ui.state = STATE_GUIDE;
-        ui.guidePage = 0;
-    }
+    ui.handleRawInput(INPUT_KEY0_LONG);
+}
+
+void handleKey0LongPressStop() {
+    ui.handleRawInputStop(INPUT_KEY0_LONG);
 }
 
 void radarTask(void *pvParameters) {
@@ -223,6 +221,7 @@ void setup() {
     button.attachLongPressStop(handleButtonLongPressStop);
     key0.attachClick(handleKey0Press);
     key0.attachLongPressStart(handleKey0LongPress);
+    key0.attachLongPressStop(handleKey0LongPressStop);
 
     xTaskCreatePinnedToCore(
         radarTask,   /* Task function. */

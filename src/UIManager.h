@@ -24,7 +24,8 @@ enum AppState {
     STATE_CONFIRM_RESET,
     STATE_CONFIRM_WIFI_GEN,
     STATE_SELF_TEST,
-    STATE_VIEW_WIFI
+    STATE_VIEW_WIFI,
+    STATE_BIND_IO
 };
 
 enum MenuPage {
@@ -103,6 +104,23 @@ public:
     void populateMenuPage(UIManager* ui, char items[][32], int& numItems) override;
 };
 
+
+enum InputEvent {
+    INPUT_ENC_PRESS = 0,
+    INPUT_ENC_LONG,
+    INPUT_KEY0_PRESS,
+    INPUT_KEY0_LONG,
+    NUM_INPUT_EVENTS
+};
+
+enum MappableFunction {
+    FUNC_SELECT = 0,
+    FUNC_BACK,
+    FUNC_GUIDE,
+    FUNC_TOOLTIP,
+    NUM_FUNCTIONS
+};
+
 class UIManager {
 public:
     IView* mainMenuView;
@@ -122,6 +140,12 @@ public:
     bool showStdDev = false;
     int uiTextSize = 1;
     float uiScale = 1.0f;
+
+    MappableFunction inputBindings[NUM_INPUT_EVENTS];
+    MappableFunction tempBindings[NUM_INPUT_EVENTS];
+    int currentBindFunction = 0;
+    unsigned long bindLastInputTime = 0;
+
 
     UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
         mainMenuView = new MainMenuView();
@@ -151,6 +175,11 @@ public:
 
         sweepAngle = 0;
         menuOverlayY = 0;
+
+        inputBindings[INPUT_ENC_PRESS] = FUNC_SELECT;
+        inputBindings[INPUT_KEY0_PRESS] = FUNC_BACK;
+        inputBindings[INPUT_ENC_LONG] = FUNC_TOOLTIP;
+        inputBindings[INPUT_KEY0_LONG] = FUNC_GUIDE;
         maxMenuSelection = 0;
         bootStartTime = 0;
 
@@ -185,6 +214,11 @@ public:
 
     void loadSettings() {
         preferences.begin("radar_ui", false);
+
+        for (int i = 0; i < NUM_INPUT_EVENTS; i++) {
+            inputBindings[i] = (MappableFunction)preferences.getInt(("bind_" + String(i)).c_str(), inputBindings[i]);
+        }
+
         theme = (ThemeStyle)preferences.getInt("theme", THEME_ALIEN);
         updateThemeText();
         targetIcon = (TargetIcon)preferences.getInt("icon", ICON_SMART);
@@ -310,6 +344,74 @@ public:
 
     void handleButtonLongPressStop() {
         showTooltip = false;
+    }
+
+
+    void handleRawInput(int event) {
+        if (state == STATE_BIND_IO) {
+            tempBindings[event] = (MappableFunction)currentBindFunction;
+            currentBindFunction++;
+            bindLastInputTime = millis();
+
+            if (currentBindFunction >= NUM_FUNCTIONS) {
+                // Done binding, save
+                for (int i = 0; i < NUM_INPUT_EVENTS; i++) {
+                    inputBindings[i] = tempBindings[i];
+                    preferences.putInt(("bind_" + String(i)).c_str(), tempBindings[i]);
+                }
+                state = STATE_MENU;
+            }
+            return;
+        }
+
+        MappableFunction func = inputBindings[event];
+        executeFunction(func);
+    }
+
+    void handleRawInputStop(int event) {
+        if (state == STATE_BIND_IO) return;
+        MappableFunction func = inputBindings[event];
+        if (func == FUNC_TOOLTIP) {
+            showTooltip = false;
+        }
+    }
+
+    void executeFunction(MappableFunction func) {
+        switch (func) {
+            case FUNC_SELECT:
+                handleButton();
+                break;
+            case FUNC_BACK:
+                handleBackButton();
+                break;
+            case FUNC_GUIDE:
+                if (state == STATE_RADAR_VIEW) {
+                    state = STATE_GUIDE;
+                    guidePage = 0;
+                }
+                break;
+            case FUNC_TOOLTIP:
+                if (state == STATE_MENU) {
+                    showTooltip = true;
+                }
+                break;
+        }
+    }
+
+    void handleBackButton() {
+        if (state == STATE_MENU) {
+            if (activePage != PAGE_MAIN) {
+                activePage = PAGE_MAIN;
+                activeView = mainMenuView;
+                menuSelection = 0;
+            } else {
+                state = STATE_RADAR_VIEW;
+            }
+        } else if (state == STATE_MENU_EDIT) {
+            state = STATE_MENU;
+        } else if (state == STATE_GUIDE || state == STATE_SELF_TEST || state == STATE_VIEW_WIFI || state == STATE_BIND_IO) {
+            state = STATE_RADAR_VIEW;
+        }
     }
 
     void handleButton() {
@@ -500,6 +602,57 @@ public:
         sprite.pushSprite(0, 0);
     }
 
+
+    void drawBindIOScreen() {
+        sprite.fillSprite(themeBg);
+
+        sprite.setTextColor(themePrimary);
+        sprite.setTextSize(2);
+        const char* title = "BIND I/O";
+        int tw = sprite.textWidth(title);
+        sprite.setCursor((tft.width() - tw) / 2, 20);
+        sprite.print(title);
+
+        const char* funcNames[] = {"SELECT / MENU", "BACK / CANCEL", "OPEN GUIDE", "SHOW TOOLTIP"};
+
+        sprite.setTextColor(themePrimary);
+        sprite.setTextSize(1);
+        const char* prompt = "Press button for:";
+        int pw = sprite.textWidth(prompt);
+        sprite.setCursor((tft.width() - pw) / 2, 60);
+        sprite.print(prompt);
+
+        sprite.setTextColor(themeWarning);
+        sprite.setTextSize(2);
+        const char* curFunc = funcNames[currentBindFunction];
+        int cw = sprite.textWidth(curFunc);
+        sprite.setCursor((tft.width() - cw) / 2, 90);
+        sprite.print(curFunc);
+
+        int cx = tft.width() / 2;
+        int cy = 150;
+        float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
+        uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 150.0f) + 50, themePrimary, themeBg);
+        sprite.drawRoundRect(cx - 20, cy - 20, 40, 40, 5, pulseColor);
+        sprite.drawRoundRect(cx - 19, cy - 19, 38, 38, 4, pulseColor);
+        sprite.fillCircle(cx, cy, 10 + (int)(pulse * 4), pulseColor);
+
+        long timeLeft = 30 - (millis() - bindLastInputTime) / 1000;
+        char timeStr[32];
+        snprintf(timeStr, sizeof(timeStr), "Timeout in %lds", timeLeft);
+        sprite.setTextSize(1);
+        sprite.setTextColor(themeDanger);
+        int timeW = sprite.textWidth(timeStr);
+        sprite.setCursor((tft.width() - timeW) / 2, tft.height() - 30);
+        sprite.print(timeStr);
+
+        sprite.pushSprite(0, 0);
+
+        if (millis() - bindLastInputTime > 30000) {
+            state = STATE_MENU;
+        }
+    }
+
     void renderLoop() {
         if (state == STATE_BOOT) {
             drawBootScreen();
@@ -515,6 +668,10 @@ public:
         }
         if (state == STATE_VIEW_WIFI) {
             drawWifiPassScreen();
+            return;
+        }
+        if (state == STATE_BIND_IO) {
+            drawBindIOScreen();
             return;
         }
 
@@ -1462,6 +1619,7 @@ public:
             snprintf(items[numItems++], 32, "Passthrough: %s", passthroughMode ? "ON" : "OFF");
             snprintf(items[numItems++], 32, "Broadcast AP: %s", broadcastModeEnabled ? "ON" : "OFF");
             snprintf(items[numItems++], 32, "Show StdDev: %s", showStdDev ? "ON" : "OFF");
+            snprintf(items[numItems++], 32, "%s", "[ BIND I/O ]");
             snprintf(items[numItems++], 32, "%s", "[ RUN SELF TEST ]");
             snprintf(items[numItems++], 32, "%s", "[ FACTORY RESET ]");
             snprintf(items[numItems++], 32, "%s", "[ EXPORT CONFIG ]");
@@ -1776,11 +1934,16 @@ inline void DataMenuView::populateMenuPage(UIManager* ui, char items[][32], int&
 inline void DevMenuView::handleMenuClick(UIManager* ui) {
     String selItem = String(ui->currentMenuItems[ui->menuSelection]);
     if (ui->menuSelection == 0) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
-    else if (ui->menuSelection == ui->maxMenuSelection - 5 && ui->devRiskAccepted) { ui->actionRequested = 5; ui->state = STATE_SELF_TEST; ui->selfTestDone = false; }
-    else if (ui->menuSelection == ui->maxMenuSelection - 4 && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_RESET; }
-    else if (ui->menuSelection == ui->maxMenuSelection - 3 && ui->devRiskAccepted) { ui->actionRequested = 2; ui->state = STATE_RADAR_VIEW; }
-    else if (ui->menuSelection == ui->maxMenuSelection - 2 && ui->devRiskAccepted) { ui->state = STATE_IMPORTING; }
-    else if (ui->menuSelection == ui->maxMenuSelection - 1 && ui->devRiskAccepted) {
+    else if (String(ui->currentMenuItems[ui->menuSelection]).startsWith("[ BIND I/O ]") && ui->devRiskAccepted) {
+        ui->state = STATE_BIND_IO;
+        ui->currentBindFunction = 0;
+        ui->bindLastInputTime = millis();
+    }
+    else if (String(ui->currentMenuItems[ui->menuSelection]).startsWith("[ RUN SELF TEST ]") && ui->devRiskAccepted) { ui->actionRequested = 5; ui->state = STATE_SELF_TEST; ui->selfTestDone = false; }
+    else if (String(ui->currentMenuItems[ui->menuSelection]).startsWith("[ FACTORY RESET ]") && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_RESET; }
+    else if (String(ui->currentMenuItems[ui->menuSelection]).startsWith("[ EXPORT CONFIG ]") && ui->devRiskAccepted) { ui->actionRequested = 2; ui->state = STATE_RADAR_VIEW; }
+    else if (String(ui->currentMenuItems[ui->menuSelection]).startsWith("[ IMPORT CONFIG ]") && ui->devRiskAccepted) { ui->state = STATE_IMPORTING; }
+    else if (String(ui->currentMenuItems[ui->menuSelection]).startsWith("[ VIEW WIFI PASS ]") && ui->devRiskAccepted) {
         ui->currentWifiPass = BroadcastServer::getWiFiPassword();
         if (ui->currentWifiPass == "") ui->currentWifiPass = "Not Set";
         ui->state = STATE_VIEW_WIFI;
