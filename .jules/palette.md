@@ -154,3 +154,7 @@
 ## 2026-05-31 - Dynamic Text Centering in Transient States
 **Learning:** Hardcoding coordinates for text strings in transient UI states (like boot screens or temporary overlays) breaks visual alignment when accessibility settings like text scaling are modified. What looks centered at scale 1.0 looks broken at scale 2.0.
 **Action:** Always use responsive measurement functions like `textWidth()` combined with boundary calculations (e.g., `(tft.width() - textWidth) / 2`) to dynamically center text, ensuring the interface remains polished across all accessibility settings.
+
+## 2024-06-09 - Centering Text Blocks Over UI Elements
+**Learning:** Hardcoding coordinates for UI text over dynamic background components breaks visual alignment across different screen resolutions and text scaling options.
+**Action:** Always center text accurately by using bounding widths like `textWidth()` together with mathematical alignment instead of absolute hardcoded offset pixel numbers.
