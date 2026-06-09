@@ -1815,7 +1815,7 @@ inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
         if (selItem.startsWith("[ FACTORY RESET ]")) {
             ui->state = STATE_CONFIRM_RESET;
             ui->sprite.fillSprite(0xFDB5); // themeDanger
-            ui->sprite.setTextColor(themePrimary);
+            ui->sprite.setTextColor(themeBg);
             ui->sprite.setCursor(10, 100);
             ui->sprite.print("WIPING PREFERENCES...");
             ui->sprite.pushSprite(0, 0);
