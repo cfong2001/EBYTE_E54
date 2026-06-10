@@ -326,7 +326,8 @@ public:
         if (state == STATE_CONFIRM_RESET) {
             sprite.fillSprite(themeDanger);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int tw = sprite.textWidth("WIPING PREFERENCES...");
+            sprite.setCursor((tft.width() - tw) / 2, 100);
             sprite.print("WIPING PREFERENCES...");
             sprite.pushSprite(0, 0);
             preferences.clear();
@@ -336,7 +337,8 @@ public:
         } else if (state == STATE_CONFIRM_WIFI_GEN) {
             sprite.fillSprite(themeWarning);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int tw1 = sprite.textWidth("REGENERATING WIFI PASSWORD...");
+            sprite.setCursor((tft.width() - tw1) / 2, 100);
             sprite.print("REGENERATING WIFI PASSWORD...");
             sprite.pushSprite(0, 0);
 
@@ -353,9 +355,10 @@ public:
 
             sprite.fillSprite(themePrimary);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
-            sprite.print("NEW PASS: ");
-            sprite.print(newPass);
+            String passStr = "NEW PASS: " + newPass;
+            int tw2 = sprite.textWidth(passStr);
+            sprite.setCursor((tft.width() - tw2) / 2, 100);
+            sprite.print(passStr);
             sprite.pushSprite(0, 0);
 
             delay(3000);
@@ -370,7 +373,8 @@ public:
         } else if (state == STATE_CONFIRM_RESET) {
             sprite.fillSprite(0xFDB5); // themeDanger
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int tw = sprite.textWidth("WIPING PREFERENCES...");
+            sprite.setCursor((tft.width() - tw) / 2, 100);
             sprite.print("WIPING PREFERENCES...");
             sprite.pushSprite(0, 0);
             preferences.clear();
@@ -441,9 +445,9 @@ public:
         sprite.fillSprite(themeBg);
         sprite.setTextColor(themeText, themeBg);
         sprite.setTextSize(uiTextSize);
-        sprite.setCursor(10, 10);
-
         if (guidePage == 0) {
+            int twT1 = sprite.textWidth("GUIDE 1/3: TARGETS");
+            sprite.setCursor((tft.width() - twT1) / 2, 10);
             sprite.print("GUIDE 1/3: TARGETS");
             sprite.setCursor(10, 40);
             sprite.setTextColor(themeText, themeBg);
@@ -464,6 +468,8 @@ public:
 
 
         } else if (guidePage == 1) {
+            int twT2 = sprite.textWidth("GUIDE 2/3: CONTROLS");
+            sprite.setCursor((tft.width() - twT2) / 2, 10);
             sprite.print("GUIDE 2/3: CONTROLS");
             sprite.setCursor(10, 40);
             sprite.setTextColor(themeText, themeBg);
@@ -476,6 +482,8 @@ public:
 
 
         } else if (guidePage == 2) {
+            int twT3 = sprite.textWidth("GUIDE 3/3: ZONES");
+            sprite.setCursor((tft.width() - twT3) / 2, 10);
             sprite.print("GUIDE 3/3: ZONES");
             sprite.setCursor(10, 40);
             sprite.setTextColor(themeText, themeBg);
@@ -493,8 +501,9 @@ public:
 
         }
 
-        sprite.setCursor(10, 200);
         sprite.setTextColor(themeWarning, themeBg);
+        int twGuide = sprite.textWidth("[Turn] Next  [Press] Exit");
+        sprite.setCursor((tft.width() - twGuide) / 2, 200);
         sprite.print("[Turn] Next  [Press] Exit");
 
         int dotStartX = 110;
@@ -1199,7 +1208,8 @@ public:
         sprite.fillSprite(themeBg);
         sprite.setTextColor(themeText, themeBg);
         sprite.setTextSize(uiTextSize);
-        sprite.setCursor(10, 10);
+        int twTitle = sprite.textWidth("--- SELF TEST ---");
+        sprite.setCursor((tft.width() - twTitle) / 2, 10);
         sprite.print("--- SELF TEST ---");
 
         sprite.setCursor(10, 40);
@@ -1208,37 +1218,49 @@ public:
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, activeTheme.warning, activeTheme.bg);
             sprite.fillRect(10, 40, 220, 40, pulseColor);
             sprite.setTextColor(activeTheme.bg, pulseColor);
-            sprite.setCursor(20, 55);
-
             int dots = (millis() / 500) % 4;
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
-            sprite.printf("RUNNING TESTS%-3s", dotStr);
+            char buf[32];
+            snprintf(buf, sizeof(buf), "RUNNING TESTS%-3s", dotStr);
+            int twDots = sprite.textWidth(buf);
+            sprite.setCursor((tft.width() - twDots) / 2, 55);
+            sprite.print(buf);
         } else {
+            int twWRC = sprite.textWidth("Wiring / RX Check:");
+            sprite.setCursor((tft.width() - twWRC) / 2, 60);
             sprite.print("Wiring / RX Check:");
-            sprite.setCursor(10, 60);
             if (selfTestRxOk) {
                 sprite.setTextColor(themeSuccess, themeBg);
+                int twP = sprite.textWidth("PASS: RX is HIGH");
+                sprite.setCursor((tft.width() - twP) / 2, 80);
                 sprite.print("PASS: RX is HIGH");
             } else {
                 sprite.setTextColor(themeDanger, themeBg);
+                int twF = sprite.textWidth("FAIL: RX is LOW");
+                sprite.setCursor((tft.width() - twF) / 2, 80);
                 sprite.print("FAIL: RX is LOW");
             }
 
             sprite.setTextColor(themeText, themeBg);
-            sprite.setCursor(10, 80);
+            int twSLC = sprite.textWidth("Software Logic Check:");
+            sprite.setCursor((tft.width() - twSLC) / 2, 100);
             sprite.print("Software Logic Check:");
-            sprite.setCursor(10, 100);
             if (selfTestSoftwareOk) {
                 sprite.setTextColor(themeSuccess, themeBg);
+                int twP2 = sprite.textWidth("PASS: Tests passed");
+                sprite.setCursor((tft.width() - twP2) / 2, 120);
                 sprite.print("PASS: Tests passed");
             } else {
                 sprite.setTextColor(themeDanger, themeBg);
+                int twF2 = sprite.textWidth("FAIL: Tests failed");
+                sprite.setCursor((tft.width() - twF2) / 2, 120);
                 sprite.print("FAIL: Tests failed");
             }
         }
 
         sprite.setTextColor(themeWarning, themeBg);
-        sprite.setCursor(10, 140);
+        int twExit = sprite.textWidth("Click to exit");
+        sprite.setCursor((tft.width() - twExit) / 2, 140);
         sprite.print("Click to exit");
 
         sprite.pushSprite(0, 0);
@@ -1816,7 +1838,8 @@ inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
             ui->state = STATE_CONFIRM_RESET;
             ui->sprite.fillSprite(0xFDB5); // themeDanger
             ui->sprite.setTextColor(themePrimary);
-            ui->sprite.setCursor(10, 100);
+            int tw = ui->sprite.textWidth("WIPING PREFERENCES...");
+            ui->sprite.setCursor((ui->tft.width() - tw) / 2, 100);
             ui->sprite.print("WIPING PREFERENCES...");
             ui->sprite.pushSprite(0, 0);
             ui->preferences.clear();
