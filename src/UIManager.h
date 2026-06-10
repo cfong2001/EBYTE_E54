@@ -1092,7 +1092,7 @@ private:
         }
     }
 
-private:
+public:
     TFT_eSPI& tft;
 public:
     TFT_eSprite sprite;
