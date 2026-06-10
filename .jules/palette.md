@@ -154,3 +154,7 @@
 ## 2026-05-31 - Dynamic Text Centering in Transient States
 **Learning:** Hardcoding coordinates for text strings in transient UI states (like boot screens or temporary overlays) breaks visual alignment when accessibility settings like text scaling are modified. What looks centered at scale 1.0 looks broken at scale 2.0.
 **Action:** Always use responsive measurement functions like `textWidth()` combined with boundary calculations (e.g., `(tft.width() - textWidth) / 2`) to dynamically center text, ensuring the interface remains polished across all accessibility settings.
+
+## 2024-06-10 - Responsive Transient States and High Contrast Validation
+**Learning:** Hardcoded coordinates for text strings in transient UI states (like temporary overlays and boot screens) break visual alignment when text strings change or scaling variables are introduced. Furthermore, overlay text layered directly over bright, active colors (like themeWarning or themePrimary) often suffers from poor contrast if bright accent colors are used for the text itself.
+**Action:** When implementing temporary UI overlays or empty states, format variable strings first via snprintf, calculate their bounding box using responsive text measurement (e.g., textWidth()), and center dynamically. When rendering text over bright backgrounds, explicitly utilize the dark background variable (themeBg) for the text to ensure WCAG-compliant high contrast.

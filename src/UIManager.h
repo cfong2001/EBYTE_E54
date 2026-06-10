@@ -326,7 +326,8 @@ public:
         if (state == STATE_CONFIRM_RESET) {
             sprite.fillSprite(themeDanger);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int tw = sprite.textWidth("WIPING PREFERENCES...");
+            sprite.setCursor((tft.width() - tw) / 2, 100);
             sprite.print("WIPING PREFERENCES...");
             sprite.pushSprite(0, 0);
             preferences.clear();
@@ -336,7 +337,8 @@ public:
         } else if (state == STATE_CONFIRM_WIFI_GEN) {
             sprite.fillSprite(themeWarning);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int tw = sprite.textWidth("REGENERATING WIFI PASSWORD...");
+            sprite.setCursor((tft.width() - tw) / 2, 100);
             sprite.print("REGENERATING WIFI PASSWORD...");
             sprite.pushSprite(0, 0);
 
@@ -353,9 +355,11 @@ public:
 
             sprite.fillSprite(themePrimary);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
-            sprite.print("NEW PASS: ");
-            sprite.print(newPass);
+            char buf[64];
+            snprintf(buf, sizeof(buf), "NEW PASS: %s", newPass.c_str());
+            int passTw = sprite.textWidth(buf);
+            sprite.setCursor((tft.width() - passTw) / 2, 100);
+            sprite.print(buf);
             sprite.pushSprite(0, 0);
 
             delay(3000);
@@ -368,9 +372,10 @@ public:
             actionRequested = 3; // Confirm fallback
             state = STATE_RADAR_VIEW;
         } else if (state == STATE_CONFIRM_RESET) {
-            sprite.fillSprite(0xFDB5); // themeDanger
+            sprite.fillSprite(themeDanger); // themeDanger
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int tw = sprite.textWidth("WIPING PREFERENCES...");
+            sprite.setCursor((tft.width() - tw) / 2, 100);
             sprite.print("WIPING PREFERENCES...");
             sprite.pushSprite(0, 0);
             preferences.clear();
@@ -563,9 +568,9 @@ public:
             sprite.print("NO CONTACTS");
 
             sprite.setTextSize(1);
-            int sw = sprite.textWidth("Waiting for movement...");
+            int sw = sprite.textWidth("Waiting for motion...");
             sprite.setCursor((tft.width() - sw) / 2, 116 + (8 * uiTextSize) + 4);
-            sprite.print("Waiting for movement...");
+            sprite.print("Waiting for motion...");
         }
 
         drawHUD();
@@ -1199,7 +1204,8 @@ public:
         sprite.fillSprite(themeBg);
         sprite.setTextColor(themeText, themeBg);
         sprite.setTextSize(uiTextSize);
-        sprite.setCursor(10, 10);
+        int twTitle = sprite.textWidth("--- SELF TEST ---");
+        sprite.setCursor((tft.width() - twTitle) / 2, 10);
         sprite.print("--- SELF TEST ---");
 
         sprite.setCursor(10, 40);
@@ -1208,11 +1214,14 @@ public:
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, activeTheme.warning, activeTheme.bg);
             sprite.fillRect(10, 40, 220, 40, pulseColor);
             sprite.setTextColor(activeTheme.bg, pulseColor);
-            sprite.setCursor(20, 55);
 
             int dots = (millis() / 500) % 4;
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
-            sprite.printf("RUNNING TESTS%-3s", dotStr);
+            char buf[64];
+            snprintf(buf, sizeof(buf), "RUNNING TESTS%-3s", dotStr);
+            int twTests = sprite.textWidth(buf);
+            sprite.setCursor((tft.width() - twTests) / 2, 55);
+            sprite.print(buf);
         } else {
             sprite.print("Wiring / RX Check:");
             sprite.setCursor(10, 60);
@@ -1238,7 +1247,8 @@ public:
         }
 
         sprite.setTextColor(themeWarning, themeBg);
-        sprite.setCursor(10, 140);
+        int twExit = sprite.textWidth("Click to exit");
+        sprite.setCursor((tft.width() - twExit) / 2, 140);
         sprite.print("Click to exit");
 
         sprite.pushSprite(0, 0);
@@ -1814,9 +1824,10 @@ inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
         if (selItem.startsWith("Show StdDev:")) { ui->showStdDev = !ui->showStdDev; return; }
         if (selItem.startsWith("[ FACTORY RESET ]")) {
             ui->state = STATE_CONFIRM_RESET;
-            ui->sprite.fillSprite(0xFDB5); // themeDanger
-            ui->sprite.setTextColor(themePrimary);
-            ui->sprite.setCursor(10, 100);
+                ui->sprite.fillSprite(ui->themeDanger); // themeDanger
+                ui->sprite.setTextColor(ui->themeBg);
+                int tw = ui->sprite.textWidth("WIPING PREFERENCES...");
+                ui->sprite.setCursor((ui->tft.width() - tw) / 2, 100);
             ui->sprite.print("WIPING PREFERENCES...");
             ui->sprite.pushSprite(0, 0);
             ui->preferences.clear();
