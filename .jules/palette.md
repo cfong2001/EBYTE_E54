@@ -154,3 +154,8 @@
 ## 2026-05-31 - Dynamic Text Centering in Transient States
 **Learning:** Hardcoding coordinates for text strings in transient UI states (like boot screens or temporary overlays) breaks visual alignment when accessibility settings like text scaling are modified. What looks centered at scale 1.0 looks broken at scale 2.0.
 **Action:** Always use responsive measurement functions like `textWidth()` combined with boundary calculations (e.g., `(tft.width() - textWidth) / 2`) to dynamically center text, ensuring the interface remains polished across all accessibility settings.
+
+
+## 2025-03-05 - Dynamic Alignment for Transient UI Overlays
+**Learning:** Hardcoding coordinates or spacing for transient/modal overlays (e.g. "WIPING PREFERENCES...", "--- SELF TEST ---") breaks alignment immediately if the parent component size changes, strings are variable length (like dynamically generated WiFi passwords), or if text scaling is modified.
+**Action:** Always format variable strings into a complete buffer via `snprintf` if needed, calculate the true bounding width via dynamic text measurement like `textWidth()`, and use boundary math like `(width - textWidth) / 2` to dynamically center them before rendering.
