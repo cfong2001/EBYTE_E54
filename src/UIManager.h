@@ -596,7 +596,7 @@ public:
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
             char buf[32];
             snprintf(buf, sizeof(buf), "WAITING FOR CONFIG%-3s", dotStr);
-            int w_dots = sprite.textWidth(buf);
+            int w_dots = sprite.textWidth("WAITING FOR CONFIG...");
             sprite.setCursor((240 - w_dots) / 2, 110);
             sprite.print(buf);
 
@@ -621,7 +621,7 @@ public:
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
             char buf[32];
             snprintf(buf, sizeof(buf), "OR WAIT TO REVERT%-3s", dotStr);
-            int w3 = sprite.textWidth(buf);
+            int w3 = sprite.textWidth("OR WAIT TO REVERT...");
             sprite.setCursor((240 - w3) / 2, 130);
             sprite.print(buf);
         } else if (state == STATE_CONFIRM_RESET) {
@@ -1208,11 +1208,14 @@ public:
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, activeTheme.warning, activeTheme.bg);
             sprite.fillRect(10, 40, 220, 40, pulseColor);
             sprite.setTextColor(activeTheme.bg, pulseColor);
-            sprite.setCursor(20, 55);
 
             int dots = (millis() / 500) % 4;
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
-            sprite.printf("RUNNING TESTS%-3s", dotStr);
+            char buf[32];
+            snprintf(buf, sizeof(buf), "RUNNING TESTS%-3s", dotStr);
+            int tw = sprite.textWidth("RUNNING TESTS...");
+            sprite.setCursor((tft.width() - tw) / 2, 55);
+            sprite.print(buf);
         } else {
             sprite.print("Wiring / RX Check:");
             sprite.setCursor(10, 60);

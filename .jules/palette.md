@@ -154,3 +154,6 @@
 ## 2026-05-31 - Dynamic Text Centering in Transient States
 **Learning:** Hardcoding coordinates for text strings in transient UI states (like boot screens or temporary overlays) breaks visual alignment when accessibility settings like text scaling are modified. What looks centered at scale 1.0 looks broken at scale 2.0.
 **Action:** Always use responsive measurement functions like `textWidth()` combined with boundary calculations (e.g., `(tft.width() - textWidth) / 2`) to dynamically center text, ensuring the interface remains polished across all accessibility settings.
+## 2024-05-30 - Anti-Jitter for Animated Text
+**Learning:** When centering text with an animated trailing element (like "..." dots), measuring the dynamic string's width frame-by-frame causes the text anchor to shift constantly, creating a visual "jitter" effect.
+**Action:** Always measure the bounding box of the maximum possible string length (e.g., `textWidth("RUNNING TESTS...")`) to calculate a static X-coordinate, ensuring the anchor remains perfectly stable while the suffix animates.
