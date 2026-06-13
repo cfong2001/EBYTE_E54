@@ -326,7 +326,8 @@ public:
         if (state == STATE_CONFIRM_RESET) {
             sprite.fillSprite(themeDanger);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int textW = sprite.textWidth("WIPING PREFERENCES...");
+            sprite.setCursor((tft.width() - textW) / 2, 100);
             sprite.print("WIPING PREFERENCES...");
             sprite.pushSprite(0, 0);
             preferences.clear();
@@ -336,7 +337,8 @@ public:
         } else if (state == STATE_CONFIRM_WIFI_GEN) {
             sprite.fillSprite(themeWarning);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int textW = sprite.textWidth("REGENERATING WIFI PASSWORD...");
+            sprite.setCursor((tft.width() - textW) / 2, 100);
             sprite.print("REGENERATING WIFI PASSWORD...");
             sprite.pushSprite(0, 0);
 
@@ -353,7 +355,9 @@ public:
 
             sprite.fillSprite(themePrimary);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int labelW = sprite.textWidth("NEW PASS: ");
+            int passW = sprite.textWidth(newPass);
+            sprite.setCursor((tft.width() - (labelW + passW)) / 2, 100);
             sprite.print("NEW PASS: ");
             sprite.print(newPass);
             sprite.pushSprite(0, 0);
@@ -370,7 +374,8 @@ public:
         } else if (state == STATE_CONFIRM_RESET) {
             sprite.fillSprite(0xFDB5); // themeDanger
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int textW = sprite.textWidth("WIPING PREFERENCES...");
+            sprite.setCursor((tft.width() - textW) / 2, 100);
             sprite.print("WIPING PREFERENCES...");
             sprite.pushSprite(0, 0);
             preferences.clear();
@@ -1816,7 +1821,8 @@ inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
             ui->state = STATE_CONFIRM_RESET;
             ui->sprite.fillSprite(0xFDB5); // themeDanger
             ui->sprite.setTextColor(themePrimary);
-            ui->sprite.setCursor(10, 100);
+            int textW = ui->sprite.textWidth("WIPING PREFERENCES...");
+            ui->sprite.setCursor((240 - textW) / 2, 100);
             ui->sprite.print("WIPING PREFERENCES...");
             ui->sprite.pushSprite(0, 0);
             ui->preferences.clear();

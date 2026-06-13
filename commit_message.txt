@@ -1,7 +1,6 @@
-🔒 Add missing CORS headers to API routes
+🎨 Palette: [UX improvement] Fix hardcoded alignment for transient UI screens
 
-🎯 **What:** Fixed a missing CORS header vulnerability in the BroadcastServer API endpoints (/api/data).
-
-⚠️ **Risk:** Without CORS headers (Access-Control-Allow-Origin: *), the radar data served over the ESP32's WiFi AP is vulnerable to Cross-Site Request Forgery (CSRF) or unauthorized data reading by a malicious web page if a user is simultaneously connected to the AP and the broader internet.
-
-🛡️ **Solution:** Switched from the shorthand request->send(code, type, content) to request->beginResponse() to generate an AsyncWebServerResponse object. This allowed the addition of the Access-Control-Allow-Origin: * header to both the 200 (Success) and 503 (Server Busy) responses before they are sent.
+💡 What: Replaced hardcoded `sprite.setCursor(10, 100);` placements on transient action screens (like "WIPING PREFERENCES...", "REGENERATING WIFI PASSWORD...", and "NEW PASS: ") with dynamic centering using `textWidth()`.
+🎯 Why: When accessibility settings like text scaling are modified, hardcoded X coordinates break visual alignment, resulting in ragged, off-center text blocks. Dynamic calculation ensures text remains perfectly centered regardless of the chosen scale or string length.
+📸 Before/After: Visual alignment during system resets and credential generation is now consistently centered on the TFT display.
+♿ Accessibility: Supports varied text sizes without breaking the UI layout.
