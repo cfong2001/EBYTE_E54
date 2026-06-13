@@ -154,3 +154,6 @@
 ## 2026-05-31 - Dynamic Text Centering in Transient States
 **Learning:** Hardcoding coordinates for text strings in transient UI states (like boot screens or temporary overlays) breaks visual alignment when accessibility settings like text scaling are modified. What looks centered at scale 1.0 looks broken at scale 2.0.
 **Action:** Always use responsive measurement functions like `textWidth()` combined with boundary calculations (e.g., `(tft.width() - textWidth) / 2`) to dynamically center text, ensuring the interface remains polished across all accessibility settings.
+## 2026-06-13 - Center Dynamic Formatting Strings via Max Width
+**Learning:** Hardcoding coordinates or using dynamic formatting strings (like `printf` with changing animated dots "... ") for text strings in transient UI states breaks visual alignment when the string length changes because `textWidth()` recalculates dynamically, causing a visual horizontal jitter on the UI.
+**Action:** Always use responsive measurement functions like `textWidth()` against the maximum possible width of the static string (e.g., `textWidth("LOADING...")`) combined with boundary calculations (e.g., `(tft.width() - textWidth) / 2`) to dynamically center text, ensuring the interface remains polished across all accessibility settings without jittering.
