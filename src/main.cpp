@@ -309,6 +309,15 @@ void loop() {
         while (Serial.available()) {
             char c = Serial.read();
             serialBuffer += c;
+
+            // Security fix: Unbounded Serial Buffer Append
+            if (serialBuffer.length() > 4096) {
+                Serial.println("Error: Import buffer overflow.");
+                serialBuffer = "";
+                ui.state = STATE_MENU;
+                break;
+            }
+
             if (serialBuffer.endsWith("}")) {
                 configManager.importConfig(serialBuffer);
                 serialBuffer = "";
