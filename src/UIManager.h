@@ -396,10 +396,12 @@ public:
     void setTargetMotion(int index, float vx, float vy, float ax, float ay, float stdDev = 0.0f) {
         if (index >= 0 && index < 3) {
             // Convert mm/s to screen pixels
-            targetVelX[index] = vx * (tft.width() / 2) / 5000;
-            targetVelY[index] = -vy * tft.width() / 5000; // Y is inverted on screen
-            targetAccX[index] = ax * (tft.width() / 2) / 5000;
-            targetAccY[index] = -ay * tft.width() / 5000;
+            // Optimize: Replace costly division by 5000 with reciprocal multiplication (0.0002f).
+            // Cast integer components to float to avoid implicit double-precision promotion overhead.
+            targetVelX[index] = vx * (tft.width() / 2.0f) * 0.0002f;
+            targetVelY[index] = -vy * (float)tft.width() * 0.0002f; // Y is inverted on screen
+            targetAccX[index] = ax * (tft.width() / 2.0f) * 0.0002f;
+            targetAccY[index] = -ay * (float)tft.width() * 0.0002f;
         }
     }
 
@@ -419,8 +421,10 @@ public:
                 if (absSpeed < sensitivity && sensitivity > 1) {
                     targetActive[i] = false;
                 } else {
-                    targetGoalX[i] = (tft.width() / 2) + (targets[i].x * (tft.width() / 2) / 5000) * uiScale;
-                    targetGoalY[i] = tft.height() - ((targets[i].y * tft.height() / 5000) * uiScale);
+                    // Optimize: Replace costly division by 5000 with reciprocal multiplication (0.0002f).
+                    // Cast integer components to float to avoid implicit double-precision promotion overhead.
+                    targetGoalX[i] = (tft.width() / 2) + (targets[i].x * (tft.width() / 2.0f) * 0.0002f) * uiScale;
+                    targetGoalY[i] = tft.height() - ((targets[i].y * (float)tft.height() * 0.0002f) * uiScale);
 
                     rawTargetX[i] = targets[i].x;
                     rawTargetY[i] = targets[i].y;
