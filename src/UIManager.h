@@ -326,7 +326,8 @@ public:
         if (state == STATE_CONFIRM_RESET) {
             sprite.fillSprite(themeDanger);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int tw = sprite.textWidth("WIPING PREFERENCES...");
+            sprite.setCursor((240 - tw) / 2, 100);
             sprite.print("WIPING PREFERENCES...");
             sprite.pushSprite(0, 0);
             preferences.clear();
@@ -368,9 +369,10 @@ public:
             actionRequested = 3; // Confirm fallback
             state = STATE_RADAR_VIEW;
         } else if (state == STATE_CONFIRM_RESET) {
-            sprite.fillSprite(0xFDB5); // themeDanger
+            sprite.fillSprite(themeDanger); // themeDanger
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int tw = sprite.textWidth("WIPING PREFERENCES...");
+            sprite.setCursor((240 - tw) / 2, 100);
             sprite.print("WIPING PREFERENCES...");
             sprite.pushSprite(0, 0);
             preferences.clear();
@@ -394,10 +396,12 @@ public:
     void setTargetMotion(int index, float vx, float vy, float ax, float ay, float stdDev = 0.0f) {
         if (index >= 0 && index < 3) {
             // Convert mm/s to screen pixels
-            targetVelX[index] = vx * (tft.width() / 2) / 5000;
-            targetVelY[index] = -vy * tft.width() / 5000; // Y is inverted on screen
-            targetAccX[index] = ax * (tft.width() / 2) / 5000;
-            targetAccY[index] = -ay * tft.width() / 5000;
+            // Optimize: Replace costly division by 5000 with reciprocal multiplication (0.0002f).
+            // Cast integer components to float to avoid implicit double-precision promotion overhead.
+            targetVelX[index] = vx * (tft.width() / 2.0f) * 0.0002f;
+            targetVelY[index] = -vy * (float)tft.width() * 0.0002f; // Y is inverted on screen
+            targetAccX[index] = ax * (tft.width() / 2.0f) * 0.0002f;
+            targetAccY[index] = -ay * (float)tft.width() * 0.0002f;
         }
     }
 
@@ -417,8 +421,10 @@ public:
                 if (absSpeed < sensitivity && sensitivity > 1) {
                     targetActive[i] = false;
                 } else {
-                    targetGoalX[i] = (tft.width() / 2) + (targets[i].x * (tft.width() / 2) / 5000) * uiScale;
-                    targetGoalY[i] = tft.height() - ((targets[i].y * tft.height() / 5000) * uiScale);
+                    // Optimize: Replace costly division by 5000 with reciprocal multiplication (0.0002f).
+                    // Cast integer components to float to avoid implicit double-precision promotion overhead.
+                    targetGoalX[i] = (tft.width() / 2) + (targets[i].x * (tft.width() / 2.0f) * 0.0002f) * uiScale;
+                    targetGoalY[i] = tft.height() - ((targets[i].y * (float)tft.height() * 0.0002f) * uiScale);
 
                     rawTargetX[i] = targets[i].x;
                     rawTargetY[i] = targets[i].y;
@@ -596,7 +602,7 @@ public:
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
             char buf[32];
             snprintf(buf, sizeof(buf), "WAITING FOR CONFIG%-3s", dotStr);
-            int w_dots = sprite.textWidth(buf);
+            int w_dots = sprite.textWidth("WAITING FOR CONFIG...");
             sprite.setCursor((240 - w_dots) / 2, 110);
             sprite.print(buf);
 
@@ -621,7 +627,7 @@ public:
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
             char buf[32];
             snprintf(buf, sizeof(buf), "OR WAIT TO REVERT%-3s", dotStr);
-            int w3 = sprite.textWidth(buf);
+            int w3 = sprite.textWidth("OR WAIT TO REVERT...");
             sprite.setCursor((240 - w3) / 2, 130);
             sprite.print(buf);
         } else if (state == STATE_CONFIRM_RESET) {
@@ -1814,14 +1820,6 @@ inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
         if (selItem.startsWith("Show StdDev:")) { ui->showStdDev = !ui->showStdDev; return; }
         if (selItem.startsWith("[ FACTORY RESET ]")) {
             ui->state = STATE_CONFIRM_RESET;
-            ui->sprite.fillSprite(0xFDB5); // themeDanger
-            ui->sprite.setTextColor(themePrimary);
-            ui->sprite.setCursor(10, 100);
-            ui->sprite.print("WIPING PREFERENCES...");
-            ui->sprite.pushSprite(0, 0);
-            ui->preferences.clear();
-            delay(1000);
-            ESP.restart();
             return;
         }
     }
