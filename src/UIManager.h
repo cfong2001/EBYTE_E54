@@ -326,7 +326,8 @@ public:
         if (state == STATE_CONFIRM_RESET) {
             sprite.fillSprite(themeDanger);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int tw = sprite.textWidth("WIPING PREFERENCES...");
+            sprite.setCursor((240 - tw) / 2, 100);
             sprite.print("WIPING PREFERENCES...");
             sprite.pushSprite(0, 0);
             preferences.clear();
@@ -336,7 +337,8 @@ public:
         } else if (state == STATE_CONFIRM_WIFI_GEN) {
             sprite.fillSprite(themeWarning);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int tw = sprite.textWidth("REGENERATING WIFI PASSWORD...");
+            sprite.setCursor((240 - tw) / 2, 100);
             sprite.print("REGENERATING WIFI PASSWORD...");
             sprite.pushSprite(0, 0);
 
@@ -353,9 +355,11 @@ public:
 
             sprite.fillSprite(themePrimary);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
-            sprite.print("NEW PASS: ");
-            sprite.print(newPass);
+            char buf[64];
+            snprintf(buf, sizeof(buf), "NEW PASS: %s", newPass.c_str());
+            int passTw = sprite.textWidth(buf);
+            sprite.setCursor((240 - passTw) / 2, 100);
+            sprite.print(buf);
             sprite.pushSprite(0, 0);
 
             delay(3000);
@@ -367,15 +371,6 @@ public:
         } else if (state == STATE_FALLBACK) {
             actionRequested = 3; // Confirm fallback
             state = STATE_RADAR_VIEW;
-        } else if (state == STATE_CONFIRM_RESET) {
-            sprite.fillSprite(0xFDB5); // themeDanger
-            sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
-            sprite.print("WIPING PREFERENCES...");
-            sprite.pushSprite(0, 0);
-            preferences.clear();
-            delay(1000);
-            ESP.restart();
         } else if (state == STATE_RADAR_VIEW) {
             state = STATE_MENU;
             activePage = PAGE_MAIN;
@@ -1814,9 +1809,10 @@ inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
         if (selItem.startsWith("Show StdDev:")) { ui->showStdDev = !ui->showStdDev; return; }
         if (selItem.startsWith("[ FACTORY RESET ]")) {
             ui->state = STATE_CONFIRM_RESET;
-            ui->sprite.fillSprite(0xFDB5); // themeDanger
-            ui->sprite.setTextColor(themePrimary);
-            ui->sprite.setCursor(10, 100);
+            ui->sprite.fillSprite(themeDanger);
+            ui->sprite.setTextColor(themeBg);
+            int tw = ui->sprite.textWidth("WIPING PREFERENCES...");
+            ui->sprite.setCursor((240 - tw) / 2, 100);
             ui->sprite.print("WIPING PREFERENCES...");
             ui->sprite.pushSprite(0, 0);
             ui->preferences.clear();

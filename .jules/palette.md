@@ -154,3 +154,6 @@
 ## 2026-05-31 - Dynamic Text Centering in Transient States
 **Learning:** Hardcoding coordinates for text strings in transient UI states (like boot screens or temporary overlays) breaks visual alignment when accessibility settings like text scaling are modified. What looks centered at scale 1.0 looks broken at scale 2.0.
 **Action:** Always use responsive measurement functions like `textWidth()` combined with boundary calculations (e.g., `(tft.width() - textWidth) / 2`) to dynamically center text, ensuring the interface remains polished across all accessibility settings.
+## 2026-06-15 - Transient Screens Text Width Measurement
+**Learning:** Hardcoding coordinates like `sprite.setCursor(10, 100)` for warning screens and password displays breaks across text sizes. For dynamic text (like passwords), you must format the string first before measuring.
+**Action:** Use `snprintf()` to buffer dynamic strings, measure using `textWidth()`, and apply `((240 - tw) / 2)` centering to all transient multi-line messages and dynamic alert screens to ensure consistent positioning.
