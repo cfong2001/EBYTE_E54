@@ -326,7 +326,8 @@ public:
         if (state == STATE_CONFIRM_RESET) {
             sprite.fillSprite(themeDanger);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int tw = sprite.textWidth("WIPING PREFERENCES...");
+            sprite.setCursor((240 - tw) / 2, 100);
             sprite.print("WIPING PREFERENCES...");
             sprite.pushSprite(0, 0);
             preferences.clear();
@@ -368,9 +369,10 @@ public:
             actionRequested = 3; // Confirm fallback
             state = STATE_RADAR_VIEW;
         } else if (state == STATE_CONFIRM_RESET) {
-            sprite.fillSprite(0xFDB5); // themeDanger
+            sprite.fillSprite(themeDanger); // themeDanger
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int tw = sprite.textWidth("WIPING PREFERENCES...");
+            sprite.setCursor((240 - tw) / 2, 100);
             sprite.print("WIPING PREFERENCES...");
             sprite.pushSprite(0, 0);
             preferences.clear();
@@ -1814,14 +1816,6 @@ inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
         if (selItem.startsWith("Show StdDev:")) { ui->showStdDev = !ui->showStdDev; return; }
         if (selItem.startsWith("[ FACTORY RESET ]")) {
             ui->state = STATE_CONFIRM_RESET;
-            ui->sprite.fillSprite(0xFDB5); // themeDanger
-            ui->sprite.setTextColor(themePrimary);
-            ui->sprite.setCursor(10, 100);
-            ui->sprite.print("WIPING PREFERENCES...");
-            ui->sprite.pushSprite(0, 0);
-            ui->preferences.clear();
-            delay(1000);
-            ESP.restart();
             return;
         }
     }
