@@ -1090,6 +1090,7 @@ private:
     TFT_eSPI& tft;
 public:
     TFT_eSprite sprite;
+    int getTftWidth() { return tft.width(); }
 public:
 public:
     AppState state;
@@ -1821,7 +1822,7 @@ inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
             ui->sprite.fillSprite(0xFDB5); // themeDanger
             ui->sprite.setTextColor(themePrimary);
             int w = ui->sprite.textWidth("WIPING PREFERENCES...");
-            ui->sprite.setCursor((ui->tft.width() - w) / 2, 100);
+            ui->sprite.setCursor((ui->getTftWidth() - w) / 2, 100);
             ui->sprite.print("WIPING PREFERENCES...");
             ui->sprite.pushSprite(0, 0);
             ui->preferences.clear();
