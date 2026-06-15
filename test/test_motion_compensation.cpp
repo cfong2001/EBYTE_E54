@@ -88,11 +88,55 @@ void test_high_acceleration() {
     std::cout << "  ✓ test_high_acceleration passed" << std::endl;
 }
 
+void test_dropout();
+
 int test_motion_compensation_main() {
     std::cout << "Testing MotionCompensation updateFilterState..." << std::endl;
     test_initialization();
     test_steady_state();
     test_high_acceleration();
+    test_dropout();
     std::cout << "All tests passed!" << std::endl;
     return 0;
+}
+
+void test_dropout() {
+    std::cout << "Running test_dropout..." << std::endl;
+    MotionCompensation mc;
+    mc.init();
+
+    RadarTarget targets[3];
+    RadarTarget compensated[3];
+
+    // Initialize with valid target
+    targets[0] = {true, 1000, 2000, 100, 50, false};
+    targets[1] = {false, 0, 0, 0, 0, false};
+    targets[2] = {false, 0, 0, 0, 0, false};
+
+    mc.process(0.1f, targets, compensated);
+    assert(compensated[0].active == true);
+    assert(compensated[0].isCoasting == false);
+
+    // Give it a velocity by updating again
+    targets[0] = {true, 1000, 2100, 100, 50, false}; // Moving away, Y increases
+    mc.process(0.1f, targets, compensated);
+
+    // We can't access mc.state without macro magic here, but we can check coasting logic via outputs
+
+    // Simulate dropout
+    targets[0] = {false, 0, 0, 0, 0, false};
+    mc.process(0.1f, targets, compensated);
+
+    assert(compensated[0].active == true); // Should still be active
+    assert(compensated[0].isCoasting == true); // Should be coasting
+
+    // Simulate permanent drop after maxFramesLost (10)
+    for (int i = 0; i < 10; i++) {
+        mc.process(0.1f, targets, compensated);
+    }
+
+    assert(compensated[0].active == false);
+    assert(compensated[0].isCoasting == false);
+
+    std::cout << "  ✓ test_dropout passed" << std::endl;
 }
