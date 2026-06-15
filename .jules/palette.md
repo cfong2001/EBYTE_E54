@@ -154,3 +154,6 @@
 ## 2026-05-31 - Dynamic Text Centering in Transient States
 **Learning:** Hardcoding coordinates for text strings in transient UI states (like boot screens or temporary overlays) breaks visual alignment when accessibility settings like text scaling are modified. What looks centered at scale 1.0 looks broken at scale 2.0.
 **Action:** Always use responsive measurement functions like `textWidth()` combined with boundary calculations (e.g., `(tft.width() - textWidth) / 2`) to dynamically center text, ensuring the interface remains polished across all accessibility settings.
+## 2026-06-14 - Prevent Immediate Destructive Action on Menu Selection
+**Learning:** Hardcoded logic paths that trigger a state reset (e.g. `preferences.clear()` and `ESP.restart()`) directly within a menu selection handler block (like `executeMenuEdit`) violate the principle of user intent and bypass any confirmation prompt rendered by the state machine, causing immediate system wiping.
+**Action:** Prevent accidental execution of destructive actions (e.g., factory reset) by separating state transitions from execution. Menu selection should only update the UI state to display a visual confirmation prompt within the render loop, while the actual destructive logic must be deferred to a separate, explicit confirmation event (e.g., a subsequent button press handler).
