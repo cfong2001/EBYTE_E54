@@ -598,7 +598,7 @@ public:
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
             char buf[32];
             snprintf(buf, sizeof(buf), "WAITING FOR CONFIG%-3s", dotStr);
-            int w_dots = sprite.textWidth(buf);
+            int w_dots = sprite.textWidth("WAITING FOR CONFIG...");
             sprite.setCursor((240 - w_dots) / 2, 110);
             sprite.print(buf);
 
@@ -623,7 +623,7 @@ public:
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
             char buf[32];
             snprintf(buf, sizeof(buf), "OR WAIT TO REVERT%-3s", dotStr);
-            int w3 = sprite.textWidth(buf);
+            int w3 = sprite.textWidth("OR WAIT TO REVERT...");
             sprite.setCursor((240 - w3) / 2, 130);
             sprite.print(buf);
         } else if (state == STATE_CONFIRM_RESET) {
