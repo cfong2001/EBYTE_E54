@@ -1578,11 +1578,10 @@ public:
         sprite.print("INFO: ");
         sprite.setCursor(15, 160);
 
-        String selItem = String(selectedItemText);
         const char* tooltipText = "Adjust setting value."; // Default fallback
 
         for (const auto& mapping : tooltips) {
-            if (selItem.startsWith(mapping.prefix)) {
+            if (strncmp(selectedItemText, mapping.prefix, strlen(mapping.prefix)) == 0) {
                 tooltipText = mapping.text;
                 break;
             }
