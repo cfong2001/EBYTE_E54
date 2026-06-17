@@ -160,3 +160,6 @@
 ## 2026-06-14 - Prevent Immediate Destructive Action on Menu Selection
 **Learning:** Hardcoded logic paths that trigger a state reset (e.g. `preferences.clear()` and `ESP.restart()`) directly within a menu selection handler block (like `executeMenuEdit`) violate the principle of user intent and bypass any confirmation prompt rendered by the state machine, causing immediate system wiping.
 **Action:** Prevent accidental execution of destructive actions (e.g., factory reset) by separating state transitions from execution. Menu selection should only update the UI state to display a visual confirmation prompt within the render loop, while the actual destructive logic must be deferred to a separate, explicit confirmation event (e.g., a subsequent button press handler).
+## 2024-06-26 - Dynamic Text Height for Multi-Line Screens
+**Learning:** Hardcoding Y coordinates (like `sprite.setCursor(10, 40)`) for multi-line screens (like the self test screen) causes text blocks to overlap and clip off the screen when users increase the text scale for accessibility (`uiTextSize > 1`).
+**Action:** When drawing multi-line screens with dynamic text scaling, always compute `y` offsets dynamically based on the font size (e.g. `8 * uiTextSize`) to ensure the text blocks scale proportionally and don't overlap.
