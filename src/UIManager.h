@@ -1798,17 +1798,17 @@ inline void DataMenuView::populateMenuPage(UIManager* ui, char items[][32], int&
 
 inline void DevMenuView::handleMenuClick(UIManager* ui) {
     String selItem = String(ui->currentMenuItems[ui->menuSelection]);
-    if (ui->menuSelection == 0) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
-    else if (ui->menuSelection == ui->maxMenuSelection - 5 && ui->devRiskAccepted) { ui->actionRequested = 5; ui->state = STATE_SELF_TEST; ui->selfTestDone = false; }
-    else if (ui->menuSelection == ui->maxMenuSelection - 4 && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_RESET; }
-    else if (ui->menuSelection == ui->maxMenuSelection - 3 && ui->devRiskAccepted) { ui->actionRequested = 2; ui->state = STATE_RADAR_VIEW; }
-    else if (ui->menuSelection == ui->maxMenuSelection - 2 && ui->devRiskAccepted) { ui->state = STATE_IMPORTING; }
-    else if (ui->menuSelection == ui->maxMenuSelection - 1 && ui->devRiskAccepted) {
+    if (selItem.startsWith("<- Back")) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
+    else if (selItem.startsWith("[ RUN SELF TEST ]") && ui->devRiskAccepted) { ui->actionRequested = 5; ui->state = STATE_SELF_TEST; ui->selfTestDone = false; }
+    else if (selItem.startsWith("[ FACTORY RESET ]") && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_RESET; }
+    else if (selItem.startsWith("[ EXPORT CONFIG ]") && ui->devRiskAccepted) { ui->actionRequested = 2; ui->state = STATE_RADAR_VIEW; }
+    else if (selItem.startsWith("[ IMPORT CONFIG ]") && ui->devRiskAccepted) { ui->state = STATE_IMPORTING; }
+    else if (selItem.startsWith("[ VIEW WIFI PASS ]") && ui->devRiskAccepted) {
         ui->currentWifiPass = BroadcastServer::getWiFiPassword();
         if (ui->currentWifiPass == "") ui->currentWifiPass = "Not Set";
         ui->state = STATE_VIEW_WIFI;
     }
-    else if (String(ui->currentMenuItems[ui->menuSelection]).startsWith("[ REGEN WIFI PASS ]") && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_WIFI_GEN; }
+    else if (selItem.startsWith("[ REGEN WIFI PASS ]") && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_WIFI_GEN; }
     else { ui->state = STATE_MENU_EDIT; }
 }
 inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
@@ -1818,10 +1818,6 @@ inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
         if (selItem.startsWith("Motion Comp:")) { ui->motionCompEnabled = !ui->motionCompEnabled; return; }
         if (selItem.startsWith("Passthrough:")) { ui->passthroughMode = !ui->passthroughMode; return; }
         if (selItem.startsWith("Show StdDev:")) { ui->showStdDev = !ui->showStdDev; return; }
-        if (selItem.startsWith("[ FACTORY RESET ]")) {
-            ui->state = STATE_CONFIRM_RESET;
-            return;
-        }
     }
 }
 inline void DevMenuView::populateMenuPage(UIManager* ui, char items[][32], int& numItems) { ui->populateDevMenu(items, numItems); }
