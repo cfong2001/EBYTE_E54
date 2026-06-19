@@ -160,3 +160,7 @@
 ## 2026-06-14 - Prevent Immediate Destructive Action on Menu Selection
 **Learning:** Hardcoded logic paths that trigger a state reset (e.g. `preferences.clear()` and `ESP.restart()`) directly within a menu selection handler block (like `executeMenuEdit`) violate the principle of user intent and bypass any confirmation prompt rendered by the state machine, causing immediate system wiping.
 **Action:** Prevent accidental execution of destructive actions (e.g., factory reset) by separating state transitions from execution. Menu selection should only update the UI state to display a visual confirmation prompt within the render loop, while the actual destructive logic must be deferred to a separate, explicit confirmation event (e.g., a subsequent button press handler).
+
+## 2026-06-19 - [Replace hardcoded colors with theme variables]
+**Learning:** Hardcoded text and component colors (like `TFT_WHITE` or `TFT_DARKGREY`) bypass theme definitions. Rendering hardcoded colors can cause legibility issues when the background color changes through theming.
+**Action:** Always replace hardcoded absolute colors (`TFT_WHITE`, `TFT_DARKGREY`) with dynamic semantic theme variables (`themeBg`, `themePrimary`, `themeDanger`, or a blended version using `sprite.alphaBlend`).
