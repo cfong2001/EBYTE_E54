@@ -584,13 +584,13 @@ public:
             sprite.fillRect(10, 90, 220, 60, pulseColor);
             sprite.setTextColor(themeBg, pulseColor);
             int w1 = sprite.textWidth("CONFIRM WIFI KEY REGEN");
-            sprite.setCursor((240 - w1) / 2, 100);
+            sprite.setCursor((tft.width() - w1) / 2, 100);
             sprite.print("CONFIRM WIFI KEY REGEN");
             int w2 = sprite.textWidth("[PRESS] TO REGEN");
-            sprite.setCursor((240 - w2) / 2, 115);
+            sprite.setCursor((tft.width() - w2) / 2, 115);
             sprite.print("[PRESS] TO REGEN");
             int w3 = sprite.textWidth("[TURN] TO CANCEL");
-            sprite.setCursor((240 - w3) / 2, 130);
+            sprite.setCursor((tft.width() - w3) / 2, 130);
             sprite.print("[TURN] TO CANCEL");
         } else if (state == STATE_IMPORTING) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
@@ -603,11 +603,11 @@ public:
             char buf[32];
             snprintf(buf, sizeof(buf), "WAITING FOR CONFIG%-3s", dotStr);
             int w_dots = sprite.textWidth("WAITING FOR CONFIG...");
-            sprite.setCursor((240 - w_dots) / 2, 110);
+            sprite.setCursor((tft.width() - w_dots) / 2, 110);
             sprite.print(buf);
 
             int w_apply = sprite.textWidth("[PRESS BUTTON TO APPLY]");
-            sprite.setCursor((240 - w_apply) / 2, 125);
+            sprite.setCursor((tft.width() - w_apply) / 2, 125);
             sprite.print("[PRESS BUTTON TO APPLY]");
         } else if (state == STATE_FALLBACK) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
@@ -616,11 +616,11 @@ public:
             sprite.setTextColor(themeBg, pulseColor);
 
             int w1 = sprite.textWidth("NEW CONFIG LOADED");
-            sprite.setCursor((240 - w1) / 2, 100);
+            sprite.setCursor((tft.width() - w1) / 2, 100);
             sprite.print("NEW CONFIG LOADED");
 
             int w2 = sprite.textWidth("PRESS BUTTON TO KEEP");
-            sprite.setCursor((240 - w2) / 2, 115);
+            sprite.setCursor((tft.width() - w2) / 2, 115);
             sprite.print("PRESS BUTTON TO KEEP");
 
             int dots = (millis() / 500) % 4;
@@ -628,7 +628,7 @@ public:
             char buf[32];
             snprintf(buf, sizeof(buf), "OR WAIT TO REVERT%-3s", dotStr);
             int w3 = sprite.textWidth("OR WAIT TO REVERT...");
-            sprite.setCursor((240 - w3) / 2, 130);
+            sprite.setCursor((tft.width() - w3) / 2, 130);
             sprite.print(buf);
         } else if (state == STATE_CONFIRM_RESET) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
@@ -637,15 +637,15 @@ public:
             sprite.setTextColor(themeBg, pulseColor);
 
             int w1 = sprite.textWidth("CONFIRM FACTORY RESET");
-            sprite.setCursor((240 - w1) / 2, 100);
+            sprite.setCursor((tft.width() - w1) / 2, 100);
             sprite.print("CONFIRM FACTORY RESET");
 
             int w2 = sprite.textWidth("[PRESS] TO WIPE");
-            sprite.setCursor((240 - w2) / 2, 115);
+            sprite.setCursor((tft.width() - w2) / 2, 115);
             sprite.print("[PRESS] TO WIPE");
 
             int w3 = sprite.textWidth("[TURN] TO CANCEL");
-            sprite.setCursor((240 - w3) / 2, 130);
+            sprite.setCursor((tft.width() - w3) / 2, 130);
             sprite.print("[TURN] TO CANCEL");
         }
 
@@ -1163,7 +1163,8 @@ public:
         sprite.fillSprite(themeBg);
 
         // Draw Header
-        sprite.fillRect(0, 0, 240, 30, themePrimary);
+        int headerH = (8 * uiTextSize) + 16;
+        sprite.fillRect(0, 0, 240, headerH, themePrimary);
         sprite.setTextColor(themeBg, themePrimary);
         sprite.setTextSize(uiTextSize);
         int titleTw = sprite.textWidth("WIFI AP KEY");
@@ -1171,16 +1172,18 @@ public:
         sprite.print("WIFI AP KEY");
 
         // Draw Subtext
+        int y = headerH + 20;
         sprite.setTextColor(sprite.alphaBlend(150, themePrimary, themeBg), themeBg);
         int subTw = sprite.textWidth("Current Broadcast Key");
-        sprite.setCursor((tft.width() - subTw) / 2, 60);
+        sprite.setCursor((tft.width() - subTw) / 2, y);
         sprite.print("Current Broadcast Key");
 
         // Draw Key Frame
+        y += (8 * uiTextSize) + 20;
         int boxW = 200;
         int boxH = 50;
         int boxX = (tft.width() - boxW) / 2;
-        int boxY = 90;
+        int boxY = y;
         sprite.fillRoundRect(boxX, boxY, boxW, boxH, 8, sprite.alphaBlend(40, themePrimary, themeBg));
         sprite.drawRoundRect(boxX, boxY, boxW, boxH, 8, themePrimary);
 
@@ -1193,9 +1196,10 @@ public:
         sprite.setTextSize(uiTextSize);
 
         // Draw Footer
+        y += boxH + 60;
         sprite.setTextColor(themeWarning, themeBg);
         int footTw = sprite.textWidth("Click or Turn to Exit");
-        sprite.setCursor((tft.width() - footTw) / 2, 280);
+        sprite.setCursor((tft.width() - footTw) / 2, y);
         sprite.print("Click or Turn to Exit");
 
         sprite.pushSprite(0, 0);
@@ -1205,46 +1209,59 @@ public:
         sprite.fillSprite(themeBg);
         sprite.setTextColor(themeText, themeBg);
         sprite.setTextSize(uiTextSize);
-        sprite.setCursor(10, 10);
+
+        int titleW = sprite.textWidth("--- SELF TEST ---");
+        sprite.setCursor((tft.width() - titleW) / 2, 10);
         sprite.print("--- SELF TEST ---");
 
-        sprite.setCursor(10, 40);
+        int y = 10 + (8 * uiTextSize) + 20;
+
         if (!selfTestDone) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, activeTheme.warning, activeTheme.bg);
-            sprite.fillRect(10, 40, 220, 40, pulseColor);
+
+            int boxH = (8 * uiTextSize) + 24;
+            sprite.fillRect(10, y, 220, boxH, pulseColor);
             sprite.setTextColor(activeTheme.bg, pulseColor);
-            sprite.setCursor(20, 55);
+
+            int maxW = sprite.textWidth("RUNNING TESTS...");
+            sprite.setCursor((tft.width() - maxW) / 2, y + 12);
 
             int dots = (millis() / 500) % 4;
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
             sprite.printf("RUNNING TESTS%-3s", dotStr);
         } else {
+            int lineSpacing = (8 * uiTextSize) + 8;
+
+            int w1 = sprite.textWidth("Wiring / RX Check:");
+            sprite.setCursor((tft.width() - w1) / 2, y);
             sprite.print("Wiring / RX Check:");
-            sprite.setCursor(10, 60);
-            if (selfTestRxOk) {
-                sprite.setTextColor(themeSuccess, themeBg);
-                sprite.print("PASS: RX is HIGH");
-            } else {
-                sprite.setTextColor(themeDanger, themeBg);
-                sprite.print("FAIL: RX is LOW");
-            }
+            y += lineSpacing;
+
+            const char* rxMsg = selfTestRxOk ? "PASS: RX is HIGH" : "FAIL: RX is LOW";
+            int w2 = sprite.textWidth(rxMsg);
+            sprite.setCursor((tft.width() - w2) / 2, y);
+            sprite.setTextColor(selfTestRxOk ? themeSuccess : themeDanger, themeBg);
+            sprite.print(rxMsg);
+            y += lineSpacing + 8;
 
             sprite.setTextColor(themeText, themeBg);
-            sprite.setCursor(10, 80);
+            int w3 = sprite.textWidth("Software Logic Check:");
+            sprite.setCursor((tft.width() - w3) / 2, y);
             sprite.print("Software Logic Check:");
-            sprite.setCursor(10, 100);
-            if (selfTestSoftwareOk) {
-                sprite.setTextColor(themeSuccess, themeBg);
-                sprite.print("PASS: Tests passed");
-            } else {
-                sprite.setTextColor(themeDanger, themeBg);
-                sprite.print("FAIL: Tests failed");
-            }
+            y += lineSpacing;
+
+            const char* swMsg = selfTestSoftwareOk ? "PASS: Tests passed" : "FAIL: Tests failed";
+            int w4 = sprite.textWidth(swMsg);
+            sprite.setCursor((tft.width() - w4) / 2, y);
+            sprite.setTextColor(selfTestSoftwareOk ? themeSuccess : themeDanger, themeBg);
+            sprite.print(swMsg);
+            y += lineSpacing + 20;
         }
 
         sprite.setTextColor(themeWarning, themeBg);
-        sprite.setCursor(10, 140);
+        int exitW = sprite.textWidth("Click to exit");
+        sprite.setCursor((tft.width() - exitW) / 2, (!selfTestDone) ? y + 80 : y);
         sprite.print("Click to exit");
 
         sprite.pushSprite(0, 0);
