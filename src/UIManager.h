@@ -180,7 +180,7 @@ public:
     void updateThemeText() {
         if (theme == THEME_MINIMAL) themeText = 0xC618; // Light Grey
         else if (theme == THEME_ALIEN) themeText = 0x06DD; // themePrimary
-        else themeText = TFT_WHITE;
+        else themeText = themePrimary;
     }
 
     void loadSettings() {
@@ -337,7 +337,8 @@ public:
         } else if (state == STATE_CONFIRM_WIFI_GEN) {
             sprite.fillSprite(themeWarning);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int tw = sprite.textWidth("REGENERATING WIFI PASSWORD...");
+            sprite.setCursor((240 - tw) / 2, 100);
             sprite.print("REGENERATING WIFI PASSWORD...");
             sprite.pushSprite(0, 0);
 
@@ -354,7 +355,8 @@ public:
 
             sprite.fillSprite(themePrimary);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int ptw = sprite.textWidth("NEW PASS: ") + sprite.textWidth(newPass);
+            sprite.setCursor((240 - ptw) / 2, 100);
             sprite.print("NEW PASS: ");
             sprite.print(newPass);
             sprite.pushSprite(0, 0);
