@@ -180,7 +180,7 @@ public:
     void updateThemeText() {
         if (theme == THEME_MINIMAL) themeText = 0xC618; // Light Grey
         else if (theme == THEME_ALIEN) themeText = 0x06DD; // themePrimary
-        else themeText = TFT_WHITE;
+        else themeText = themePrimary;
     }
 
     void loadSettings() {
