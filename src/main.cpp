@@ -171,7 +171,11 @@ void setup() {
     Serial.println("--- RADAR WIRING CHECK ---");
     Serial.printf("Connect Sensor TX -> ESP32 GPIO %d\n", RADAR_RX_PIN);
     Serial.printf("Connect Sensor RX -> ESP32 GPIO %d\n", RADAR_TX_PIN);
+#ifdef RADAR_BAUD
     Serial.printf("Baud Rate: %d\n", RADAR_BAUD);
+#else
+    Serial.printf("Baud Rate: %d\n", 256000);
+#endif
     Serial.println("--------------------------");
 
     // TEST: Disable internal pull-up on RX to see if Radar drives it HIGH
