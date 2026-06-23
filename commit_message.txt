@@ -1,7 +1,11 @@
-🔒 Add missing CORS headers to API routes
+🎨 Palette: Self Test dynamic text centering
 
-🎯 **What:** Fixed a missing CORS header vulnerability in the BroadcastServer API endpoints (/api/data).
+💡 What: Refactored the `drawSelfTestScreen` function to replace absolute X and Y coordinates with dynamic, relative calculations. Text is now measured and horizontally centered using `sprite.textWidth()`. The Y-coordinate offsets advance proportionally based on `uiTextSize` and correctly synchronize across the conditional loading/completed branches to prevent subsequent UI elements from shifting vertically. The loading state text was updated to use a static max-width measurement, preventing horizontal jitter as the dots animate.
 
-⚠️ **Risk:** Without CORS headers (Access-Control-Allow-Origin: *), the radar data served over the ESP32's WiFi AP is vulnerable to Cross-Site Request Forgery (CSRF) or unauthorized data reading by a malicious web page if a user is simultaneously connected to the AP and the broader internet.
+🎯 Why: Hardcoded UI coordinates break legibility and alignment when a user adjusts their accessibility scaling (e.g. increasing text size). Furthermore, calculating dynamic positions incorrectly across state boundaries leads to "jittering" or jumping elements, making the interface feel unpolished and disjointed.
 
-🛡️ **Solution:** Switched from the shorthand request->send(code, type, content) to request->beginResponse() to generate an AsyncWebServerResponse object. This allowed the addition of the Access-Control-Allow-Origin: * header to both the 200 (Success) and 503 (Server Busy) responses before they are sent.
+📸 Before/After:
+Before: Text was left-aligned with hardcoded positions (`sprite.setCursor(10, 40)`). The "Click to exit" text jumped up and down depending on whether the test was running or completed. The "RUNNING TESTS..." string jittered left and right as the dots appended.
+After: All text is precisely center-aligned based on calculated bounds. The layout scales proportionally to `uiTextSize`, and all vertical and horizontal jittering has been eliminated via carefully balanced layout math.
+
+♿ Accessibility: The self-test screen now fully supports variable text scaling (`uiTextSize`) without layout overlaps or truncation, significantly improving readability for vision-impaired users. The removal of rapid screen jitter during the loading animation reduces cognitive load and potential eye strain.
