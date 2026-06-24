@@ -451,10 +451,12 @@ public:
 
         if (guidePage == 0) {
             sprite.print("GUIDE 1/3: TARGETS");
-            sprite.setCursor(10, 40);
+            int yBase = 40;
+            int lineHeight = 8 * uiTextSize + 7;
+            sprite.setCursor(10, yBase);
             sprite.setTextColor(themeText, themeBg);
             sprite.print("The radar tracks up");
-            sprite.setCursor(10, 55);
+            sprite.setCursor(10, yBase + lineHeight);
             sprite.print("to 3 targets at once.");
 
             // Draw dummy targets
@@ -471,19 +473,23 @@ public:
 
         } else if (guidePage == 1) {
             sprite.print("GUIDE 2/3: CONTROLS");
-            sprite.setCursor(10, 40);
+            int yBase = 40;
+            sprite.setCursor(10, yBase);
             sprite.setTextColor(themeText, themeBg);
             sprite.print("Navigate via the dial:");
 
-            sprite.setCursor(20, 80); sprite.print("- TURN: Scroll/Adjust");
-            sprite.setCursor(20, 110); sprite.print("- PRESS: Select/Enter");
-            sprite.setCursor(20, 140); sprite.print("- HOLD: Info Tooltips");
+            int listY = 80;
+            int listLineHeight = 8 * uiTextSize + 22;
+            sprite.setCursor(20, listY); sprite.print("- TURN: Scroll/Adjust");
+            sprite.setCursor(20, listY + listLineHeight); sprite.print("- PRESS: Select/Enter");
+            sprite.setCursor(20, listY + 2 * listLineHeight); sprite.print("- HOLD: Info Tooltips");
 
 
 
         } else if (guidePage == 2) {
             sprite.print("GUIDE 3/3: ZONES");
-            sprite.setCursor(10, 40);
+            int yBase = 40;
+            sprite.setCursor(10, yBase);
             sprite.setTextColor(themeText, themeBg);
             sprite.print("Zones highlight targets.");
 
@@ -493,7 +499,8 @@ public:
             sprite.print("Warning Zone (Amber)");
 
             sprite.drawCircle(tft.width() / 2, tft.height() / 2, 20, themeDanger);
-            sprite.setCursor(10, 100); sprite.setTextColor(themeDanger, themeBg);
+            int listLineHeight = 8 * uiTextSize + 12;
+            sprite.setCursor(10, 80 + listLineHeight); sprite.setTextColor(themeDanger, themeBg);
             sprite.print("Dead Zone (Hidden)");
 
 

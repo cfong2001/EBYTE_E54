@@ -8,6 +8,11 @@
 #include "UIManager.h"
 #include "PerformanceMonitor.h"
 #include "ConfigManager.h"
+
+#ifndef RADAR_BAUD
+#define RADAR_BAUD 256000
+#endif
+
 #include "BroadcastServer.h"
 
 ConfigManager configManager;
