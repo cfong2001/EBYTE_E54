@@ -160,3 +160,6 @@
 ## 2026-06-14 - Prevent Immediate Destructive Action on Menu Selection
 **Learning:** Hardcoded logic paths that trigger a state reset (e.g. `preferences.clear()` and `ESP.restart()`) directly within a menu selection handler block (like `executeMenuEdit`) violate the principle of user intent and bypass any confirmation prompt rendered by the state machine, causing immediate system wiping.
 **Action:** Prevent accidental execution of destructive actions (e.g., factory reset) by separating state transitions from execution. Menu selection should only update the UI state to display a visual confirmation prompt within the render loop, while the actual destructive logic must be deferred to a separate, explicit confirmation event (e.g., a subsequent button press handler).
+## 2024-05-31 - Centering Transient Alert Messages
+**Learning:** Hardcoding coordinates and layout heights for multi-line UI alerts (like `drawSelfTestScreen`) creates inconsistent, broken layouts if dynamic `uiTextSize` is modified.
+**Action:** Use responsive measurement tools like `textWidth()` alongside dynamic spacing formulas relative to font sizes (e.g., `y += (8 * uiTextSize) + 8`) to automatically center elements and adapt layout spacing when screen size and text settings scale.
