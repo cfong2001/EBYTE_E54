@@ -171,6 +171,9 @@ void setup() {
     Serial.println("--- RADAR WIRING CHECK ---");
     Serial.printf("Connect Sensor TX -> ESP32 GPIO %d\n", RADAR_RX_PIN);
     Serial.printf("Connect Sensor RX -> ESP32 GPIO %d\n", RADAR_TX_PIN);
+    #ifndef RADAR_BAUD
+#define RADAR_BAUD 256000
+#endif
     Serial.printf("Baud Rate: %d\n", RADAR_BAUD);
     Serial.println("--------------------------");
 
