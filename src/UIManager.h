@@ -449,53 +449,59 @@ public:
         sprite.setTextSize(uiTextSize);
         sprite.setCursor(10, 10);
 
+        int y = 10 + (8 * uiTextSize) + 22; // Starts at 40 when uiTextSize=1
+
         if (guidePage == 0) {
             sprite.print("GUIDE 1/3: TARGETS");
-            sprite.setCursor(10, 40);
+            sprite.setCursor(10, y);
             sprite.setTextColor(themeText, themeBg);
             sprite.print("The radar tracks up");
-            sprite.setCursor(10, 55);
+            y += (8 * uiTextSize) + 7;
+            sprite.setCursor(10, y);
             sprite.print("to 3 targets at once.");
+            y += (8 * uiTextSize) + 22;
 
             // Draw dummy targets
-            sprite.drawCircle(30, 90, 8, themePrimary);
-            sprite.setCursor(50, 85); sprite.print("Moving target");
+            sprite.drawCircle(30, y + 5, 8, themePrimary);
+            sprite.setCursor(50, y); sprite.print("Moving target");
+            y += (8 * uiTextSize) + 22;
 
-            sprite.drawRect(22, 112, 16, 16, themeWarning);
-            sprite.setCursor(50, 115); sprite.print("Stationary target");
+            sprite.drawRect(22, y - 3, 16, 16, themeWarning);
+            sprite.setCursor(50, y); sprite.print("Stationary target");
+            y += (8 * uiTextSize) + 22;
 
-            sprite.fillTriangle(30, 140, 22, 156, 38, 156, themeSuccess);
-            sprite.setCursor(50, 145); sprite.print("Selected target");
-
-
+            sprite.fillTriangle(30, y - 5, 22, y + 11, 38, y + 11, themeSuccess);
+            sprite.setCursor(50, y); sprite.print("Selected target");
 
         } else if (guidePage == 1) {
             sprite.print("GUIDE 2/3: CONTROLS");
-            sprite.setCursor(10, 40);
+            sprite.setCursor(10, y);
             sprite.setTextColor(themeText, themeBg);
             sprite.print("Navigate via the dial:");
+            y += (8 * uiTextSize) + 32;
 
-            sprite.setCursor(20, 80); sprite.print("- TURN: Scroll/Adjust");
-            sprite.setCursor(20, 110); sprite.print("- PRESS: Select/Enter");
-            sprite.setCursor(20, 140); sprite.print("- HOLD: Info Tooltips");
-
-
+            sprite.setCursor(20, y); sprite.print("- TURN: Scroll/Adjust");
+            y += (8 * uiTextSize) + 22;
+            sprite.setCursor(20, y); sprite.print("- PRESS: Select/Enter");
+            y += (8 * uiTextSize) + 22;
+            sprite.setCursor(20, y); sprite.print("- HOLD: Info Tooltips");
 
         } else if (guidePage == 2) {
             sprite.print("GUIDE 3/3: ZONES");
-            sprite.setCursor(10, 40);
+            sprite.setCursor(10, y);
             sprite.setTextColor(themeText, themeBg);
             sprite.print("Zones highlight targets.");
+            y += (8 * uiTextSize) + 32;
 
             // Draw a mini radar zone
             sprite.drawCircle(tft.width() / 2, tft.height() / 2, 40, themeWarning);
-            sprite.setCursor(10, 80); sprite.setTextColor(themeWarning, themeBg);
+            sprite.setCursor(10, y); sprite.setTextColor(themeWarning, themeBg);
             sprite.print("Warning Zone (Amber)");
+            y += (8 * uiTextSize) + 12;
 
             sprite.drawCircle(tft.width() / 2, tft.height() / 2, 20, themeDanger);
-            sprite.setCursor(10, 100); sprite.setTextColor(themeDanger, themeBg);
+            sprite.setCursor(10, y); sprite.setTextColor(themeDanger, themeBg);
             sprite.print("Dead Zone (Hidden)");
-
 
         }
 
