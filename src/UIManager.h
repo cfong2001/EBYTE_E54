@@ -1208,20 +1208,25 @@ public:
         sprite.setCursor(10, 10);
         sprite.print("--- SELF TEST ---");
 
-        sprite.setCursor(10, 40);
+        int currentY = 40;
+        int lineStep = (8 * uiTextSize) + 12;
+
+        sprite.setCursor(10, currentY);
         if (!selfTestDone) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, activeTheme.warning, activeTheme.bg);
-            sprite.fillRect(10, 40, 220, 40, pulseColor);
+            sprite.fillRect(10, currentY, 220, 40, pulseColor);
             sprite.setTextColor(activeTheme.bg, pulseColor);
-            sprite.setCursor(20, 55);
+            sprite.setCursor(20, currentY + 15);
 
             int dots = (millis() / 500) % 4;
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
             sprite.printf("RUNNING TESTS%-3s", dotStr);
+            currentY += 4 * lineStep;
         } else {
             sprite.print("Wiring / RX Check:");
-            sprite.setCursor(10, 60);
+            currentY += lineStep;
+            sprite.setCursor(10, currentY);
             if (selfTestRxOk) {
                 sprite.setTextColor(themeSuccess, themeBg);
                 sprite.print("PASS: RX is HIGH");
@@ -1230,10 +1235,12 @@ public:
                 sprite.print("FAIL: RX is LOW");
             }
 
+            currentY += lineStep;
             sprite.setTextColor(themeText, themeBg);
-            sprite.setCursor(10, 80);
+            sprite.setCursor(10, currentY);
             sprite.print("Software Logic Check:");
-            sprite.setCursor(10, 100);
+            currentY += lineStep;
+            sprite.setCursor(10, currentY);
             if (selfTestSoftwareOk) {
                 sprite.setTextColor(themeSuccess, themeBg);
                 sprite.print("PASS: Tests passed");
@@ -1241,10 +1248,11 @@ public:
                 sprite.setTextColor(themeDanger, themeBg);
                 sprite.print("FAIL: Tests failed");
             }
+            currentY += lineStep;
         }
 
         sprite.setTextColor(themeWarning, themeBg);
-        sprite.setCursor(10, 140);
+        sprite.setCursor(10, currentY);
         sprite.print("Click to exit");
 
         sprite.pushSprite(0, 0);
@@ -1576,7 +1584,7 @@ public:
         sprite.setTextSize(uiTextSize);
         sprite.setCursor(15, 145);
         sprite.print("INFO: ");
-        sprite.setCursor(15, 160);
+        sprite.setCursor(15, 145 + (8 * uiTextSize) + 7);
 
         String selItem = String(selectedItemText);
         const char* tooltipText = "Adjust setting value."; // Default fallback
