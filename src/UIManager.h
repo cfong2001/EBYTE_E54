@@ -1578,11 +1578,11 @@ public:
         sprite.print("INFO: ");
         sprite.setCursor(15, 160);
 
-        String selItem = String(selectedItemText);
+        const char* selItem = selectedItemText;
         const char* tooltipText = "Adjust setting value."; // Default fallback
 
         for (const auto& mapping : tooltips) {
-            if (selItem.startsWith(mapping.prefix)) {
+            if (strncmp(selItem, mapping.prefix, strlen(mapping.prefix)) == 0) {
                 tooltipText = mapping.text;
                 break;
             }
@@ -1679,25 +1679,25 @@ public:
 
 
 inline void MainMenuView::handleMenuClick(UIManager* ui) {
-    String selItem = String(ui->currentMenuItems[ui->menuSelection]);
-    if (selItem.startsWith("VISUAL SETTINGS") || selItem.startsWith("  [DISPLAY/HUD]")) { ui->activePage = PAGE_VISUALS; ui->menuSelection = 0; }
-    else if (selItem.startsWith("ZONE CONFIG") || selItem.startsWith("  [BOUNDARIES]")) { ui->activePage = PAGE_ZONES; ui->menuSelection = 0; }
-    else if (selItem.startsWith("TARGET DATA") || selItem.startsWith("  [GAIN/FILTER]")) { ui->activePage = PAGE_DATA; ui->menuSelection = 0; }
-    else if (selItem.startsWith("DEV OPTIONS")) { ui->activePage = PAGE_DEV; ui->menuSelection = 0; }
-    else if (selItem.startsWith("USER GUIDE")) { ui->state = STATE_GUIDE; ui->guidePage = 0; }
-    else if (selItem.startsWith("[ Exit Menu ]")) { ui->state = STATE_RADAR_VIEW; }
+    const char* selItem = ui->currentMenuItems[ui->menuSelection];
+    if (strncmp(selItem, "VISUAL SETTINGS", strlen("VISUAL SETTINGS")) == 0 || strncmp(selItem, "  [DISPLAY/HUD]", strlen("  [DISPLAY/HUD]")) == 0) { ui->activePage = PAGE_VISUALS; ui->menuSelection = 0; }
+    else if (strncmp(selItem, "ZONE CONFIG", strlen("ZONE CONFIG")) == 0 || strncmp(selItem, "  [BOUNDARIES]", strlen("  [BOUNDARIES]")) == 0) { ui->activePage = PAGE_ZONES; ui->menuSelection = 0; }
+    else if (strncmp(selItem, "TARGET DATA", strlen("TARGET DATA")) == 0 || strncmp(selItem, "  [GAIN/FILTER]", strlen("  [GAIN/FILTER]")) == 0) { ui->activePage = PAGE_DATA; ui->menuSelection = 0; }
+    else if (strncmp(selItem, "DEV OPTIONS", strlen("DEV OPTIONS")) == 0) { ui->activePage = PAGE_DEV; ui->menuSelection = 0; }
+    else if (strncmp(selItem, "USER GUIDE", strlen("USER GUIDE")) == 0) { ui->state = STATE_GUIDE; ui->guidePage = 0; }
+    else if (strncmp(selItem, "[ Exit Menu ]", strlen("[ Exit Menu ]")) == 0) { ui->state = STATE_RADAR_VIEW; }
 }
 inline void MainMenuView::executeMenuEdit(UIManager* ui, int dir) {}
 inline void MainMenuView::populateMenuPage(UIManager* ui, char items[][32], int& numItems) { ui->populateMainMenu(items, numItems); }
 
 inline void VisualsMenuView::handleMenuClick(UIManager* ui) {
-    String selItem = String(ui->currentMenuItems[ui->menuSelection]);
-    if (selItem.startsWith("<- Back")) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
+    const char* selItem = ui->currentMenuItems[ui->menuSelection];
+    if (strncmp(selItem, "<- Back", strlen("<- Back")) == 0) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
     else { ui->state = STATE_MENU_EDIT; }
 }
 inline void VisualsMenuView::executeMenuEdit(UIManager* ui, int dir) {
-    String selItem = String(ui->currentMenuItems[ui->menuSelection]);
-    if (selItem.startsWith("Theme:")) {
+    const char* selItem = ui->currentMenuItems[ui->menuSelection];
+    if (strncmp(selItem, "Theme:", strlen("Theme:")) == 0) {
         int t = (int)ui->theme + dir;
         if (t > 2) t = 0; if (t < 0) t = 2;
         ui->theme = (ThemeStyle)t;
@@ -1707,30 +1707,30 @@ inline void VisualsMenuView::executeMenuEdit(UIManager* ui, int dir) {
         else { ui->sweepLineEnabled = true; ui->trailLength = 3; ui->gridEnabled = true; }
         return;
     }
-    if (selItem.startsWith("Icon:")) {
+    if (strncmp(selItem, "Icon:", strlen("Icon:")) == 0) {
         int ic = (int)ui->targetIcon + dir;
         if (ic > 3) ic = 0; if (ic < 0) ic = 3;
         ui->targetIcon = (TargetIcon)ic;
         return;
     }
-    if (selItem.startsWith("Text Size:")) { ui->uiTextSize += dir; if (ui->uiTextSize < 1) ui->uiTextSize = 1; if (ui->uiTextSize > 2) ui->uiTextSize = 2; return; }
-    if (selItem.startsWith("UI Scale:")) { ui->uiScale += dir * 0.1f; if (ui->uiScale < 0.5f) ui->uiScale = 0.5f; if (ui->uiScale > 2.0f) ui->uiScale = 2.0f; return; }
-    if (selItem.startsWith("Sweep Line:")) { ui->sweepLineEnabled = !ui->sweepLineEnabled; return; }
-    if (selItem.startsWith("Sweep Mode:")) { ui->simulatedSweep = !ui->simulatedSweep; return; }
-    if (selItem.startsWith("Trails:")) { ui->trailLength += dir; if (ui->trailLength < 0) ui->trailLength = 0; if (ui->trailLength > 10) ui->trailLength = 10; return; }
-    if (selItem.startsWith("Grid:")) { ui->gridEnabled = !ui->gridEnabled; return; }
-    if (selItem.startsWith("Boot Anim:")) { ui->startupAnimEnabled = !ui->startupAnimEnabled; return; }
+    if (strncmp(selItem, "Text Size:", strlen("Text Size:")) == 0) { ui->uiTextSize += dir; if (ui->uiTextSize < 1) ui->uiTextSize = 1; if (ui->uiTextSize > 2) ui->uiTextSize = 2; return; }
+    if (strncmp(selItem, "UI Scale:", strlen("UI Scale:")) == 0) { ui->uiScale += dir * 0.1f; if (ui->uiScale < 0.5f) ui->uiScale = 0.5f; if (ui->uiScale > 2.0f) ui->uiScale = 2.0f; return; }
+    if (strncmp(selItem, "Sweep Line:", strlen("Sweep Line:")) == 0) { ui->sweepLineEnabled = !ui->sweepLineEnabled; return; }
+    if (strncmp(selItem, "Sweep Mode:", strlen("Sweep Mode:")) == 0) { ui->simulatedSweep = !ui->simulatedSweep; return; }
+    if (strncmp(selItem, "Trails:", strlen("Trails:")) == 0) { ui->trailLength += dir; if (ui->trailLength < 0) ui->trailLength = 0; if (ui->trailLength > 10) ui->trailLength = 10; return; }
+    if (strncmp(selItem, "Grid:", strlen("Grid:")) == 0) { ui->gridEnabled = !ui->gridEnabled; return; }
+    if (strncmp(selItem, "Boot Anim:", strlen("Boot Anim:")) == 0) { ui->startupAnimEnabled = !ui->startupAnimEnabled; return; }
 }
 inline void VisualsMenuView::populateMenuPage(UIManager* ui, char items[][32], int& numItems) { ui->populateVisualsMenu(items, numItems); }
 
 inline void ZonesMenuView::handleMenuClick(UIManager* ui) {
-    String selItem = String(ui->currentMenuItems[ui->menuSelection]);
-    if (selItem.startsWith("<- Back")) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
+    const char* selItem = ui->currentMenuItems[ui->menuSelection];
+    if (strncmp(selItem, "<- Back", strlen("<- Back")) == 0) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
     else { ui->state = STATE_MENU_EDIT; }
 }
 inline void ZonesMenuView::executeMenuEdit(UIManager* ui, int dir) {
-    String selItem = String(ui->currentMenuItems[ui->menuSelection]);
-    if (selItem.startsWith("Warn Zone:")) {
+    const char* selItem = ui->currentMenuItems[ui->menuSelection];
+    if (strncmp(selItem, "Warn Zone:", strlen("Warn Zone:")) == 0) {
         int p = (int)ui->zoneManager.getWarnPreset() + dir;
         if (p > 4) p = 0; if (p < 0) p = 4;
         ui->zoneManager.setWarnPreset((ZonePreset)p);
@@ -1738,24 +1738,24 @@ inline void ZonesMenuView::executeMenuEdit(UIManager* ui, int dir) {
     }
     if (ui->zoneManager.getWarnPreset() == ZONE_CUSTOM) {
         RadialZone z = ui->zoneManager.getWarnCustom();
-        if (selItem.startsWith(" W-MinD:")) { z.minDist += dir * 100; if(z.minDist < 0) z.minDist=0; ui->zoneManager.setWarnCustom(z); return; }
-        if (selItem.startsWith(" W-MaxD:")) { z.maxDist += dir * 100; if(z.maxDist < z.minDist) z.maxDist=z.minDist; ui->zoneManager.setWarnCustom(z); return; }
-        if (selItem.startsWith(" W-MinA:")) { z.minAngle += dir * 5; if(z.minAngle < -90) z.minAngle=-90; ui->zoneManager.setWarnCustom(z); return; }
-        if (selItem.startsWith(" W-MaxA:")) { z.maxAngle += dir * 5; if(z.maxAngle > 90) z.maxAngle=90; ui->zoneManager.setWarnCustom(z); return; }
+        if (strncmp(selItem, " W-MinD:", strlen(" W-MinD:")) == 0) { z.minDist += dir * 100; if(z.minDist < 0) z.minDist=0; ui->zoneManager.setWarnCustom(z); return; }
+        if (strncmp(selItem, " W-MaxD:", strlen(" W-MaxD:")) == 0) { z.maxDist += dir * 100; if(z.maxDist < z.minDist) z.maxDist=z.minDist; ui->zoneManager.setWarnCustom(z); return; }
+        if (strncmp(selItem, " W-MinA:", strlen(" W-MinA:")) == 0) { z.minAngle += dir * 5; if(z.minAngle < -90) z.minAngle=-90; ui->zoneManager.setWarnCustom(z); return; }
+        if (strncmp(selItem, " W-MaxA:", strlen(" W-MaxA:")) == 0) { z.maxAngle += dir * 5; if(z.maxAngle > 90) z.maxAngle=90; ui->zoneManager.setWarnCustom(z); return; }
     }
     if (ui->zoneManager.getWarnPreset() != ZONE_OFF) {
-        if (selItem.startsWith("Warn Fuzz:")) {
+        if (strncmp(selItem, "Warn Fuzz:", strlen("Warn Fuzz:")) == 0) {
             int f = ui->zoneManager.getFuzzingThreshold() + dir * 5;
             if (f < 0) f = 0; if (f > 100) f = 100;
             ui->zoneManager.setFuzzingThreshold(f);
             return;
         }
-        if (selItem.startsWith("Warn Time:")) {
+        if (strncmp(selItem, "Warn Time:", strlen("Warn Time:")) == 0) {
             ui->zoneManager.setHistoryWindow(ui->zoneManager.getHistoryWindow() + dir);
             return;
         }
     }
-    if (selItem.startsWith("Dead Zone:")) {
+    if (strncmp(selItem, "Dead Zone:", strlen("Dead Zone:")) == 0) {
         int p = (int)ui->zoneManager.getDeadPreset() + dir;
         if (p > 4) p = 0; if (p < 0) p = 4;
         ui->zoneManager.setDeadPreset((ZonePreset)p);
@@ -1763,31 +1763,31 @@ inline void ZonesMenuView::executeMenuEdit(UIManager* ui, int dir) {
     }
     if (ui->zoneManager.getDeadPreset() == ZONE_CUSTOM) {
         RadialZone z = ui->zoneManager.getDeadCustom();
-        if (selItem.startsWith(" D-MinD:")) { z.minDist += dir * 100; if(z.minDist < 0) z.minDist=0; ui->zoneManager.setDeadCustom(z); return; }
-        if (selItem.startsWith(" D-MaxD:")) { z.maxDist += dir * 100; if(z.maxDist < z.minDist) z.maxDist=z.minDist; ui->zoneManager.setDeadCustom(z); return; }
-        if (selItem.startsWith(" D-MinA:")) { z.minAngle += dir * 5; if(z.minAngle < -90) z.minAngle=-90; ui->zoneManager.setDeadCustom(z); return; }
-        if (selItem.startsWith(" D-MaxA:")) { z.maxAngle += dir * 5; if(z.maxAngle > 90) z.maxAngle=90; ui->zoneManager.setDeadCustom(z); return; }
+        if (strncmp(selItem, " D-MinD:", strlen(" D-MinD:")) == 0) { z.minDist += dir * 100; if(z.minDist < 0) z.minDist=0; ui->zoneManager.setDeadCustom(z); return; }
+        if (strncmp(selItem, " D-MaxD:", strlen(" D-MaxD:")) == 0) { z.maxDist += dir * 100; if(z.maxDist < z.minDist) z.maxDist=z.minDist; ui->zoneManager.setDeadCustom(z); return; }
+        if (strncmp(selItem, " D-MinA:", strlen(" D-MinA:")) == 0) { z.minAngle += dir * 5; if(z.minAngle < -90) z.minAngle=-90; ui->zoneManager.setDeadCustom(z); return; }
+        if (strncmp(selItem, " D-MaxA:", strlen(" D-MaxA:")) == 0) { z.maxAngle += dir * 5; if(z.maxAngle > 90) z.maxAngle=90; ui->zoneManager.setDeadCustom(z); return; }
     }
 }
 inline void ZonesMenuView::populateMenuPage(UIManager* ui, char items[][32], int& numItems) { ui->populateZonesMenu(items, numItems); }
 
 inline void DataMenuView::handleMenuClick(UIManager* ui) {
-    String selItem = String(ui->currentMenuItems[ui->menuSelection]);
-    if (selItem.startsWith("<- Back")) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
-    else if (selItem.startsWith("[ Reset Tracking ]")) { ui->actionRequested = 1; ui->state = STATE_RADAR_VIEW; }
+    const char* selItem = ui->currentMenuItems[ui->menuSelection];
+    if (strncmp(selItem, "<- Back", strlen("<- Back")) == 0) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
+    else if (strncmp(selItem, "[ Reset Tracking ]", strlen("[ Reset Tracking ]")) == 0) { ui->actionRequested = 1; ui->state = STATE_RADAR_VIEW; }
     else { ui->state = STATE_MENU_EDIT; }
 }
 inline void DataMenuView::executeMenuEdit(UIManager* ui, int dir) {
-    String selItem = String(ui->currentMenuItems[ui->menuSelection]);
-    if (selItem.startsWith("Telemetry:")) {
+    const char* selItem = ui->currentMenuItems[ui->menuSelection];
+    if (strncmp(selItem, "Telemetry:", strlen("Telemetry:")) == 0) {
         int tm = (int)ui->telemetryMode + dir;
         if (tm > 4) tm = 0; if (tm < 0) tm = 4;
         ui->telemetryMode = (TelemetryMode)tm;
         return;
     }
-    if (selItem.startsWith("Sensitivity:")) { ui->sensitivity += dir; if (ui->sensitivity < 1) ui->sensitivity = 10; if (ui->sensitivity > 10) ui->sensitivity = 10; return; }
-    if (selItem.startsWith("Loc Avg:")) { ui->locationAveraging += dir; if (ui->locationAveraging < 1) ui->locationAveraging = 1; if (ui->locationAveraging > 10) ui->locationAveraging = 10; return; }
-    if (selItem.startsWith("Smoothing:")) {
+    if (strncmp(selItem, "Sensitivity:", strlen("Sensitivity:")) == 0) { ui->sensitivity += dir; if (ui->sensitivity < 1) ui->sensitivity = 10; if (ui->sensitivity > 10) ui->sensitivity = 10; return; }
+    if (strncmp(selItem, "Loc Avg:", strlen("Loc Avg:")) == 0) { ui->locationAveraging += dir; if (ui->locationAveraging < 1) ui->locationAveraging = 1; if (ui->locationAveraging > 10) ui->locationAveraging = 10; return; }
+    if (strncmp(selItem, "Smoothing:", strlen("Smoothing:")) == 0) {
         ui->interpolationAmount += (dir * 0.1f);
         if (ui->interpolationAmount < 0.1f) ui->interpolationAmount = 0.1f;
         if (ui->interpolationAmount > 1.05f) ui->interpolationAmount = 1.0f;
@@ -1797,7 +1797,7 @@ inline void DataMenuView::executeMenuEdit(UIManager* ui, int dir) {
 inline void DataMenuView::populateMenuPage(UIManager* ui, char items[][32], int& numItems) { ui->populateDataMenu(items, numItems); }
 
 inline void DevMenuView::handleMenuClick(UIManager* ui) {
-    String selItem = String(ui->currentMenuItems[ui->menuSelection]);
+    const char* selItem = ui->currentMenuItems[ui->menuSelection];
     if (ui->menuSelection == 0) { ui->activePage = PAGE_MAIN; ui->menuSelection = 0; }
     else if (ui->menuSelection == ui->maxMenuSelection - 5 && ui->devRiskAccepted) { ui->actionRequested = 5; ui->state = STATE_SELF_TEST; ui->selfTestDone = false; }
     else if (ui->menuSelection == ui->maxMenuSelection - 4 && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_RESET; }
@@ -1808,17 +1808,17 @@ inline void DevMenuView::handleMenuClick(UIManager* ui) {
         if (ui->currentWifiPass == "") ui->currentWifiPass = "Not Set";
         ui->state = STATE_VIEW_WIFI;
     }
-    else if (String(ui->currentMenuItems[ui->menuSelection]).startsWith("[ REGEN WIFI PASS ]") && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_WIFI_GEN; }
+    else if (strncmp(ui->currentMenuItems[ui->menuSelection], "[ REGEN WIFI PASS ]", strlen("[ REGEN WIFI PASS ]")) == 0 && ui->devRiskAccepted) { ui->state = STATE_CONFIRM_WIFI_GEN; }
     else { ui->state = STATE_MENU_EDIT; }
 }
 inline void DevMenuView::executeMenuEdit(UIManager* ui, int dir) {
-    String selItem = String(ui->currentMenuItems[ui->menuSelection]);
-    if (selItem.startsWith("Accept Risk?")) { ui->devRiskAccepted = !ui->devRiskAccepted; return; }
+    const char* selItem = ui->currentMenuItems[ui->menuSelection];
+    if (strncmp(selItem, "Accept Risk?", strlen("Accept Risk?")) == 0) { ui->devRiskAccepted = !ui->devRiskAccepted; return; }
     if (ui->devRiskAccepted) {
-        if (selItem.startsWith("Motion Comp:")) { ui->motionCompEnabled = !ui->motionCompEnabled; return; }
-        if (selItem.startsWith("Passthrough:")) { ui->passthroughMode = !ui->passthroughMode; return; }
-        if (selItem.startsWith("Show StdDev:")) { ui->showStdDev = !ui->showStdDev; return; }
-        if (selItem.startsWith("[ FACTORY RESET ]")) {
+        if (strncmp(selItem, "Motion Comp:", strlen("Motion Comp:")) == 0) { ui->motionCompEnabled = !ui->motionCompEnabled; return; }
+        if (strncmp(selItem, "Passthrough:", strlen("Passthrough:")) == 0) { ui->passthroughMode = !ui->passthroughMode; return; }
+        if (strncmp(selItem, "Show StdDev:", strlen("Show StdDev:")) == 0) { ui->showStdDev = !ui->showStdDev; return; }
+        if (strncmp(selItem, "[ FACTORY RESET ]", strlen("[ FACTORY RESET ]")) == 0) {
             ui->state = STATE_CONFIRM_RESET;
             return;
         }
