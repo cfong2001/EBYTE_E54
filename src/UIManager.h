@@ -1259,11 +1259,13 @@ public:
 
         uint16_t gridColor = (theme == THEME_ALIEN) ? themePrimary : themePrimary;
 
-        // Hoist trigonometry out of radial rendering loops
+        // Replace iterative trigonometry with fixed vector rotation
+        constexpr float rotCos = 0.996194698f; // cos(5 deg)
+        constexpr float rotSin = 0.087155742f; // sin(5 deg)
+        float cosA = -1.0f; // cos(-180)
+        float sinA = 0.0f;  // sin(-180)
+
         for (int a = -180; a <= 180; a += 5) {
-            float rad = a * 0.0174533f;
-            float cosA = cosf(rad);
-            float sinA = sinf(rad);
             for (int r = 60; r <= 180; r += 60) {
                 if (maxR >= r) {
                     int sweepDeg = ((maxR - r) * 180) / 30;
@@ -1273,6 +1275,10 @@ public:
                     }
                 }
             }
+            float nextCos = cosA * rotCos - sinA * rotSin;
+            float nextSin = sinA * rotCos + cosA * rotSin;
+            cosA = nextCos;
+            sinA = nextSin;
         }
 
         if (maxR > 0) {
@@ -1361,14 +1367,20 @@ public:
                 sprite.drawRect((tft.width() / 2) - r, (tft.width() / 2) - r, r * 2, r * 2, sprite.alphaBlend(50, themePrimary, themeBg));
             }
             if (theme == THEME_ALIEN) {
-                // Hoist trigonometry out of radial rendering loops
+                // Replace iterative trigonometry with fixed vector rotation
+                constexpr float rotCos = 0.996194698f; // cos(5 deg)
+                constexpr float rotSin = 0.087155742f; // sin(5 deg)
+                float cosA = -1.0f; // cos(-180)
+                float sinA = 0.0f;  // sin(-180)
+
                 for (int a=0; a<=180; a+=5) {
-                    float rad = (a - 180) * 0.0174533f;
-                    float cosA = cosf(rad);
-                    float sinA = sinf(rad);
                     for (int r=60; r<=180; r+=60) {
                         sprite.drawPixel((tft.width() / 2) + r * cosA, tft.width() + r * sinA, gridColor);
                     }
+                    float nextCos = cosA * rotCos - sinA * rotSin;
+                    float nextSin = sinA * rotCos + cosA * rotSin;
+                    cosA = nextCos;
+                    sinA = nextSin;
                 }
             } else {
                 sprite.drawRect(60, 180, tft.width() / 2, tft.width() / 2, gridColor);
