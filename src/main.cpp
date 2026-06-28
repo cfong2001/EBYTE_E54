@@ -42,6 +42,10 @@ SemaphoreHandle_t dataMutex;
                           // GPIO34 is input-only on ESP32 -- external pullup required (module provides it)
 #endif
 
+#ifndef RADAR_BAUD
+#define RADAR_BAUD    256000
+#endif
+
 #ifndef RADAR_RX_PIN
 #define RADAR_RX_PIN 32  // Radar TX -> ESP32 RX
 #endif
