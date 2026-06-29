@@ -45,6 +45,10 @@ SemaphoreHandle_t dataMutex;
 #ifndef RADAR_RX_PIN
 #define RADAR_RX_PIN 32  // Radar TX -> ESP32 RX
 #endif
+#ifndef RADAR_BAUD
+#define RADAR_BAUD 256000
+#endif
+
 #ifndef RADAR_TX_PIN
 #define RADAR_TX_PIN 4   // Radar RX -> ESP32 TX
 #endif
