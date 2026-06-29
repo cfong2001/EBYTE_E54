@@ -10,6 +10,10 @@
 #include "ConfigManager.h"
 #include "BroadcastServer.h"
 
+#ifndef RADAR_BAUD
+#define RADAR_BAUD 256000
+#endif
+
 ConfigManager configManager;
 
 // Hardware instances
