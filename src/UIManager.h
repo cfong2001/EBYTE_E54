@@ -581,71 +581,86 @@ public:
         } else if (state == STATE_CONFIRM_WIFI_GEN) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeWarning, themeBg);
-            sprite.fillRect(10, 90, 220, 60, pulseColor);
+            int lh = 8 * uiTextSize + 4;
+            sprite.fillRect(10, 90, 220, (3 * lh + 20), pulseColor);
             sprite.setTextColor(themeBg, pulseColor);
+            int y = 95;
             int w1 = sprite.textWidth("CONFIRM WIFI KEY REGEN");
-            sprite.setCursor((240 - w1) / 2, 100);
+            sprite.setCursor((240 - w1) / 2, y);
             sprite.print("CONFIRM WIFI KEY REGEN");
+            y += lh;
             int w2 = sprite.textWidth("[PRESS] TO REGEN");
-            sprite.setCursor((240 - w2) / 2, 115);
+            sprite.setCursor((240 - w2) / 2, y);
             sprite.print("[PRESS] TO REGEN");
+            y += lh;
             int w3 = sprite.textWidth("[TURN] TO CANCEL");
-            sprite.setCursor((240 - w3) / 2, 130);
+            sprite.setCursor((240 - w3) / 2, y);
             sprite.print("[TURN] TO CANCEL");
         } else if (state == STATE_IMPORTING) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeWarning, themeBg);
-            sprite.fillRect(10, 100, 220, 40, pulseColor);
+            int lh = 8 * uiTextSize + 4;
+            sprite.fillRect(10, 100, 220, (2 * lh + 20), pulseColor);
             sprite.setTextColor(themeBg, pulseColor);
+            int y = 105;
 
             int dots = (millis() / 500) % 4;
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
             char buf[32];
             snprintf(buf, sizeof(buf), "WAITING FOR CONFIG%-3s", dotStr);
             int w_dots = sprite.textWidth("WAITING FOR CONFIG...");
-            sprite.setCursor((240 - w_dots) / 2, 110);
+            sprite.setCursor((240 - w_dots) / 2, y);
             sprite.print(buf);
+            y += lh;
 
             int w_apply = sprite.textWidth("[PRESS BUTTON TO APPLY]");
-            sprite.setCursor((240 - w_apply) / 2, 125);
+            sprite.setCursor((240 - w_apply) / 2, y);
             sprite.print("[PRESS BUTTON TO APPLY]");
         } else if (state == STATE_FALLBACK) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeDanger, themeBg);
-            sprite.fillRect(10, 90, 220, 60, pulseColor);
+            int lh = 8 * uiTextSize + 4;
+            sprite.fillRect(10, 90, 220, (3 * lh + 20), pulseColor);
             sprite.setTextColor(themeBg, pulseColor);
+            int y = 95;
 
             int w1 = sprite.textWidth("NEW CONFIG LOADED");
-            sprite.setCursor((240 - w1) / 2, 100);
+            sprite.setCursor((240 - w1) / 2, y);
             sprite.print("NEW CONFIG LOADED");
+            y += lh;
 
             int w2 = sprite.textWidth("PRESS BUTTON TO KEEP");
-            sprite.setCursor((240 - w2) / 2, 115);
+            sprite.setCursor((240 - w2) / 2, y);
             sprite.print("PRESS BUTTON TO KEEP");
+            y += lh;
 
             int dots = (millis() / 500) % 4;
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
             char buf[32];
             snprintf(buf, sizeof(buf), "OR WAIT TO REVERT%-3s", dotStr);
             int w3 = sprite.textWidth("OR WAIT TO REVERT...");
-            sprite.setCursor((240 - w3) / 2, 130);
+            sprite.setCursor((240 - w3) / 2, y);
             sprite.print(buf);
         } else if (state == STATE_CONFIRM_RESET) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeDanger, themeBg);
-            sprite.fillRect(10, 90, 220, 60, pulseColor);
+            int lh = 8 * uiTextSize + 4;
+            sprite.fillRect(10, 90, 220, (3 * lh + 20), pulseColor);
             sprite.setTextColor(themeBg, pulseColor);
+            int y = 95;
 
             int w1 = sprite.textWidth("CONFIRM FACTORY RESET");
-            sprite.setCursor((240 - w1) / 2, 100);
+            sprite.setCursor((240 - w1) / 2, y);
             sprite.print("CONFIRM FACTORY RESET");
+            y += lh;
 
             int w2 = sprite.textWidth("[PRESS] TO WIPE");
-            sprite.setCursor((240 - w2) / 2, 115);
+            sprite.setCursor((240 - w2) / 2, y);
             sprite.print("[PRESS] TO WIPE");
+            y += lh;
 
             int w3 = sprite.textWidth("[TURN] TO CANCEL");
-            sprite.setCursor((240 - w3) / 2, 130);
+            sprite.setCursor((240 - w3) / 2, y);
             sprite.print("[TURN] TO CANCEL");
         }
 

@@ -160,3 +160,6 @@
 ## 2026-06-14 - Prevent Immediate Destructive Action on Menu Selection
 **Learning:** Hardcoded logic paths that trigger a state reset (e.g. `preferences.clear()` and `ESP.restart()`) directly within a menu selection handler block (like `executeMenuEdit`) violate the principle of user intent and bypass any confirmation prompt rendered by the state machine, causing immediate system wiping.
 **Action:** Prevent accidental execution of destructive actions (e.g., factory reset) by separating state transitions from execution. Menu selection should only update the UI state to display a visual confirmation prompt within the render loop, while the actual destructive logic must be deferred to a separate, explicit confirmation event (e.g., a subsequent button press handler).
+## 2024-07-01 - Dynamic Y-Offsets for Multi-line Responsive UI
+**Learning:** Hardcoding Y-coordinates (like `100`, `115`, `130`) for multi-line text overlays breaks vertical alignment when accessibility settings like text scale (`uiTextSize`) change, causing text lines to overlap or bunch up.
+**Action:** When calculating vertical layouts for responsive multi-line UI alerts, always calculate line height based on text size (e.g., `int lh = 8 * uiTextSize + 4;`) and increment a dynamic `y` offset variable (e.g., `y += lh;`) for each subsequent text block.

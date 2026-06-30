@@ -25,6 +25,9 @@ UIManager ui(tft);
 SemaphoreHandle_t dataMutex;
 
 // Pins (Adjust as needed for the specific ESP32 board wiring)
+#ifndef RADAR_BAUD
+#define RADAR_BAUD 256000
+#endif
 #ifndef PIN_ENCODER_A
 #define PIN_ENCODER_A 25
 #endif
