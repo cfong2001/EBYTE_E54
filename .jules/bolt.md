@@ -109,3 +109,6 @@
 ## 2026-06-03 - [Reciprocal Multiplication for Float Division in UI Scaling]
 **Learning:** Found multiple instances of floating point division (`/ 5000`) where integer components were cast or promoted to float and divided by a constant to scale radar coordinates to screen coordinates. Even though `5000` is constant, using division operations repeatedly inside target update functions on the ESP32 consumes additional FPU cycles.
 **Action:** Always precalculate the reciprocal for constant division limits (e.g. `1 / 5000.0f = 0.0002f`) and replace the divisions with multiplication (`* 0.0002f`). Use explicit `(float)` casts on integers to ensure pure single-precision float math execution.
+## 2024-06-30 - Replace Arduino String allocation and startsWith in UI Rendering
+**Learning:** Instantiating new Arduino `String` objects from `const char*` just to perform a prefix check via `startsWith()` causes expensive heap allocations and memory fragmentation. In high-frequency UI tasks like rendering tooltips or matching string items, `strncmp` with compile-time calculated `strlen` on string literals is far faster and avoids allocations.
+**Action:** Replace `String::startsWith` patterns with `strncmp(str, literal, strlen(literal)) == 0` for zero-allocation C-style string prefix matching, especially in rendering/UI loops.
