@@ -160,3 +160,6 @@
 ## 2026-06-14 - Prevent Immediate Destructive Action on Menu Selection
 **Learning:** Hardcoded logic paths that trigger a state reset (e.g. `preferences.clear()` and `ESP.restart()`) directly within a menu selection handler block (like `executeMenuEdit`) violate the principle of user intent and bypass any confirmation prompt rendered by the state machine, causing immediate system wiping.
 **Action:** Prevent accidental execution of destructive actions (e.g., factory reset) by separating state transitions from execution. Menu selection should only update the UI state to display a visual confirmation prompt within the render loop, while the actual destructive logic must be deferred to a separate, explicit confirmation event (e.g., a subsequent button press handler).
+## 2026-06-15 - Dynamic Formatting String Centering via Bounds
+**Learning:** Text strings containing animated elements like "..." dynamically alter their horizontal bounding box when they change. Simply placing these coordinates at a static X offset results in text appearing off-center as the suffix animates, degrading the UI aesthetic.
+**Action:** When working with dynamic or animated UI text updates (like `RUNNING TESTS...`), format the static buffer contents completely and compute the bounding box of the maximum possible string length, then dynamically center this computed width.
