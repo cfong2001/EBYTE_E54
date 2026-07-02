@@ -5,6 +5,10 @@
 
 #include "E54_Radar.h"
 #include "MotionCompensation.h"
+
+#ifndef RADAR_BAUD
+#define RADAR_BAUD 256000
+#endif
 #include "UIManager.h"
 #include "PerformanceMonitor.h"
 #include "ConfigManager.h"

@@ -337,7 +337,8 @@ public:
         } else if (state == STATE_CONFIRM_WIFI_GEN) {
             sprite.fillSprite(themeWarning);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
+            int tw1 = sprite.textWidth("REGENERATING WIFI PASSWORD...");
+            sprite.setCursor((240 - tw1) / 2, 100);
             sprite.print("REGENERATING WIFI PASSWORD...");
             sprite.pushSprite(0, 0);
 
@@ -354,9 +355,11 @@ public:
 
             sprite.fillSprite(themePrimary);
             sprite.setTextColor(themeBg);
-            sprite.setCursor(10, 100);
-            sprite.print("NEW PASS: ");
-            sprite.print(newPass);
+            char buf[64];
+            snprintf(buf, sizeof(buf), "NEW PASS: %s", newPass.c_str());
+            int tw2 = sprite.textWidth(buf);
+            sprite.setCursor((240 - tw2) / 2, 100);
+            sprite.print(buf);
             sprite.pushSprite(0, 0);
 
             delay(3000);
