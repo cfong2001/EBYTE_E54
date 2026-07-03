@@ -1570,13 +1570,15 @@ public:
     };
 
     void drawMenuTooltip(const char* selectedItemText) {
-        sprite.fillRect(10, 140, 220, 60, themeBg);
-        sprite.drawRect(10, 140, 220, 60, themeWarning);
+        int lh = 8 * uiTextSize + 6;
+        int boxH = lh * 2 + 16;
+        sprite.fillRect(10, 140, 220, boxH, themeBg);
+        sprite.drawRect(10, 140, 220, boxH, themeWarning);
         sprite.setTextColor(themeText, themeBg);
         sprite.setTextSize(uiTextSize);
-        sprite.setCursor(15, 145);
+        sprite.setCursor(15, 148);
         sprite.print("INFO: ");
-        sprite.setCursor(15, 160);
+        sprite.setCursor(15, 148 + lh);
 
         String selItem = String(selectedItemText);
         const char* tooltipText = "Adjust setting value."; // Default fallback

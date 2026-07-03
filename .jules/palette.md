@@ -160,3 +160,7 @@
 ## 2026-06-14 - Prevent Immediate Destructive Action on Menu Selection
 **Learning:** Hardcoded logic paths that trigger a state reset (e.g. `preferences.clear()` and `ESP.restart()`) directly within a menu selection handler block (like `executeMenuEdit`) violate the principle of user intent and bypass any confirmation prompt rendered by the state machine, causing immediate system wiping.
 **Action:** Prevent accidental execution of destructive actions (e.g., factory reset) by separating state transitions from execution. Menu selection should only update the UI state to display a visual confirmation prompt within the render loop, while the actual destructive logic must be deferred to a separate, explicit confirmation event (e.g., a subsequent button press handler).
+
+## 2024-05-18 - Dynamic UI Scaling for Accessibility
+**Learning:** Hardcoding Y-coordinates or bounding box sizes (e.g. `60`) in text overlays creates overlap and overflow issues when users increase text scaling (`uiTextSize`).
+**Action:** When implementing multi-line text screens or overlays with dynamic text scaling, ensure both the bounding boxes and line offsets calculate heights dynamically using line height multipliers (e.g. `int lh = 8 * uiTextSize + 6; boxH = lh * 2 + 16`).
