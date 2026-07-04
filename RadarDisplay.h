@@ -68,8 +68,12 @@ public:
     _display->setTextColor(SSD1306_WHITE);
     
     if (count == 0) {
-      _display->setCursor(20, 56);
-      _display->print(F("NO TARGETS"));
+      int16_t x1, y1;
+      uint16_t w, h;
+      _display->getTextBounds(F("Waiting..."), 0, 0, &x1, &y1, &w, &h);
+      int startX = (_display->width() - w) / 2;
+      _display->setCursor(startX, 56);
+      _display->print(F("Waiting..."));
     } else {
       // Find closest target
       float minDist = 100.0;
