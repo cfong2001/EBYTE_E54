@@ -1208,20 +1208,24 @@ public:
         sprite.setCursor(10, 10);
         sprite.print("--- SELF TEST ---");
 
-        sprite.setCursor(10, 40);
+        int lh = 8 * uiTextSize + 4;
+        int y = 40;
+
+        sprite.setCursor(10, y);
         if (!selfTestDone) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, activeTheme.warning, activeTheme.bg);
-            sprite.fillRect(10, 40, 220, 40, pulseColor);
+            sprite.fillRect(10, y, 220, lh * 2 + 10, pulseColor);
             sprite.setTextColor(activeTheme.bg, pulseColor);
-            sprite.setCursor(20, 55);
+            sprite.setCursor(20, y + lh / 2);
 
             int dots = (millis() / 500) % 4;
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
             sprite.printf("RUNNING TESTS%-3s", dotStr);
         } else {
             sprite.print("Wiring / RX Check:");
-            sprite.setCursor(10, 60);
+            y += lh;
+            sprite.setCursor(10, y);
             if (selfTestRxOk) {
                 sprite.setTextColor(themeSuccess, themeBg);
                 sprite.print("PASS: RX is HIGH");
@@ -1230,10 +1234,13 @@ public:
                 sprite.print("FAIL: RX is LOW");
             }
 
+            y += lh;
             sprite.setTextColor(themeText, themeBg);
-            sprite.setCursor(10, 80);
+            sprite.setCursor(10, y);
             sprite.print("Software Logic Check:");
-            sprite.setCursor(10, 100);
+
+            y += lh;
+            sprite.setCursor(10, y);
             if (selfTestSoftwareOk) {
                 sprite.setTextColor(themeSuccess, themeBg);
                 sprite.print("PASS: Tests passed");
@@ -1244,7 +1251,7 @@ public:
         }
 
         sprite.setTextColor(themeWarning, themeBg);
-        sprite.setCursor(10, 140);
+        sprite.setCursor(10, 40 + lh * 5); // Anchor to dynamic max height
         sprite.print("Click to exit");
 
         sprite.pushSprite(0, 0);

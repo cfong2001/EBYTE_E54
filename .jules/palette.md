@@ -160,3 +160,7 @@
 ## 2026-06-14 - Prevent Immediate Destructive Action on Menu Selection
 **Learning:** Hardcoded logic paths that trigger a state reset (e.g. `preferences.clear()` and `ESP.restart()`) directly within a menu selection handler block (like `executeMenuEdit`) violate the principle of user intent and bypass any confirmation prompt rendered by the state machine, causing immediate system wiping.
 **Action:** Prevent accidental execution of destructive actions (e.g., factory reset) by separating state transitions from execution. Menu selection should only update the UI state to display a visual confirmation prompt within the render loop, while the actual destructive logic must be deferred to a separate, explicit confirmation event (e.g., a subsequent button press handler).
+
+## 2024-05-18 - Dynamic UI Scaling for Multi-line Text
+**Learning:** Hardcoding Y-coordinates in transient or full-screen UI views causes text cutoff and overlap when accessibility settings like text scaling are modified. Furthermore, static multi-line blocks with fixed heights cause layout jitter when trailing elements are not anchored to a dynamically calculated static point.
+**Action:** Always compute Y offsets iteratively using responsive line heights based on the current font scale (e.g., `lh = 8 * uiTextSize + 4`). For bounding boxes or background rects enclosing multi-line text, scale their heights proportionally. Anchor any state-independent trailing UI elements based on the max possible height to ensure consistent layout and avoid jitter.
