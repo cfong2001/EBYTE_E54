@@ -49,6 +49,10 @@ SemaphoreHandle_t dataMutex;
 #define RADAR_TX_PIN 4   // Radar RX -> ESP32 TX
 #endif
 
+#ifndef RADAR_BAUD
+#define RADAR_BAUD 256000
+#endif
+
 RotaryEncoder encoder(PIN_ENCODER_A, PIN_ENCODER_B, RotaryEncoder::LatchMode::TWO03);
 // Module has 10k hardware pullups on PUSH, A, B, KEY0 -- do NOT enable ESP32 internal pullups (pullupActive=false)
 OneButton button(PIN_BUTTON, true, false);  // PUSH: active-low, external pullup on module

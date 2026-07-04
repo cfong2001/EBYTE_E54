@@ -1259,11 +1259,20 @@ public:
 
         uint16_t gridColor = (theme == THEME_ALIEN) ? themePrimary : themePrimary;
 
-        // Hoist trigonometry out of radial rendering loops
+        // Replace iterative trigonometry with fixed vector rotation
+        // 5 degrees in radians = 0.0872665f
+        // cos(5 deg) ≈ 0.996194698f
+        // sin(5 deg) ≈ 0.087155743f
+        constexpr float rotCos5 = 0.996194698f;
+        constexpr float rotSin5 = 0.087155743f;
+
+        float dirX = -1.0f; // cos(-180 deg)
+        float dirY = 0.0f;  // sin(-180 deg)
+
         for (int a = -180; a <= 180; a += 5) {
-            float rad = a * 0.0174533f;
-            float cosA = cosf(rad);
-            float sinA = sinf(rad);
+            float cosA = dirX;
+            float sinA = dirY;
+
             for (int r = 60; r <= 180; r += 60) {
                 if (maxR >= r) {
                     int sweepDeg = ((maxR - r) * 180) / 30;
@@ -1273,6 +1282,12 @@ public:
                     }
                 }
             }
+
+            // Rotate vector by 5 degrees for next iteration
+            float nextX = dirX * rotCos5 - dirY * rotSin5;
+            float nextY = dirY * rotCos5 + dirX * rotSin5;
+            dirX = nextX;
+            dirY = nextY;
         }
 
         if (maxR > 0) {
@@ -1361,14 +1376,29 @@ public:
                 sprite.drawRect((tft.width() / 2) - r, (tft.width() / 2) - r, r * 2, r * 2, sprite.alphaBlend(50, themePrimary, themeBg));
             }
             if (theme == THEME_ALIEN) {
-                // Hoist trigonometry out of radial rendering loops
+                // Replace iterative trigonometry with fixed vector rotation
+                // 5 degrees in radians = 0.0872665f
+                // cos(5 deg) ≈ 0.996194698f
+                // sin(5 deg) ≈ 0.087155743f
+                constexpr float rotCos5 = 0.996194698f;
+                constexpr float rotSin5 = 0.087155743f;
+
+                float dirX = -1.0f; // cos(-180 deg)
+                float dirY = 0.0f;  // sin(-180 deg)
+
                 for (int a=0; a<=180; a+=5) {
-                    float rad = (a - 180) * 0.0174533f;
-                    float cosA = cosf(rad);
-                    float sinA = sinf(rad);
+                    float cosA = dirX;
+                    float sinA = dirY;
+
                     for (int r=60; r<=180; r+=60) {
                         sprite.drawPixel((tft.width() / 2) + r * cosA, tft.width() + r * sinA, gridColor);
                     }
+
+                    // Rotate vector by 5 degrees for next iteration
+                    float nextX = dirX * rotCos5 - dirY * rotSin5;
+                    float nextY = dirY * rotCos5 + dirX * rotSin5;
+                    dirX = nextX;
+                    dirY = nextY;
                 }
             } else {
                 sprite.drawRect(60, 180, tft.width() / 2, tft.width() / 2, gridColor);
