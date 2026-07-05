@@ -1205,47 +1205,83 @@ public:
         sprite.fillSprite(themeBg);
         sprite.setTextColor(themeText, themeBg);
         sprite.setTextSize(uiTextSize);
-        sprite.setCursor(10, 10);
-        sprite.print("--- SELF TEST ---");
 
-        sprite.setCursor(10, 40);
+        int lh = 8 * uiTextSize + 4;
+        int baseY = 10;
+
+        const char* title = "--- SELF TEST ---";
+        int titleTw = sprite.textWidth(title);
+        sprite.setCursor((tft.width() - titleTw) / 2, baseY);
+        sprite.print(title);
+
+        int yOffset = baseY + lh * 2;
+
         if (!selfTestDone) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, activeTheme.warning, activeTheme.bg);
-            sprite.fillRect(10, 40, 220, 40, pulseColor);
-            sprite.setTextColor(activeTheme.bg, pulseColor);
-            sprite.setCursor(20, 55);
 
+            int maxTw = sprite.textWidth("RUNNING TESTS...");
+            int boxW = maxTw + 20;
+            int boxH = lh + 10;
+            int boxX = (tft.width() - boxW) / 2;
+            sprite.fillRect(boxX, yOffset, boxW, boxH, pulseColor);
+
+            sprite.setTextColor(activeTheme.bg, pulseColor);
             int dots = (millis() / 500) % 4;
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
-            sprite.printf("RUNNING TESTS%-3s", dotStr);
+            char buf[32];
+            snprintf(buf, sizeof(buf), "RUNNING TESTS%-3s", dotStr);
+            // Center based on max string to prevent jitter
+            sprite.setCursor((tft.width() - maxTw) / 2, yOffset + 5);
+            sprite.print(buf);
         } else {
-            sprite.print("Wiring / RX Check:");
-            sprite.setCursor(10, 60);
+            char buf[64];
+
+            const char* hwLbl = "Wiring / RX Check:";
+            int hwLblTw = sprite.textWidth(hwLbl);
+            sprite.setCursor((tft.width() - hwLblTw) / 2, yOffset);
+            sprite.print(hwLbl);
+            yOffset += lh;
+
             if (selfTestRxOk) {
                 sprite.setTextColor(themeSuccess, themeBg);
-                sprite.print("PASS: RX is HIGH");
+                snprintf(buf, sizeof(buf), "PASS: RX is HIGH");
             } else {
                 sprite.setTextColor(themeDanger, themeBg);
-                sprite.print("FAIL: RX is LOW");
+                snprintf(buf, sizeof(buf), "FAIL: RX is LOW");
             }
+            int hwResTw = sprite.textWidth(buf);
+            sprite.setCursor((tft.width() - hwResTw) / 2, yOffset);
+            sprite.print(buf);
+            yOffset += lh * 2;
 
             sprite.setTextColor(themeText, themeBg);
-            sprite.setCursor(10, 80);
-            sprite.print("Software Logic Check:");
-            sprite.setCursor(10, 100);
+            const char* swLbl = "Software Logic Check:";
+            int swLblTw = sprite.textWidth(swLbl);
+            sprite.setCursor((tft.width() - swLblTw) / 2, yOffset);
+            sprite.print(swLbl);
+            yOffset += lh;
+
             if (selfTestSoftwareOk) {
                 sprite.setTextColor(themeSuccess, themeBg);
-                sprite.print("PASS: Tests passed");
+                snprintf(buf, sizeof(buf), "PASS: Tests passed");
             } else {
                 sprite.setTextColor(themeDanger, themeBg);
-                sprite.print("FAIL: Tests failed");
+                snprintf(buf, sizeof(buf), "FAIL: Tests failed");
             }
+            int swResTw = sprite.textWidth(buf);
+            sprite.setCursor((tft.width() - swResTw) / 2, yOffset);
+            sprite.print(buf);
         }
 
+        int maxLines = 6;
+        int footerY = baseY + lh * maxLines + 20;
+
         sprite.setTextColor(themeWarning, themeBg);
-        sprite.setCursor(10, 140);
-        sprite.print("Click to exit");
+        const char* footerText = "Click to exit";
+        int footerTw = sprite.textWidth(footerText);
+        sprite.setCursor((tft.width() - footerTw) / 2, footerY);
+        sprite.print(footerText);
 
         sprite.pushSprite(0, 0);
     }
