@@ -1,3 +1,7 @@
+
+#ifndef RADAR_BAUD
+#define RADAR_BAUD 256000
+#endif
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 #include <RotaryEncoder.h>

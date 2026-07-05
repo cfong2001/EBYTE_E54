@@ -429,6 +429,8 @@ public:
                     rawTargetX[i] = targets[i].x;
                     rawTargetY[i] = targets[i].y;
                     rawTargetSpeed[i] = targets[i].speed;
+                    rawTargetDist[i] = sqrtf((long)targets[i].x * targets[i].x + (long)targets[i].y * targets[i].y) * 0.001f;
+                    rawTargetAngle[i] = (int)(atan2f((float)targets[i].x, (float)targets[i].y) * 57.2957795f);
 
                     if (targetGoalX[i] < 0 || targetGoalX[i] >= 240 || targetGoalY[i] < 0 || targetGoalY[i] >= 320) {
                         targetActive[i] = false;
@@ -714,8 +716,7 @@ public:
                 }
 
                 if (simulatedSweep) {
-                    float targetRad = atan2f(rawTargetX[i], rawTargetY[i]);
-                    int targetDeg = (int)(targetRad * 57.2957795f);
+                    int targetDeg = rawTargetAngle[i];
 
                     int visualAngle = sweepAngle - 90;
 
@@ -1028,19 +1029,15 @@ private:
                 sprite.setCursor(cx + 8, cy - 12);
 
                 if (telemetryMode == TELEMETRY_DIST_ANG) {
-                    float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) * 0.001f;
-                    int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 57.2957795f);
-                    sprite.printf("%.1fm %ddeg", dist_m, angle);
+                    sprite.printf("%.1fm %ddeg", rawTargetDist[i], rawTargetAngle[i]);
                 } else if (telemetryMode == TELEMETRY_VELOCITY) {
                     float speed_ms = (float)rawTargetSpeed[i] * 0.1f;
                     sprite.printf("%.1fm/s", speed_ms);
                 } else if (telemetryMode == TELEMETRY_RAW) {
                     sprite.printf("%dmm,%dmm", rawTargetX[i], rawTargetY[i]);
                 } else if (telemetryMode == TELEMETRY_ALL) {
-                    float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) * 0.001f;
-                    int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 57.2957795f);
                     float speed_ms = (float)rawTargetSpeed[i] * 0.1f;
-                    sprite.printf("T%d %.1fm %ddeg", i+1, dist_m, angle);
+                    sprite.printf("T%d %.1fm %ddeg", i+1, rawTargetDist[i], rawTargetAngle[i]);
                     sprite.setCursor(cx + 8, cy - 2);
                     sprite.printf("%.1fm/s", speed_ms);
                 }
@@ -1139,6 +1136,8 @@ public:
     int16_t rawTargetX[3];
     int16_t rawTargetY[3];
     int16_t rawTargetSpeed[3];
+    float rawTargetDist[3];
+    int rawTargetAngle[3];
 
     float targetCurrentX[3];
     float targetCurrentY[3];
