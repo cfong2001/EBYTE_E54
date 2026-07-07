@@ -109,3 +109,7 @@
 ## 2026-06-03 - [Reciprocal Multiplication for Float Division in UI Scaling]
 **Learning:** Found multiple instances of floating point division (`/ 5000`) where integer components were cast or promoted to float and divided by a constant to scale radar coordinates to screen coordinates. Even though `5000` is constant, using division operations repeatedly inside target update functions on the ESP32 consumes additional FPU cycles.
 **Action:** Always precalculate the reciprocal for constant division limits (e.g. `1 / 5000.0f = 0.0002f`) and replace the divisions with multiplication (`* 0.0002f`). Use explicit `(float)` casts on integers to ensure pure single-precision float math execution.
+
+## 2026-06-10 - Replace String with C-strings for Menu Handlers
+**Learning:** Instantiating `String` objects dynamically inside UI interaction handlers (e.g. `String selItem = String(ui->currentMenuItems[ui->menuSelection])`) and calling `startsWith` causes unnecessary heap allocations and runtime overhead on every menu click or render cycle in the ESP32. Modern compilers optimize `strlen()` on literals, so `strncmp` is much faster.
+**Action:** When comparing menu item text, use `const char*` directly instead of casting to `String`, and replace `.startsWith("literal")` with `strncmp(str, "literal", strlen("literal")) == 0`. This eliminates heap allocations and significantly improves menu responsiveness.
