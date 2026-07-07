@@ -160,3 +160,6 @@
 ## 2026-06-14 - Prevent Immediate Destructive Action on Menu Selection
 **Learning:** Hardcoded logic paths that trigger a state reset (e.g. `preferences.clear()` and `ESP.restart()`) directly within a menu selection handler block (like `executeMenuEdit`) violate the principle of user intent and bypass any confirmation prompt rendered by the state machine, causing immediate system wiping.
 **Action:** Prevent accidental execution of destructive actions (e.g., factory reset) by separating state transitions from execution. Menu selection should only update the UI state to display a visual confirmation prompt within the render loop, while the actual destructive logic must be deferred to a separate, explicit confirmation event (e.g., a subsequent button press handler).
+## 2024-07-07 - Avoid Text Overflow in Dynamic Centering
+**Learning:** When replacing short placeholder text (like "NO TARGETS") with longer, friendlier text (like "Waiting for targets..."), calculating the width dynamically might cause the text to exceed the physical screen width (e.g., 128px), resulting in negative coordinates and clipped text.
+**Action:** Always ensure the updated text fits within the physical dimensions of the target display. Use shorter alternatives (like "Scanning...") or implement text wrapping if a longer string is necessary.
