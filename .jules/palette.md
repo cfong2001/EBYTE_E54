@@ -160,3 +160,6 @@
 ## 2026-06-14 - Prevent Immediate Destructive Action on Menu Selection
 **Learning:** Hardcoded logic paths that trigger a state reset (e.g. `preferences.clear()` and `ESP.restart()`) directly within a menu selection handler block (like `executeMenuEdit`) violate the principle of user intent and bypass any confirmation prompt rendered by the state machine, causing immediate system wiping.
 **Action:** Prevent accidental execution of destructive actions (e.g., factory reset) by separating state transitions from execution. Menu selection should only update the UI state to display a visual confirmation prompt within the render loop, while the actual destructive logic must be deferred to a separate, explicit confirmation event (e.g., a subsequent button press handler).
+## 2026-06-15 - Anchoring Multi-Line Footers Dynamically
+**Learning:** When utilizing dynamic Y-coordinate offsets for responsive multi-line UI layouts, hardcoding a large base offset with dynamic line heights (e.g., `140 + lh * 2`) causes subsequent UI elements (like footers) to jitter vertically or break visual proportionality when text scaling changes.
+**Action:** Always anchor subsequent UI elements based on a dynamically calculated maximum height offset (e.g., `base_y + lh * max_lines`) to ensure consistent, non-jittering spacing regardless of dynamic line height values.

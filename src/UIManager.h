@@ -1205,46 +1205,72 @@ public:
         sprite.fillSprite(themeBg);
         sprite.setTextColor(themeText, themeBg);
         sprite.setTextSize(uiTextSize);
-        sprite.setCursor(10, 10);
+
+        int lh = 8 * uiTextSize;
+        int base_y = 10;
+
+        int title_w = sprite.textWidth("--- SELF TEST ---");
+        sprite.setCursor((240 - title_w) / 2, base_y);
         sprite.print("--- SELF TEST ---");
 
-        sprite.setCursor(10, 40);
         if (!selfTestDone) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
-            uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, activeTheme.warning, activeTheme.bg);
-            sprite.fillRect(10, 40, 220, 40, pulseColor);
-            sprite.setTextColor(activeTheme.bg, pulseColor);
-            sprite.setCursor(20, 55);
+            uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeWarning, themeBg);
+            sprite.fillRect(10, base_y + lh * 2, 220, lh * 2 + 10, pulseColor);
+            sprite.setTextColor(themeBg, pulseColor);
 
             int dots = (millis() / 500) % 4;
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
-            sprite.printf("RUNNING TESTS%-3s", dotStr);
+            char buf[32];
+            snprintf(buf, sizeof(buf), "RUNNING TESTS%-3s", dotStr);
+            int w_dots = sprite.textWidth("RUNNING TESTS...");
+            sprite.setCursor((240 - w_dots) / 2, base_y + lh * 2 + 5);
+            sprite.print(buf);
         } else {
+            int y = base_y + lh * 2;
+
+            int w1 = sprite.textWidth("Wiring / RX Check:");
+            sprite.setCursor((240 - w1) / 2, y);
             sprite.print("Wiring / RX Check:");
-            sprite.setCursor(10, 60);
+            y += lh;
+
             if (selfTestRxOk) {
                 sprite.setTextColor(themeSuccess, themeBg);
+                int w = sprite.textWidth("PASS: RX is HIGH");
+                sprite.setCursor((240 - w) / 2, y);
                 sprite.print("PASS: RX is HIGH");
             } else {
                 sprite.setTextColor(themeDanger, themeBg);
+                int w = sprite.textWidth("FAIL: RX is LOW");
+                sprite.setCursor((240 - w) / 2, y);
                 sprite.print("FAIL: RX is LOW");
             }
+            y += lh + lh; // empty line
 
             sprite.setTextColor(themeText, themeBg);
-            sprite.setCursor(10, 80);
+            int w2 = sprite.textWidth("Software Logic Check:");
+            sprite.setCursor((240 - w2) / 2, y);
             sprite.print("Software Logic Check:");
-            sprite.setCursor(10, 100);
+            y += lh;
+
             if (selfTestSoftwareOk) {
                 sprite.setTextColor(themeSuccess, themeBg);
+                int w = sprite.textWidth("PASS: Tests passed");
+                sprite.setCursor((240 - w) / 2, y);
                 sprite.print("PASS: Tests passed");
             } else {
                 sprite.setTextColor(themeDanger, themeBg);
+                int w = sprite.textWidth("FAIL: Tests failed");
+                sprite.setCursor((240 - w) / 2, y);
                 sprite.print("FAIL: Tests failed");
             }
         }
 
+        int max_lines = 8;
+        int footer_y = base_y + lh * max_lines;
         sprite.setTextColor(themeWarning, themeBg);
-        sprite.setCursor(10, 140);
+        int exit_w = sprite.textWidth("Click to exit");
+        sprite.setCursor((240 - exit_w) / 2, footer_y);
         sprite.print("Click to exit");
 
         sprite.pushSprite(0, 0);
