@@ -29,6 +29,10 @@ SemaphoreHandle_t dataMutex;
 #define PIN_ENCODER_A 25
 #endif
 
+#ifndef RADAR_BAUD
+#define RADAR_BAUD 256000
+#endif
+
 #ifndef PIN_ENCODER_B
 #define PIN_ENCODER_B 26
 #endif
