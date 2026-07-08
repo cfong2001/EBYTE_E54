@@ -180,7 +180,7 @@ public:
     void updateThemeText() {
         if (theme == THEME_MINIMAL) themeText = 0xC618; // Light Grey
         else if (theme == THEME_ALIEN) themeText = 0x06DD; // themePrimary
-        else themeText = TFT_WHITE;
+        else themeText = themePrimary;
     }
 
     void loadSettings() {
@@ -745,7 +745,7 @@ public:
     void drawSweepLine() {
         if (sweepLineEnabled && theme != THEME_MINIMAL) {
             sweepAngle = (sweepAngle + 4) % 180;
-            uint16_t sweepColor = (theme == THEME_ALIEN) ? themePrimary : TFT_DARKGREY;
+            uint16_t sweepColor = (theme == THEME_ALIEN) ? themePrimary : sprite.alphaBlend(128, themePrimary, themeBg);
 
             // Replace per-iteration sinf()/cosf() with fixed vector rotation.
             // Stepping by -2 degrees per iteration.
@@ -1349,7 +1349,7 @@ public:
 
 
     void drawRadarBackground() {
-        uint16_t gridColor = (theme == THEME_ALIEN) ? themePrimary : TFT_DARKGREY;
+        uint16_t gridColor = (theme == THEME_ALIEN) ? themePrimary : sprite.alphaBlend(128, themePrimary, themeBg);
         gridColor = sprite.alphaBlend(80, gridColor, themeBg); // Dimmer lines
         if (gridEnabled) {
             // Tactical crosshair

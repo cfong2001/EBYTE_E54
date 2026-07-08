@@ -160,3 +160,6 @@
 ## 2026-06-14 - Prevent Immediate Destructive Action on Menu Selection
 **Learning:** Hardcoded logic paths that trigger a state reset (e.g. `preferences.clear()` and `ESP.restart()`) directly within a menu selection handler block (like `executeMenuEdit`) violate the principle of user intent and bypass any confirmation prompt rendered by the state machine, causing immediate system wiping.
 **Action:** Prevent accidental execution of destructive actions (e.g., factory reset) by separating state transitions from execution. Menu selection should only update the UI state to display a visual confirmation prompt within the render loop, while the actual destructive logic must be deferred to a separate, explicit confirmation event (e.g., a subsequent button press handler).
+## 2024-05-18 - Replacing hardcoded UI colors with alpha blends
+**Learning:** Hardcoding standard display colors (like `TFT_DARKGREY` or `TFT_WHITE`) for structural UI elements breaks visual cohesion across dynamic themes, leading to unstyled bounding boxes or illegible text on non-standard backgrounds.
+**Action:** Always replace hardcoded absolute colors with dynamically generated shades using the active design system's variables and `sprite.alphaBlend(ratio, fg, bg)` (e.g., `sprite.alphaBlend(128, themePrimary, themeBg)`), ensuring UI elements inherit colors contextually.
