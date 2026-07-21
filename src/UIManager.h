@@ -144,10 +144,12 @@ public:
         simulatedSweep = false;
 
         telemetryMode = TELEMETRY_OFF;
-        sensitivity = 5;
+        sensitivity = 0;
         locationAveraging = 5;
         interpolationAmount = 0.5f;
         actionRequested = 0;
+        currentMaxRangeMeters = 10;
+        lastScaleExpandTime = 0;
 
         sweepAngle = 0;
         menuOverlayY = 0;
@@ -198,7 +200,11 @@ public:
         telemetryMode = (TelemetryMode)preferences.getInt("tData", TELEMETRY_OFF);
         uiTextSize = preferences.getInt("textSize", 1);
         uiScale = preferences.getFloat("uiScale", 1.0f);
-        sensitivity = preferences.getInt("sens", 5);
+        if (!preferences.getBool("sens_set", false)) {
+            sensitivity = 0;
+        } else {
+            sensitivity = preferences.getInt("sens", 0);
+        }
         locationAveraging = preferences.getInt("locAvg", 5);
         interpolationAmount = (float)preferences.getInt("interp", 5) * 0.1f;
         preferences.end();
@@ -218,6 +224,7 @@ public:
         preferences.putInt("tData", telemetryMode);
         preferences.putInt("textSize", uiTextSize);
         preferences.putFloat("uiScale", uiScale);
+        preferences.putBool("sens_set", true);
         preferences.putInt("sens", sensitivity);
         preferences.putInt("locAvg", locationAveraging);
         int interDisp = (int)(interpolationAmount * 10.0f + 0.5f);
@@ -412,19 +419,50 @@ public:
         this->anchorX = anchorX;
         this->anchorY = anchorY;
 
+        // Calculate maximum distance of all active raw targets (in mm)
+        float maxDistMM = 0.0f;
+        for (int i = 0; i < 3; i++) {
+            if (targets[i].active) {
+                float dist = sqrtf((float)targets[i].x * targets[i].x + (float)targets[i].y * targets[i].y);
+                if (dist > maxDistMM) {
+                    maxDistMM = dist;
+                }
+            }
+        }
+
+        // Bound minimum range scale to 10m (10000mm), rounded up to 2m (2000mm) intervals
+        int targetRangeMeters = 10;
+        if (maxDistMM > 10000.0f) {
+            int distM = (int)ceilf(maxDistMM / 1000.0f);
+            if (distM % 2 != 0) distM += 1; // Round up to 2m interval
+            targetRangeMeters = distM;
+        }
+
+        // Smooth range scaling with hysteresis (instantly expand when far target appears, hold 3s before shrinking)
+        if (targetRangeMeters > currentMaxRangeMeters) {
+            currentMaxRangeMeters = targetRangeMeters;
+            lastScaleExpandTime = millis();
+        } else if (targetRangeMeters < currentMaxRangeMeters) {
+            if (millis() - lastScaleExpandTime > 3000) {
+                currentMaxRangeMeters = targetRangeMeters;
+            }
+        }
+
+        // Available vertical radius in pixels: 300px out of 320px
+        float maxRangeMM = currentMaxRangeMeters * 1000.0f;
+        float scalePxPerMm = 300.0f / maxRangeMM;
+
         for (int i = 0; i < 3; i++) {
             targetActive[i] = targets[i].active;
             targetCoasting[i] = targets[i].isCoasting;
 
             if (targets[i].active) {
                 int16_t absSpeed = abs(targets[i].speed);
-                if (absSpeed < sensitivity && sensitivity > 1) {
+                if (sensitivity > 0 && absSpeed < sensitivity) {
                     targetActive[i] = false;
                 } else {
-                    // Optimize: Replace costly division by 5000 with reciprocal multiplication (0.0002f).
-                    // Cast integer components to float to avoid implicit double-precision promotion overhead.
-                    targetGoalX[i] = (tft.width() / 2) + (targets[i].x * (tft.width() / 2.0f) * 0.0002f) * uiScale;
-                    targetGoalY[i] = tft.height() - ((targets[i].y * (float)tft.height() * 0.0002f) * uiScale);
+                    targetGoalX[i] = (tft.width() / 2.0f) + (targets[i].x * scalePxPerMm) * uiScale;
+                    targetGoalY[i] = tft.height() - (targets[i].y * scalePxPerMm) * uiScale;
 
                     rawTargetX[i] = targets[i].x;
                     rawTargetY[i] = targets[i].y;
@@ -1119,6 +1157,8 @@ public:
     int sensitivity;
     int locationAveraging;
     float interpolationAmount;
+    int currentMaxRangeMeters = 10;
+    uint32_t lastScaleExpandTime = 0;
 
     int sweepAngle;
     int actionRequested;
@@ -1349,39 +1389,60 @@ public:
 
 
     void drawRadarBackground() {
-        uint16_t gridColor = (theme == THEME_ALIEN) ? themePrimary : TFT_DARKGREY;
-        gridColor = sprite.alphaBlend(80, gridColor, themeBg); // Dimmer lines
-        if (gridEnabled) {
-            // Tactical crosshair
-            sprite.drawLine(0, tft.width() / 2, tft.width(), tft.width() / 2, gridColor);
-            sprite.drawLine(tft.width() / 2, 16, tft.width() / 2, tft.height() - 16, gridColor); // Avoid drawing over top/bottom bars
+        if (!gridEnabled) return;
 
-            // Faint concentric circles
-            for (int r = 40; r <= 100; r += 30) {
-                sprite.drawRect((tft.width() / 2) - r, (tft.width() / 2) - r, r * 2, r * 2, sprite.alphaBlend(50, themePrimary, themeBg));
-            }
-            if (theme == THEME_ALIEN) {
-                // Hoist trigonometry out of radial rendering loops
-                for (int a=0; a<=180; a+=5) {
-                    float rad = (a - 180) * 0.0174533f;
-                    float cosA = cosf(rad);
-                    float sinA = sinf(rad);
-                    for (int r=60; r<=180; r+=60) {
-                        sprite.drawPixel((tft.width() / 2) + r * cosA, tft.width() + r * sinA, gridColor);
-                    }
-                }
+        int originX = tft.width() / 2;     // 120
+        int originY = tft.height();         // 320
+        float maxRangeMM = currentMaxRangeMeters * 1000.0f;
+        float scalePxPerMm = 300.0f / maxRangeMM;
+
+        uint16_t primaryColor = (theme == THEME_ALIEN) ? themePrimary : TFT_GREEN;
+        uint16_t heavyGridColor = sprite.alphaBlend(150, primaryColor, themeBg); // Heavy stroke (even meters)
+        uint16_t lightGridColor = sprite.alphaBlend(65, primaryColor, themeBg);  // Light stroke (odd meters)
+
+        // 1. Concentric Polar Distance Arcs (1m increments up to currentMaxRangeMeters)
+        for (int m = 1; m <= currentMaxRangeMeters; m++) {
+            int r_px = (int)(m * 1000.0f * scalePxPerMm * uiScale);
+            if (r_px <= 0 || r_px > originY + 50) continue;
+
+            bool isEven = (m % 2 == 0);
+            uint16_t arcColor = isEven ? heavyGridColor : lightGridColor;
+
+            if (isEven) {
+                // Heavy stroke (2-pixel thick concentric arc)
+                sprite.drawCircle(originX, originY, r_px, arcColor);
+                if (r_px > 1) sprite.drawCircle(originX, originY, r_px - 1, arcColor);
+
+                // Distance label on even meters along center vertical axis
+                sprite.setTextColor(sprite.alphaBlend(200, primaryColor, themeBg), themeBg);
+                sprite.setTextSize(1);
+                sprite.setCursor(originX + 4, originY - r_px - 4);
+                sprite.printf("%dm", m);
             } else {
-                sprite.drawRect(60, 180, tft.width() / 2, tft.width() / 2, gridColor);
-                sprite.drawRect(0, tft.width() / 2, tft.width(), tft.width(), gridColor);
-            }
-
-            // Ticks along axes
-            for (int r = 30; r <= 90; r += 30) {
-                sprite.drawLine((tft.width() / 2) - 3, (tft.width() / 2) - r, (tft.width() / 2) + 3, (tft.width() / 2) - r, gridColor); // Vertical axis ticks
-                sprite.drawLine((tft.width() / 2) - r, (tft.width() / 2) - 3, (tft.width() / 2) - r, (tft.width() / 2) + 3, gridColor); // Horizontal axis ticks
-                sprite.drawLine((tft.width() / 2) + r, (tft.width() / 2) - 3, (tft.width() / 2) + r, (tft.width() / 2) + 3, gridColor);
+                // Light stroke (1-pixel concentric arc)
+                sprite.drawCircle(originX, originY, r_px, arcColor);
             }
         }
+
+        // 2. Polar Radial Spoke Rays (-60°, -45°, -30°, 0°, 30°, 45°, 60°)
+        int maxR = (int)(currentMaxRangeMeters * 1000.0f * scalePxPerMm * uiScale);
+
+        // Heavy vertical centerline (0° / 90° straight up)
+        sprite.drawLine(originX, originY, originX, originY - maxR, heavyGridColor);
+
+        int spokeAngles[] = {-60, -45, -30, 30, 45, 60};
+        for (int deg : spokeAngles) {
+            float rad = (deg - 90) * 0.0174532925f;
+            int rx = originX + (int)(maxR * cosf(rad));
+            int ry = originY + (int)(maxR * sinf(rad));
+
+            bool isHeavy = (deg == -45 || deg == 45);
+            uint16_t rayColor = isHeavy ? heavyGridColor : lightGridColor;
+            sprite.drawLine(originX, originY, rx, ry, rayColor);
+        }
+
+        // Heavy baseline across bottom
+        sprite.drawLine(0, originY - 1, tft.width(), originY - 1, heavyGridColor);
     }
 
 

@@ -2,6 +2,7 @@
 #include <cmath>
 #include <cassert>
 #include "E54_Radar.h"
+#include "MotionCompensation.h"
 
 void test_radar_parse_payload_positive_negative() {
     std::cout << "Running test_radar_parse_payload_positive_negative..." << std::endl;
@@ -123,10 +124,131 @@ void test_radar_get_delta_time_sec() {
     std::cout << "  ✓ test_radar_get_delta_time_sec passed" << std::endl;
 }
 
+void encodeValue(int16_t val, uint8_t* out) {
+    uint16_t raw;
+    if (val >= 0) {
+        raw = (val & 0x7FFF) | 0x8000;
+    } else {
+        raw = (-val) & 0x7FFF;
+    }
+    out[0] = raw & 0xFF;
+    out[1] = (raw >> 8) & 0xFF;
+}
+
+void injectFrame(HardwareSerial& serial, E54_Radar& radar, int16_t x1, int16_t y1, int16_t s1, int16_t x2, int16_t y2, int16_t s2, int16_t x3, int16_t y3, int16_t s3, bool active1 = true, bool active2 = true, bool active3 = true) {
+    uint8_t payload[24] = {0};
+    
+    if (active1) {
+        encodeValue(x1, &payload[0]);
+        encodeValue(y1, &payload[2]);
+        encodeValue(s1, &payload[4]);
+        payload[6] = 5; // resolution
+        payload[7] = 0;
+    }
+    if (active2) {
+        encodeValue(x2, &payload[8]);
+        encodeValue(y2, &payload[10]);
+        encodeValue(s2, &payload[12]);
+        payload[14] = 5;
+        payload[15] = 0;
+    }
+    if (active3) {
+        encodeValue(x3, &payload[16]);
+        encodeValue(y3, &payload[18]);
+        encodeValue(s3, &payload[20]);
+        payload[22] = 5;
+        payload[23] = 0;
+    }
+
+    serial.write(0xAA);
+    serial.write(0xFF);
+    serial.write(0x03);
+    serial.write(0x00);
+    serial.write(payload, 24);
+    serial.write(0x55);
+    serial.write(0xCC);
+
+    radar.update();
+}
+
+void test_radar_mock_tracking_system() {
+    std::cout << "Running test_radar_mock_tracking_system..." << std::endl;
+
+    HardwareSerial mockSerial;
+    E54_Radar radar(mockSerial);
+    MotionCompensation mc;
+    mc.init();
+
+    RadarTarget compensated[3];
+
+    // Frame 1: Initialize 3 targets with speed=50 to bypass anchor logic
+    injectFrame(mockSerial, radar, 1000, 2000, 50, 2000, 3000, 50, 3000, 4000, 50);
+    mc.process(0.1f, radar.targets, compensated);
+
+    assert(compensated[0].active == true);
+    assert(compensated[1].active == true);
+    assert(compensated[2].active == true);
+    assert(compensated[0].isCoasting == false);
+    assert(compensated[1].isCoasting == false);
+    assert(compensated[2].isCoasting == false);
+    assert(compensated[0].x == 1000);
+    assert(compensated[1].x == 2000);
+    assert(compensated[2].x == 3000);
+
+    // Frame 2: Move targets slightly
+    injectFrame(mockSerial, radar, 1050, 2050, 50, 2050, 3050, 50, 3050, 4050, 50);
+    mc.process(0.1f, radar.targets, compensated);
+
+    assert(compensated[0].active == true);
+    assert(compensated[1].active == true);
+    assert(compensated[2].active == true);
+
+    // Frame 3: Swap target 1 and target 2 slots in the raw payload
+    injectFrame(mockSerial, radar, 2100, 3100, 50, 1100, 2100, 50, 3100, 4100, 50);
+    mc.process(0.1f, radar.targets, compensated);
+
+    // Assert positions are near target coordinates with 100mm tolerance (accounting for filtering/damping)
+    assert(std::abs(compensated[0].x - 1100) < 100);
+    assert(std::abs(compensated[1].x - 2100) < 100);
+    assert(std::abs(compensated[2].x - 3100) < 100);
+    assert(compensated[0].isCoasting == false);
+    assert(compensated[1].isCoasting == false);
+    assert(compensated[2].isCoasting == false);
+
+    // Frame 4: Simulate a transient dropout for Target 3 (Track 2)
+    injectFrame(mockSerial, radar, 1150, 2150, 50, 2150, 3150, 50, 0, 0, 0, true, true, false);
+    mc.process(0.1f, radar.targets, compensated);
+
+    assert(compensated[0].active == true);
+    assert(compensated[1].active == true);
+    assert(compensated[2].active == true); // Tracker should coast Target 3!
+    assert(compensated[2].isCoasting == true);
+
+    // Frame 5: Re-introducing Target 3 re-acquires it
+    injectFrame(mockSerial, radar, 1200, 2200, 50, 2200, 3200, 50, 3200, 4200, 50);
+    mc.process(0.1f, radar.targets, compensated);
+
+    assert(compensated[2].active == true);
+    assert(compensated[2].isCoasting == false); // Should be re-acquired
+    assert(std::abs(compensated[2].x - 3200) < 100);
+
+    // Dropouts lasting > 10 frames permanently deactivate the track
+    for (int f = 0; f < 11; f++) {
+        injectFrame(mockSerial, radar, 1200 + f*50, 2200 + f*50, 50, 2200 + f*50, 3200 + f*50, 50, 0, 0, 0, true, true, false);
+        mc.process(0.1f, radar.targets, compensated);
+    }
+
+    assert(compensated[2].active == false); // Should be permanently dropped
+    assert(compensated[2].isCoasting == false);
+
+    std::cout << "  ✓ test_radar_mock_tracking_system passed" << std::endl;
+}
+
 void test_radar_all() {
     std::cout << "Testing E54_Radar..." << std::endl;
     test_radar_parse_payload_positive_negative();
     test_radar_parse_payload_empty();
     test_radar_get_delta_time_sec();
+    test_radar_mock_tracking_system();
     std::cout << "All E54_Radar tests passed!\n" << std::endl;
 }

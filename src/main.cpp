@@ -187,22 +187,47 @@ void setup() {
         Serial.println("OK: RX pin is HIGH (Idle). Signal path is active.");
     }
 
-    // Double-Baud Handshake
+    Serial.println("--- INITIALIZING E54 RADAR (ROBUST AUTO-DETECT) ---");
     uint8_t startCmd[] = {0xFD, 0xFC, 0xFB, 0xFA, 0x02, 0x00, 0x90, 0x00, 0x04, 0x03, 0x02, 0x01};
+    int possible_rxs[] = {RADAR_RX_PIN, RADAR_TX_PIN};
+    int detected_rx = -1;
+    int detected_tx = -1;
 
-    Serial.println("Handshake Step 1: 115200 baud...");
-    // Optimization: Increase RX buffer size from default 256 to 1024 to prevent overflow and packet loss at high baud rates (115200+)
-    radarUART.setRxBufferSize(1024);
-    radarUART.begin(115200, SERIAL_8N1, RADAR_RX_PIN, RADAR_TX_PIN);
-    radarUART.write(startCmd, sizeof(startCmd));
-    delay(200);
+    for (int rx : possible_rxs) {
+        int tx = (rx == RADAR_RX_PIN) ? RADAR_TX_PIN : RADAR_RX_PIN;
+        Serial.printf("Trying Command on RX=%d, TX=%d @ 256000\n", rx, tx);
+        radarUART.begin(256000, SERIAL_8N1, rx, tx);
+        while(radarUART.available()) radarUART.read();
+        
+        radarUART.write(startCmd, sizeof(startCmd));
+        radarUART.flush();
+        delay(250);
 
-    Serial.println("Handshake Step 2: 256000 baud...");
-    radarUART.begin(256000, SERIAL_8N1, RADAR_RX_PIN, RADAR_TX_PIN);
-    radarUART.write(startCmd, sizeof(startCmd));
-    delay(200);
+        int count = 0;
+        while(radarUART.available()) {
+            radarUART.read();
+            count++;
+        }
+        Serial.printf("-> Received %d bytes\n", count);
+        if (count > 0) {
+            detected_rx = rx;
+            detected_tx = tx;
+            break;
+        }
+    }
 
-    radar.begin(RADAR_RX_PIN, RADAR_TX_PIN, 256000);
+    if (detected_rx != -1) {
+        Serial.printf(">>> RADAR LOCKED: RX=%d, TX=%d <<<\n", detected_rx, detected_tx);
+        radarUART.setRxBufferSize(1024);
+        radarUART.begin(256000, SERIAL_8N1, detected_rx, detected_tx);
+        radar.begin(detected_rx, detected_tx, 256000);
+    } else {
+        Serial.println(">>> FAILED TO DETECT RADAR ON EITHER PIN CONFIGURATION <<<");
+        // Fallback to default
+        radarUART.setRxBufferSize(1024);
+        radarUART.begin(256000, SERIAL_8N1, RADAR_RX_PIN, RADAR_TX_PIN);
+        radar.begin(RADAR_RX_PIN, RADAR_TX_PIN, 256000);
+    }
 
     motionComp.init();
     perfMonitor.begin();

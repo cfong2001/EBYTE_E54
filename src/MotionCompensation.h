@@ -80,16 +80,81 @@ public:
         float P_x[3], P_y[3];
         predictStates(dt, targets, P_x, P_y);
 
+        // 1. Greedy Nearest-Neighbor Data Association
+        bool trackMatched[3] = {false, false, false};
+        bool targetMatched[3] = {false, false, false};
+        int matchedTargetIndex[3] = {-1, -1, -1};
+
+        while (true) {
+            float minD = -1.0f;
+            int bestI = -1;
+            int bestJ = -1;
+            for (int i = 0; i < 3; i++) {
+                if (!state[i].active || trackMatched[i]) continue;
+                for (int j = 0; j < 3; j++) {
+                    if (!targets[j].active || targetMatched[j]) continue;
+                    float dx = P_x[i] - targets[j].x;
+                    float dy = P_y[i] - targets[j].y;
+                    float distSq = dx * dx + dy * dy;
+                    if (minD < 0.0f || distSq < minD) {
+                        minD = distSq;
+                        bestI = i;
+                        bestJ = j;
+                    }
+                }
+            }
+            if (bestI != -1 && minD <= 4000000.0f) {
+                trackMatched[bestI] = true;
+                targetMatched[bestJ] = true;
+                matchedTargetIndex[bestI] = bestJ;
+            } else {
+                break;
+            }
+        }
+
+        // 2. Allocate unmatched active raw targets to inactive track slots and initialize
+        for (int j = 0; j < 3; j++) {
+            if (targets[j].active && !targetMatched[j]) {
+                for (int i = 0; i < 3; i++) {
+                    if (!state[i].active && !trackMatched[i]) {
+                        trackMatched[i] = true;
+                        targetMatched[j] = true;
+                        matchedTargetIndex[i] = j;
+
+                        // Align initial predictions with newly allocated target
+                        P_x[i] = targets[j].x;
+                        P_y[i] = targets[j].y;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 3. Construct temporary associatedTargets array
+        RadarTarget associatedTargets[3];
+        for (int i = 0; i < 3; i++) {
+            if (trackMatched[i] && matchedTargetIndex[i] >= 0) {
+                associatedTargets[i] = targets[matchedTargetIndex[i]];
+            } else {
+                associatedTargets[i].active = false;
+                associatedTargets[i].x = 0;
+                associatedTargets[i].y = 0;
+                associatedTargets[i].speed = 0;
+                associatedTargets[i].resolution = 0;
+                associatedTargets[i].isCoasting = false;
+            }
+        }
+
         int tempAnchorIndices[3];
-        int numAnchors = identifyAnchors(targets, tempAnchorIndices);
+        int numAnchors = identifyAnchors(associatedTargets, tempAnchorIndices);
 
         int anchorIndices[3];
-        numAnchors = validateAnchors(targets, P_x, P_y, tempAnchorIndices, numAnchors, anchorIndices);
+        numAnchors = validateAnchors(associatedTargets, P_x, P_y, tempAnchorIndices, numAnchors, anchorIndices);
 
         float Cp_x = 0, Cp_y = 0;
         float Cq_x = 0, Cq_y = 0;
         float cosT = 1.0f, sinT = 0.0f;
-        calculateTransform(targets, P_x, P_y, anchorIndices, numAnchors, Cp_x, Cp_y, Cq_x, Cq_y, cosT, sinT);
+        calculateTransform(associatedTargets, P_x, P_y, anchorIndices, numAnchors, Cp_x, Cp_y, Cq_x, Cq_y, cosT, sinT);
 
         // 2D Parametric Filtering: Apply Exponential Moving Average (EMA) to global rotational motion vectors.
         // This separates active camera panning from high-frequency shakes as described in Section 2.1.2 of video stabilization literature.
@@ -108,7 +173,7 @@ public:
             emaSinT = 0.0f;
         }
 
-        stabilizeAndUpdate(dt, targets, P_x, P_y, numAnchors, Cp_x, Cp_y, Cq_x, Cq_y, emaCosT, emaSinT, compensated);
+        stabilizeAndUpdate(dt, associatedTargets, P_x, P_y, numAnchors, Cp_x, Cp_y, Cq_x, Cq_y, emaCosT, emaSinT, compensated);
 
         frameCount++;
     }
@@ -303,6 +368,7 @@ private:
                 }
 
                 // Mahalanobis Gating (Handheld Ghost Rejection)
+                bool passedGating = true;
                 if (state[i].active) {
                     float maxAllowedDist = 3000.0f; // 3 meters fallback
                     // A person running at 10m/s (olympic sprinter) could cover 1m in 0.1s.
@@ -315,27 +381,47 @@ private:
                         maxAllowedDist = baseNoiseFloor;
                     }
 
+                    maxAllowedDist *= (state[i].framesLost + 1);
+
                     float dx = stab_x - state[i].x;
                     float dy = stab_y - state[i].y;
                     float distMovedSq = dx*dx + dy*dy;
 
-                    // If target dropped out briefly but reappears within gating distance, reset drop counter
-                    state[i].framesLost = 0;
-
                     if (distMovedSq > maxAllowedDist * maxAllowedDist) {
-                        // Reject this target frame (likely a teleporting ghost)
-                        // Hold position using predicted coordinates
-                        stab_x = P_x[i];
-                        stab_y = P_y[i];
+                        passedGating = false;
                     }
                 }
 
-                compensated[i].x = std::lround(stab_x);
-                compensated[i].y = std::lround(stab_y);
-                compensated[i].active = true;
-                compensated[i].isCoasting = false;
+                if (passedGating) {
+                    state[i].framesLost = 0;
 
-                updateFilterState(i, dt, stab_x, stab_y, P_x[i], P_y[i], targets[i]);
+                    compensated[i].x = std::lround(stab_x);
+                    compensated[i].y = std::lround(stab_y);
+                    compensated[i].active = true;
+                    compensated[i].isCoasting = false;
+
+                    updateFilterState(i, dt, stab_x, stab_y, P_x[i], P_y[i], targets[i]);
+                } else {
+                    state[i].framesLost++;
+
+                    if (state[i].framesLost >= 10) {
+                        state[i].active = false;
+                        state[i].isAnchor = false;
+                        compensated[i].active = false;
+                        compensated[i].isCoasting = false;
+                    } else {
+                        // Hold position using predicted coordinates
+                        stab_x = P_x[i];
+                        stab_y = P_y[i];
+                        compensated[i].x = std::lround(stab_x);
+                        compensated[i].y = std::lround(stab_y);
+                        compensated[i].active = true;
+                        compensated[i].isCoasting = true;
+
+                        state[i].x = stab_x;
+                        state[i].y = stab_y;
+                    }
+                }
             } else {
                 // Drop-out resilience logic
                 const uint8_t maxFramesLost = 10;
@@ -385,7 +471,11 @@ private:
             float smoothX = stab_x;
             float smoothY = stab_y;
 
-            if (state[i].historyCount > 0) {
+            float currentSpeed = fabsf((float)rawTarget.speed * 10.0f);
+            if (currentSpeed > 50.0f) {
+                smoothX = stab_x;
+                smoothY = stab_y;
+            } else if (state[i].historyCount > 0) {
                 float totalWeight = 1.0f; // Weight for the new coordinate
                 float sumX = stab_x * 1.0f;
                 float sumY = stab_y * 1.0f;
