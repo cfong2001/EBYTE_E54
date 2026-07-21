@@ -50,97 +50,94 @@ void BroadcastServer::setupRoutes() {
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
         String html = R"rawliteral(
 <!DOCTYPE html>
-
 <html class="dark" lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>SYS_RADAR_01 - ESP32 INTERFACE</title>
+<title>E54 RADAR TRACKER - WEB DASHBOARD</title>
 <style>
-        body { margin: 0; background: #121315; color: #00dbe9; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        .radar-box { position: relative; width: 300px; height: 300px; border: 1px solid #3b494c; border-radius: 50%; padding: 10px; box-shadow: inset 0 0 20px #00dbe922; }
-        svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-        .grid { stroke: #00dbe9; stroke-width: 0.5; stroke-opacity: 0.3; fill: none; }
-        .sweep { fill: conic-gradient(from 0deg, #00dbe944, transparent); transform-origin: center; animation: rotate 4s linear infinite; }
-        .readouts { margin-top: 24px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; width: 300px; }
-        .target { border: 1px solid #3b494c; padding: 8px; font-size: 10px; letter-spacing: 1px; text-align: center; background: #1a1c20; }
-        .target span { display: block; font-weight: bold; color: #e2e2e8; margin-top: 4px; }
+        body { margin: 0; background: #0a0c10; color: #00dbe9; font-family: 'Courier New', monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
+        .hud-title { font-size: 16px; font-weight: bold; letter-spacing: 2px; margin-bottom: 12px; text-shadow: 0 0 10px #00dbe988; }
+        .radar-box { position: relative; width: 320px; height: 320px; border: 2px solid #00dbe944; border-radius: 50%; padding: 4px; box-shadow: 0 0 30px #00dbe922, inset 0 0 30px #00dbe911; background: radial-gradient(circle, #0b1c24 0%, #05080c 100%); }
+        svg { width: 100%; height: 100%; }
+        .grid { stroke: #00dbe9; stroke-width: 0.5; stroke-opacity: 0.35; fill: none; }
+        .heavy-grid { stroke: #00dbe9; stroke-width: 1.0; stroke-opacity: 0.6; fill: none; }
+        .readouts { margin-top: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 320px; }
+        .target { border: 1px solid #1e3a45; padding: 10px; font-size: 11px; letter-spacing: 1px; text-align: center; background: #0e1620; border-radius: 4px; transition: border-color 0.3s; }
+        .target span { display: block; font-weight: bold; color: #ffffff; margin-top: 4px; font-size: 12px; }
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .blip { fill: #00dbe9; filter: drop-shadow(0 0 3px #00dbe9); }
+        .blip { fill: #00ff88; filter: drop-shadow(0 0 6px #00ff88); }
+        .scale-info { margin-top: 10px; font-size: 11px; color: #00dbe9aa; }
     </style>
-
-
-  </head>
+</head>
 <body>
+<div class="hud-title">E54 RADAR TRACKER HUD</div>
 <div class="radar-box">
 <svg viewbox="0 0 100 100">
-<!-- Grid Rings -->
-<circle class="grid" cx="50" cy="50" r="48"></circle>
-<circle class="grid" cx="50" cy="50" r="32"></circle>
-<circle class="grid" cx="50" cy="50" r="16"></circle>
-<!-- Axis -->
-<line class="grid" x1="0" x2="100" y1="50" y2="50"></line>
-<line class="grid" x1="50" x2="50" y1="0" y2="100"></line>
-<!-- Rotating Sweep -->
-<g style="transform-origin: 50px 50px; animation: rotate 4s linear infinite;">
-<path d="M 50 50 L 100 50 A 50 50 0 0 0 85.35 14.64 Z" fill="rgba(0, 219, 233, 0.2)"></path>
-<line stroke="#00dbe9" stroke-width="1" x1="50" x2="100" y1="50" y2="50"></line>
+<!-- Polar Distance Arcs -->
+<circle class="heavy-grid" cx="50" cy="100" r="90"></circle>
+<circle class="grid" cx="50" cy="100" r="67.5"></circle>
+<circle class="heavy-grid" cx="50" cy="100" r="45"></circle>
+<circle class="grid" cx="50" cy="100" r="22.5"></circle>
+<!-- Radial Spoke Rays -->
+<line class="heavy-grid" x1="50" x2="50" y1="100" y2="10"></line>
+<line class="grid" x1="50" x2="5" y1="100" y2="55"></line>
+<line class="grid" x1="50" x2="95" y1="100" y2="55"></line>
+<!-- Rotating Radar Sweep Beam -->
+<g style="transform-origin: 50px 100px; animation: rotate 4s linear infinite;">
+<path d="M 50 100 L 50 10 A 90 90 0 0 1 95 55 Z" fill="rgba(0, 219, 233, 0.15)"></path>
+<line stroke="#00dbe9" stroke-width="1" x1="50" x2="50" y1="100" y2="10"></line>
 </g>
-<!-- Static Targets (Simulated) -->
-<circle class="blip" cx="70" cy="30" r="1.5"></circle>
-<circle class="blip" cx="35" cy="45" r="1.5"></circle>
-<circle class="blip" cx="60" cy="80" r="1.5"></circle>
+<!-- Target Blips -->
+<circle class="blip" id="blip-0" cx="50" cy="100" r="2.5" style="display:none;"></circle>
+<circle class="blip" id="blip-1" cx="50" cy="100" r="2.5" style="display:none;"></circle>
+<circle class="blip" id="blip-2" cx="50" cy="100" r="2.5" style="display:none;"></circle>
 </svg>
 </div>
+<div class="scale-info" id="scale-label">RANGE SCALE: 10m (2m/div)</div>
 <div class="readouts">
-<div class="target">
-            ID: T-01
-            <span id="t1-val">RNG: 42m</span>
-</div>
-<div class="target">
-            ID: T-02
-            <span id="t2-val">RNG: 18m</span>
-</div>
-<div class="target">
-            ID: T-03
-            <span id="t3-val">RNG: 65m</span>
-</div>
+<div class="target" id="t0-card">T-01<span id="t0-val">OFFLINE</span></div>
+<div class="target" id="t1-card">T-02<span id="t1-val">OFFLINE</span></div>
+<div class="target" id="t2-card">T-03<span id="t2-val">OFFLINE</span></div>
 </div>
 <script>
-        const MAX_RANGE = 6000;
         function updateData() {
             fetch('/api/data')
-                .then(response => response.json())
+                .then(r => r.json())
                 .then(data => {
-                    let blips = document.querySelectorAll('svg > circle.blip');
-                    let readouts = [
-                        document.getElementById('t1-val'),
-                        document.getElementById('t2-val'),
-                        document.getElementById('t3-val')
-                    ];
-                    let targetsDivs = document.querySelectorAll('.target');
+                    let targets = data.targets || [];
+                    let maxDist = 10000; // Minimum 10m scale
 
                     for (let i = 0; i < 3; i++) {
-                        let t = data.targets[i] || {active: false};
-                        let blip = blips[i];
-                        let readout = readouts[i];
-                        let div = targetsDivs[i];
+                        if (targets[i] && targets[i].active) {
+                            let d = Math.sqrt(targets[i].x * targets[i].x + targets[i].y * targets[i].y);
+                            if (d > maxDist) maxDist = Math.ceil(d / 2000) * 2000;
+                        }
+                    }
+
+                    document.getElementById('scale-label').innerText = `RANGE SCALE: ${maxDist/1000}m (${maxDist/5000}m/div)`;
+
+                    for (let i = 0; i < 3; i++) {
+                        let t = targets[i] || {active: false};
+                        let blip = document.getElementById(`blip-${i}`);
+                        let val = document.getElementById(`t${i}-val`);
+                        let card = document.getElementById(`t${i}-card`);
 
                         if (t.active) {
-                            let xPct = 50 + ((t.x / (MAX_RANGE/2)) * 50);
-                            let yPct = 100 - ((t.y / MAX_RANGE) * 100);
-                            xPct = Math.max(0, Math.min(100, xPct));
-                            yPct = Math.max(0, Math.min(100, yPct));
+                            let svgX = 50 + (t.x / maxDist) * 90;
+                            let svgY = 100 - (t.y / maxDist) * 90;
+                            svgX = Math.max(5, Math.min(95, svgX));
+                            svgY = Math.max(5, Math.min(95, svgY));
 
-                            blip.setAttribute('cx', yPct); // rotated -90deg, swap axes for SVG view
-                            blip.setAttribute('cy', xPct);
+                            blip.setAttribute('cx', svgX);
+                            blip.setAttribute('cy', svgY);
                             blip.style.display = 'block';
 
-                            readout.innerText = `X:${t.x} Y:${t.y}`;
-                            div.style.borderColor = '#00dbe9';
+                            val.innerText = `X:${t.x} Y:${t.y}\n${t.speed}cm/s`;
+                            card.style.borderColor = '#00ff88';
                         } else {
                             blip.style.display = 'none';
-                            readout.innerText = 'OFFLINE';
-                            div.style.borderColor = '#3b494c';
+                            val.innerText = 'OFFLINE';
+                            card.style.borderColor = '#1e3a45';
                         }
                     }
                 })
