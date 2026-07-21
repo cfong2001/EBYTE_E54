@@ -882,19 +882,27 @@ private:
             if (!targetCoasting[i]) sprite.drawCircle(cx, cy, max(1, (int)(4 * uiScale)), themePrimary);
 
             int absSpd = abs(rawTargetSpeed[i]);
-            float rawDx = targetCurrentX[i] - targetHistoryX[i][2];
-            float rawDy = targetCurrentY[i] - targetHistoryY[i][2];
+            float rawDx = targetCurrentX[i] - targetHistoryX[i][1];
+            float rawDy = targetCurrentY[i] - targetHistoryY[i][1];
 
-            if (absSpd > 10 && (fabsf(rawDx) > 0.5f || fabsf(rawDy) > 0.5f)) {
+            uint32_t nowMicros = micros();
+            float t = (lastAdvanceMicros == 0) ? 0.016f : (float)(nowMicros - lastAdvanceMicros) / 1000000.0f;
+            if (t > 0.1f) t = 0.1f;
+
+            // Frame-rate independent exponential smoothing (50ms time constant)
+            float alpha = 1.0f - expf(-20.0f * t);
+
+            if (absSpd > 5 && (fabsf(rawDx) > 0.1f || fabsf(rawDy) > 0.1f)) {
                 float len = sqrtf(rawDx*rawDx + rawDy*rawDy);
-                float invLen = 1.0f / len;
+                float invLen = (len > 0.001f) ? (1.0f / len) : 0.0f;
                 float nx = rawDx * invLen;
                 float ny = rawDy * invLen;
-                smoothVecX[i] = (smoothVecX[i] * 0.7f) + (nx * 0.3f);
-                smoothVecY[i] = (smoothVecY[i] * 0.7f) + (ny * 0.3f);
-                smoothSpeed[i] = (smoothSpeed[i] * 0.8f) + ((float)absSpd * 0.2f);
+
+                smoothVecX[i] += (nx - smoothVecX[i]) * alpha;
+                smoothVecY[i] += (ny - smoothVecY[i]) * alpha;
+                smoothSpeed[i] += ((float)absSpd - smoothSpeed[i]) * alpha;
             } else {
-                smoothSpeed[i] *= 0.8f;
+                smoothSpeed[i] *= (1.0f - alpha);
             }
 
             if (smoothSpeed[i] > 5.0f) {
@@ -909,18 +917,12 @@ private:
                     int ey = cy + (int)(nSvy * stickLen);
                     sprite.drawLine(cx, cy, ex, ey, color);
 
-                    // Replace atan2f and cosf/sinf with fixed vector rotation.
-                    // nSvx and nSvy are already the normalized direction vector.
-                    // We can rotate this vector by +/- 0.5 radians using angle addition constants.
-                    // cos(0.5) ≈ 0.87758256f, sin(0.5) ≈ 0.47942554f
                     constexpr float cos_05 = 0.87758256f;
                     constexpr float sin_05 = 0.47942554f;
 
-                    // Rotate counter-clockwise (-0.5 radians)
                     int ax1 = ex - (int)(4.0f * uiScale * (nSvx * cos_05 + nSvy * sin_05));
                     int ay1 = ey - (int)(4.0f * uiScale * (nSvy * cos_05 - nSvx * sin_05));
 
-                    // Rotate clockwise (+0.5 radians)
                     int ax2 = ex - (int)(4.0f * uiScale * (nSvx * cos_05 - nSvy * sin_05));
                     int ay2 = ey - (int)(4.0f * uiScale * (nSvy * cos_05 + nSvx * sin_05));
 
@@ -1670,8 +1672,8 @@ public:
     };
 
     void drawMenuTooltip(const char* selectedItemText) {
-        sprite.fillRect(10, 140, 220, 60, themeBg);
-        sprite.drawRect(10, 140, 220, 60, themeWarning);
+        sprite.fillRoundRect(8, 140, 224, 55, 6, themeBg);
+        sprite.drawRoundRect(8, 140, 224, 55, 6, themePrimary);
         sprite.setTextColor(themeText, themeBg);
         sprite.setTextSize(uiTextSize);
         sprite.setCursor(15, 145);
@@ -1690,6 +1692,7 @@ public:
 
         sprite.print(tooltipText);
     }
+
     void drawMenuItems(char items[][32], int numItems) {
         maxMenuSelection = numItems - 1;
 
@@ -1703,13 +1706,10 @@ public:
             int yPos = 35 + i * 25;
 
             if (idx == menuSelection) {
-                if (state == STATE_MENU_EDIT) {
-                    sprite.fillRect(5, yPos - 4, 230, 24, themeWarning);
-                    sprite.setTextColor(themeBg, themeWarning);
-                } else {
-                    sprite.fillRect(5, yPos - 4, 230, 24, themePrimary);
-                    sprite.setTextColor(themeBg, themePrimary);
-                }
+                uint16_t pillColor = (state == STATE_MENU_EDIT) ? themeWarning : themePrimary;
+                sprite.fillRoundRect(6, yPos - 4, 228, 22, 5, pillColor);
+                sprite.drawRoundRect(6, yPos - 4, 228, 22, 5, themeText);
+                sprite.setTextColor(themeBg, pillColor);
             } else {
                 sprite.setTextColor(themeText, themeBg);
             }
