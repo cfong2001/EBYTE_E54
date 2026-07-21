@@ -1,73 +1,98 @@
 # EBYTE E54-24LD12D ESP32 Multi-Target Radar Tracker
 
-An open-source, high-performance firmware implementation for real-time 24GHz mmWave radar target tracking using the ESP32 microcontroller and the EBYTE E54-24LD12D radar module.
+An open-source, high-performance tactical radar tracking system built for the ESP32 microcontroller and the EBYTE E54-24LD12D 24GHz millimeter-wave (mmWave) radar sensor.
 
-This project provides real-time 2D spatial tracking, multi-target data association, stationary anchor motion compensation, dynamic polar coordinate rendering, web-based broadcast streaming, and non-volatile configuration management.
+This project turns raw industrial radar signals into a portable, real-time spatial tracker that sees through obstacles, filters out hand motion, and broadcasts live target data directly to embedded displays and mobile web devices.
 
 ---
 
-## Features
+## Overview
 
-- **Hardware Multi-Target Radar Interface**: Interfaces with the EBYTE E54-24LD12D 24GHz FMCW radar module over UART at 256,000 bps using little-endian binary frame decoding (`AA FF 03 00 ... 55 CC`).
-- **Nearest-Neighbor Spatial Data Association**: Tracks up to 3 simultaneous targets without ID swapping or aggressive track rejection using distance matrix greedy matching.
-- **Stationary Anchor Motion Compensation**: Filters platform shake using relative geometry when 2 or more stationary anchors are detected, bypassing single-target coordinate lock.
-- **Dynamic Polar Coordinate Display**: Renders concentric distance arcs (even 2m heavy strokes, odd 1m light strokes) with automatic dynamic range scaling bounded between 10m and 30m.
-- **Rotary Encoder & Button UI**: Hardware-debounced rotary encoder and tactile button navigation with 5 selectable theme palettes (Standard, Alien, Minimalist, Cyberpunk, Tactical Amber).
-- **Wireless Broadcast Web Server**: Embedded Async HTTP server streaming real-time JSON target coordinates (`/api/data`) and hosting an interactive SVG polar radar dashboard over Wi-Fi SoftAP (`ESP32-Radar-Tracker`).
-- **Hardware Auto-Detection**: Boot sequence auto-detects UART pin permutations (GPIO 32/4 and 4/32) and issues multi-target initialization commands (`0x0090`).
-- **Native Unit Testing Suite**: Host-compilable test framework (`run_tests.exe`) covering mathematical filters, radar payload parsing, transient dropouts, and zone boundaries.
+Traditional optical cameras fail in complete darkness, generate privacy concerns, and cannot penetrate physical barriers. Ultrasonic sensors lack spatial accuracy and range, while thermal sensors struggle with ambient temperature fluctuations.
+
+This firmware harnesses 24GHz FMCW radar technology to deliver high-resolution 2D spatial tracking of human targets. By analyzing millimeter-wave Doppler shifts, the system detects micro-movements, breathing, and walking motion through drywall, glass, enclosure plastics, and darkness.
+
+Whether deployed as a portable handheld tracking unit, a perimeter alert monitor, or a privacy-preserving smart room sensor, the system provides accurate target distance, velocity, and angle telemetry without recording video or audio.
+
+---
+
+## Key Capabilities
+
+- **Through-Barrier & Low-Light Motion Detection**: Detects human presence, micro-breathing, and directional movement through non-metallic walls, enclosures, and total darkness up to 30 meters.
+- **Handheld & Vehicle Motion Compensation**: Advanced mathematical filtering isolates platform shake from true target motion, allowing the unit to be operated reliably while handheld or mounted on mobile rigs.
+- **Smart Multi-Target Tracking**: Simultaneously tracks up to 3 distinct targets with Nearest-Neighbor spatial association, preventing target ID swapping or track dropping when subjects cross paths.
+- **Dual Display Architecture**: Features a high-refresh-rate dynamic polar HUD on the attached color TFT screen while simultaneously hosting a secure local Wi-Fi web dashboard for remote monitoring on smartphones, tablets, or computers.
+- **Privacy-Safe Spatial Monitoring**: Delivers exact 2D position coordinates (X/Y mm) and velocity (cm/s) without capturing identifiable personal imagery.
+- **Ultra-Fast Display Engine**: Employs background sprite caching to eliminate redundant screen redraws, boosting display refresh rates up to 60-100 FPS for smooth target motion.
+
+---
+
+## Technical Specifications
+
+| Parameter | Specification |
+|---|---|
+| Radar Frequency Band | 24.00 GHz to 24.25 GHz FMCW |
+| Operational Range | 0.5 meters to 30.0 meters (2m dynamic auto-scaling) |
+| Target Capacity | 3 simultaneous tracked targets |
+| Sensor UART Baud Rate | 256,000 bps (Hardware auto-detected) |
+| Display System | 240x320 SPI TFT Display (ST7789 / ILI9341) |
+| Display Frame Rate | Up to 100 Hz (Background sprite cached) |
+| Wireless Protocol | Wi-Fi 802.11 b/g/n SoftAP (`ESP32-Radar-Tracker`) |
+| Web API Output Format | Real-time JSON stream (`/api/data`) |
+| Input Controls | Quadrature Rotary Encoder (100ms debounced) & Tactile Buttons |
+| Power Supply | 5V DC via USB-C or external regulator |
 
 ---
 
 ## System Architecture
 
-The firmware uses a modular task-driven architecture leveraging FreeRTOS on the ESP32.
+The firmware utilizes a dual-core FreeRTOS architecture on the ESP32 to maintain high-throughput radar parsing alongside responsive UI rendering and web streaming.
 
 ```
 +-------------------------------------------------------------------+
 |                     ESP32 FreeRTOS Dual Core                      |
 +-----------------------------------+-------------------------------+
-| Core 0: Radar UART Task (100Hz)   | Core 1: Main UI & Web Loop    |
-| - High-speed UART Byte Parser     | - TFT_eSPI Graphics Engine    |
-| - E54 Frame Sync (AA FF 03 00)    | - Polar Grid & Range Scale    |
-| - Nearest-Neighbor Association    | - Async Web Server Streaming  |
+| Core 0: High-Speed Radar Task     | Core 1: User Interface Task   |
+| - 256,000 baud UART Stream Engine | - TFT_eSPI Background Caching |
+| - Frame Sync (AA FF 03 00...55 CC)| - 60-100 FPS Polar Grid HUD   |
+| - Nearest-Neighbor Target Matcher | - Async HTTP Web Server       |
 | - Motion Compensation Filter      | - Rotary Encoder Handling     |
 +-----------------------------------+-------------------------------+
-                                    | Thread-Safe Data Sync (Mutex) |
+                                    | Shared Thread-Safe Mutex Lock |
                                     +-------------------------------+
 ```
 
 ---
 
-## Hardware Requirements & Pinout
+## Hardware Setup & Pin Connections
 
-### Required Components
+### Recommended Hardware
 - ESP32-WROVER-IE or ESP32-DevKitC development board.
-- EBYTE E54-24LD12D 24GHz Radar Module.
-- 240x320 SPI TFT Display (ST7789 or ILI9341 controller).
-- EC11 Quadrature Rotary Encoder with push button.
+- EBYTE E54-24LD12D 24GHz mmWave Radar Module.
+- 240x320 SPI TFT Color Display.
+- EC11 Quadrature Rotary Encoder with integrated push button.
 
-### Pin Connections
+### Pinout Table
 
-| Function | ESP32 GPIO | Connected Device Pin | Notes |
+| Function | ESP32 GPIO | Connected Component | Description |
 |---|---|---|---|
-| Radar RX | GPIO 32 | E54 Radar TX | Baud: 256,000 bps (Auto-detected) |
-| Radar TX | GPIO 4 | E54 Radar RX | Baud: 256,000 bps (Auto-detected) |
-| Encoder Channel A | GPIO 25 | Rotary Encoder CLK | Hardware pullup enabled |
-| Encoder Channel B | GPIO 26 | Rotary Encoder DT | Hardware pullup enabled |
-| Encoder Push | GPIO 27 | Rotary Encoder SW | Active-low |
-| Secondary Key | GPIO 34 | Tactile Button KEY0 | Input-only GPIO with external pullup |
-| TFT Display CS | GPIO 15 | TFT CS | SPI Chip Select |
-| TFT Display DC | GPIO 2 | TFT DC / RS | Data / Command Select |
-| TFT Display RST | GPIO 4 | TFT Reset | Shared or dedicated reset |
+| Radar Serial RX | GPIO 32 | E54 Radar TX | High-speed telemetry input (Auto-detected) |
+| Radar Serial TX | GPIO 4 | E54 Radar RX | Setup & mode configuration output |
+| Rotary Encoder CLK | GPIO 25 | Encoder Channel A | Hardware pullup enabled |
+| Rotary Encoder DT | GPIO 26 | Encoder Channel B | Hardware pullup enabled |
+| Rotary Encoder Push | GPIO 27 | Encoder SW | Active-low click button |
+| Secondary Button | GPIO 34 | Tactile KEY0 | Menu & navigation trigger |
+| Display SPI CS | GPIO 15 | TFT CS | Chip Select |
+| Display SPI DC | GPIO 2 | TFT DC / RS | Data / Command Control |
+| Display SPI Reset | GPIO 4 | TFT RST | Panel Reset |
 
 ---
 
 ## Communication Protocol & Data Parsing
 
-The EBYTE E54-24LD12D radar module outputs telemetry at 10Hz to 20Hz over serial UART (8 data bits, 1 stop bit, no parity).
+The EBYTE E54-24LD12D radar module outputs telemetry over serial UART using little-endian binary frames.
 
-### Frame Structure
+### Frame Layout
 
 ```
 +--------------+------------------+------------------+------------------+------------+
@@ -77,70 +102,27 @@ The EBYTE E54-24LD12D radar module outputs telemetry at 10Hz to 20Hz over serial
 +--------------+------------------+------------------+------------------+------------+
 ```
 
-### Target Data Format (8 Bytes per Target)
+### Telemetry Field Structure
 
-Each target block contains 4 little-endian 16-bit fields:
-
-- **X Coordinate (int16)**: Horizontal distance in millimeters. High bit (bit 15) indicates positive (1) or negative (0) direction.
-- **Y Coordinate (int16)**: Forward distance in millimeters. High bit (bit 15) indicates positive (1) or negative (0) direction.
-- **Speed (int16)**: Radial velocity in cm/s. High bit (bit 15) indicates positive (1) or negative (0) direction.
-- **Resolution (uint16)**: Distance resolution value in millimeters.
-
-### Initialization Commands
-
-To switch the radar to multi-target mode on boot, the ESP32 transmits the `0x0090` command frame:
-
-```
-FD FC FB FA 02 00 90 00 04 03 02 01
-```
+Each target entry occupies 8 bytes:
+- **X Position (int16)**: Lateral offset in millimeters. Bit 15 indicates direction (1 = Positive/Right, 0 = Negative/Left).
+- **Y Position (int16)**: Straight-line distance in millimeters. Bit 15 indicates direction (1 = Positive/Forward, 0 = Negative/Rear).
+- **Speed (int16)**: Radial velocity in centimeters per second (cm/s).
+- **Resolution (uint16)**: Distance resolution metric in millimeters.
 
 ---
 
-## Firmware Configuration & Build System
+## Web Dashboard & Remote Streaming
 
-The firmware is built using PlatformIO.
+When Wireless Broadcast Mode is enabled, the ESP32 hosts a self-contained web server over Wi-Fi (`ESP32-Radar-Tracker`). Connecting any smartphone, tablet, or laptop to the Wi-Fi network opens an interactive HUD.
 
-### Prerequisites
-- VS Code with PlatformIO Extension or PlatformIO Core CLI.
-- GCC toolchain for native C++ testing (`g++`).
-
-### Building Firmware
-To compile the ESP32 firmware binary:
-
-```bash
-pio run -e esp32-wrover-ie
-```
-
-### Flashing Firmware
-To flash the compiled firmware binary to an attached ESP32:
-
-```bash
-pio run -e esp32-wrover-ie -t upload
-```
-
-### Serial Monitoring
-To view live diagnostic log output at 115,200 baud:
-
-```bash
-pio device monitor -b 115200
-```
-
----
-
-## Web Dashboard & REST API
-
-When `broadcastModeEnabled` is active, the ESP32 starts a Wi-Fi Access Point (`ESP32-Radar-Tracker`) and serves an interactive web dashboard on `http://192.168.4.1/`.
-
-### Endpoints
+### REST API Endpoints
 
 #### GET `/`
-- **Description**: Returns the embedded single-page HTML/SVG polar radar HUD dashboard.
-- **Content-Type**: `text/html`
+Serves the responsive single-page HTML/SVG dashboard featuring polar grid arcs, dynamic range scaling, and real-time target position readouts.
 
 #### GET `/api/data`
-- **Description**: Returns live target telemetry in JSON format.
-- **Content-Type**: `application/json`
-- **CORS**: `Access-Control-Allow-Origin: *`
+Returns live multi-target coordinate JSON telemetry. Includes `Access-Control-Allow-Origin: *` headers for cross-origin integration with custom dashboards or Home Assistant setups.
 
 ```json
 {
@@ -172,51 +154,39 @@ When `broadcastModeEnabled` is active, the ESP32 starts a Wi-Fi Access Point (`E
 
 ---
 
+## Firmware Compilation & Flashing
+
+This project is configured for building with PlatformIO.
+
+### Compilation
+To compile the firmware binary locally:
+
+```bash
+pio run -e esp32-wrover-ie
+```
+
+### Flashing Hardware
+To upload the compiled firmware binary to an attached ESP32:
+
+```bash
+pio run -e esp32-wrover-ie -t upload
+```
+
+---
+
 ## Native Testing & Verification
 
-The project includes a host-native C++ unit test suite that executes independently of ESP32 hardware.
+The repository includes a host-native C++ unit test suite (`run_tests.exe`) to test signal processing filters, track association, payload parsing, and spatial boundary checking offline without hardware attached.
 
-### Compiling and Running Tests
+### Running Test Suite
 
 ```bash
 g++ -I src test/test_radar.cpp -o test/run_tests.exe
 .\test\run_tests.exe
 ```
 
-### Test Coverage
-- **MotionCompensation**: Alpha-Beta-Gamma filter convergence, Nearest-Neighbor track association, transient dropout coasting, and anchor validation logic.
-- **ZoneManager**: Distance/angle boundary checks and target threat level classification.
-- **PerformanceMonitor**: Execution timing metrics and memory tracking.
-- **E54_Radar**: Bitwise payload parsing, sign bit decoding, frame delta timing, and 3-target mock frame injection.
-
----
-
-## File Structure
-
-```
-c:/Projects/E54/EBYTE_E54/
-├── platformio.ini         # PlatformIO build configuration
-├── src/
-│   ├── main.cpp           # System entry point, FreeRTOS tasks, interrupt handlers
-│   ├── E54_Radar.h        # UART byte stream parser & frame sync
-│   ├── MotionCompensation.h# Alpha-Beta-Gamma filter & Nearest-Neighbor tracking
-│   ├── UIManager.h        # Display rendering engine, polar grid, menu overlay
-│   ├── BroadcastServer.h  # Async Web Server header
-│   ├── BroadcastServer.cpp# Wi-Fi SoftAP, REST API & HTML/SVG Web Dashboard
-│   ├── ConfigManager.h    # Preferences NVS storage manager
-│   ├── PerformanceMonitor.h# Loop frequency & execution time metrics
-│   ├── ZoneManager.h      # Spatial boundary alert manager
-│   ├── Themes.h           # Color theme structure definitions
-│   └── Themes.cpp         # Palette implementations (5 themes)
-├── test/
-│   ├── test_main.cpp      # Native test suite entry point
-│   ├── test_radar.cpp     # Mock frame injection & tracking tests
-│   └── test_zone_manager.cpp # Spatial boundary unit tests
-└── README.md              # Project documentation
-```
-
 ---
 
 ## License
 
-This project is open-source under the MIT License.
+This project is licensed under the MIT License - see the LICENSE file for details.

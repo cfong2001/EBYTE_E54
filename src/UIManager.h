@@ -125,7 +125,7 @@ public:
     int uiTextSize = 1;
     float uiScale = 1.0f;
 
-    UIManager(TFT_eSPI& display) : tft(display), sprite(&display) {
+    UIManager(TFT_eSPI& display) : tft(display), sprite(&display), bgSprite(&display) {
         mainMenuView = new MainMenuView();
         visualsMenuView = new VisualsMenuView();
         zonesMenuView = new ZonesMenuView();
@@ -1133,6 +1133,12 @@ private:
     TFT_eSPI& tft;
 public:
     TFT_eSprite sprite;
+    TFT_eSprite bgSprite;
+    bool bgCacheValid = false;
+    int lastBgTheme = -1;
+    bool lastBgGridEnabled = false;
+    int lastBgMaxRangeMeters = -1;
+    float lastBgUiScale = -1.0f;
 public:
 public:
     AppState state;
@@ -1393,14 +1399,27 @@ public:
     void drawRadarBackground() {
         if (!gridEnabled) return;
 
+        // Check if cached background is still valid
+        if (bgCacheValid &&
+            lastBgTheme == (int)theme &&
+            lastBgGridEnabled == gridEnabled &&
+            lastBgMaxRangeMeters == currentMaxRangeMeters &&
+            lastBgUiScale == uiScale) {
+            bgSprite.pushToSprite(&sprite, 0, 0);
+            return;
+        }
+
+        // Re-render static background grid into bgSprite buffer
+        bgSprite.fillSprite(themeBg);
+
         int originX = tft.width() / 2;     // 120
         int originY = tft.height();         // 320
         float maxRangeMM = currentMaxRangeMeters * 1000.0f;
         float scalePxPerMm = 300.0f / maxRangeMM;
 
         uint16_t primaryColor = (theme == THEME_ALIEN) ? themePrimary : TFT_GREEN;
-        uint16_t heavyGridColor = sprite.alphaBlend(150, primaryColor, themeBg); // Heavy stroke (even meters)
-        uint16_t lightGridColor = sprite.alphaBlend(65, primaryColor, themeBg);  // Light stroke (odd meters)
+        uint16_t heavyGridColor = bgSprite.alphaBlend(150, primaryColor, themeBg); // Heavy stroke (even meters)
+        uint16_t lightGridColor = bgSprite.alphaBlend(65, primaryColor, themeBg);  // Light stroke (odd meters)
 
         // 1. Concentric Polar Distance Arcs (1m increments up to currentMaxRangeMeters)
         for (int m = 1; m <= currentMaxRangeMeters; m++) {
@@ -1412,17 +1431,17 @@ public:
 
             if (isEven) {
                 // Heavy stroke (2-pixel thick concentric arc)
-                sprite.drawCircle(originX, originY, r_px, arcColor);
-                if (r_px > 1) sprite.drawCircle(originX, originY, r_px - 1, arcColor);
+                bgSprite.drawCircle(originX, originY, r_px, arcColor);
+                if (r_px > 1) bgSprite.drawCircle(originX, originY, r_px - 1, arcColor);
 
                 // Distance label on even meters along center vertical axis
-                sprite.setTextColor(sprite.alphaBlend(200, primaryColor, themeBg), themeBg);
-                sprite.setTextSize(1);
-                sprite.setCursor(originX + 4, originY - r_px - 4);
-                sprite.printf("%dm", m);
+                bgSprite.setTextColor(bgSprite.alphaBlend(200, primaryColor, themeBg), themeBg);
+                bgSprite.setTextSize(1);
+                bgSprite.setCursor(originX + 4, originY - r_px - 4);
+                bgSprite.printf("%dm", m);
             } else {
                 // Light stroke (1-pixel concentric arc)
-                sprite.drawCircle(originX, originY, r_px, arcColor);
+                bgSprite.drawCircle(originX, originY, r_px, arcColor);
             }
         }
 
@@ -1430,7 +1449,7 @@ public:
         int maxR = (int)(currentMaxRangeMeters * 1000.0f * scalePxPerMm * uiScale);
 
         // Heavy vertical centerline (0° / 90° straight up)
-        sprite.drawLine(originX, originY, originX, originY - maxR, heavyGridColor);
+        bgSprite.drawLine(originX, originY, originX, originY - maxR, heavyGridColor);
 
         int spokeAngles[] = {-60, -45, -30, 30, 45, 60};
         for (int deg : spokeAngles) {
@@ -1440,11 +1459,20 @@ public:
 
             bool isHeavy = (deg == -45 || deg == 45);
             uint16_t rayColor = isHeavy ? heavyGridColor : lightGridColor;
-            sprite.drawLine(originX, originY, rx, ry, rayColor);
+            bgSprite.drawLine(originX, originY, rx, ry, rayColor);
         }
 
         // Heavy baseline across bottom
-        sprite.drawLine(0, originY - 1, tft.width(), originY - 1, heavyGridColor);
+        bgSprite.drawLine(0, originY - 1, tft.width(), originY - 1, heavyGridColor);
+
+        // Mark background cache as valid
+        lastBgTheme = (int)theme;
+        lastBgGridEnabled = gridEnabled;
+        lastBgMaxRangeMeters = currentMaxRangeMeters;
+        lastBgUiScale = uiScale;
+        bgCacheValid = true;
+
+        bgSprite.pushToSprite(&sprite, 0, 0);
     }
 
 
