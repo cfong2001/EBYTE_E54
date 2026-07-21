@@ -711,7 +711,14 @@ public:
         }
     }
 
+    uint32_t lastAdvanceMicros = 0;
+
     void advanceTargets() {
+        uint32_t now = micros();
+        float t = (lastAdvanceMicros == 0) ? 0.016f : (float)(now - lastAdvanceMicros) / 1000000.0f;
+        if (t > 0.1f) t = 0.1f; // Clamp to 100ms max to prevent jumps on pause
+        lastAdvanceMicros = now;
+
         for (int i = 0; i < 3; i++) {
             if (targetActive[i]) {
                 float dHx = targetHistoryX[i][0] - targetCurrentX[i];
@@ -725,7 +732,6 @@ public:
                     targetHistoryY[i][0] = targetCurrentY[i];
                 }
 
-                float t = 0.03f; // DT ~30ms render loop
                 float t_sq_half = (t * t) * 0.5f;
 
                 float curveForwardX = (targetVelX[i] * t) + (targetAccX[i] * t_sq_half);
