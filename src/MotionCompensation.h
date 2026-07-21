@@ -304,9 +304,20 @@ private:
                 state[a].isAnchor = false;
                 state[b].isAnchor = false;
             }
-        } else if (numAnchors == 1) {
-            anchorIndices[0] = tempAnchorIndices[0];
-            validatedAnchors = 1;
+        } else {
+            // Motion compensation requires at least 2 targets to compute relative distance & isolate hand-shake.
+            // A single target cannot be an anchor because there is no relative target distance to compare against.
+            for (int i = 0; i < numAnchors; i++) {
+                state[tempAnchorIndices[i]].isAnchor = false;
+            }
+            validatedAnchors = 0;
+        }
+
+        if (validatedAnchors < 2) {
+            for (int i = 0; i < validatedAnchors; i++) {
+                state[anchorIndices[i]].isAnchor = false;
+            }
+            validatedAnchors = 0;
         }
 
         return validatedAnchors;

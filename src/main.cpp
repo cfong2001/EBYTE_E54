@@ -49,7 +49,7 @@ SemaphoreHandle_t dataMutex;
 #define RADAR_TX_PIN 4   // Radar RX -> ESP32 TX
 #endif
 
-RotaryEncoder encoder(PIN_ENCODER_A, PIN_ENCODER_B, RotaryEncoder::LatchMode::TWO03);
+RotaryEncoder encoder(PIN_ENCODER_A, PIN_ENCODER_B, RotaryEncoder::LatchMode::FOUR3);
 // Module has 10k hardware pullups on PUSH, A, B, KEY0 -- do NOT enable ESP32 internal pullups (pullupActive=false)
 OneButton button(PIN_BUTTON, true, false);  // PUSH: active-low, external pullup on module
 OneButton key0(PIN_KEY0,    true, false);   // KEY0: active-low, external pullup on module
@@ -269,13 +269,17 @@ void loop() {
     button.tick();
     key0.tick();
 
-    // Process encoder
+    // Process encoder with 100ms debounce
     encoder.tick();
     int newPos = encoder.getPosition();
     static int lastPos = 0;
+    static unsigned long lastEncoderTime = 0;
     if (newPos != lastPos) {
-        int dir = (int)(encoder.getDirection());
-        ui.handleEncoder(dir);
+        if (millis() - lastEncoderTime >= 100) {
+            int dir = (newPos > lastPos) ? 1 : -1;
+            ui.handleEncoder(dir);
+            lastEncoderTime = millis();
+        }
         lastPos = newPos;
     }
 

@@ -38,7 +38,9 @@ enum MenuPage {
 enum ThemeStyle {
     THEME_STANDARD,
     THEME_ALIEN,
-    THEME_MINIMAL
+    THEME_MINIMAL,
+    THEME_CYBERPUNK,
+    THEME_TACTICAL
 };
 
 enum TelemetryMode {
@@ -1465,7 +1467,10 @@ public:
         sprite.setTextColor(themeText, themeBg);
         sprite.setCursor(15, 5); sprite.print("--- VISUAL SETTINGS ---");
 
-        const char* themeStr = (theme == THEME_STANDARD) ? "Standard" : (theme == THEME_ALIEN ? "Alien" : "Minimal");
+        const char* themeStr = (theme == THEME_STANDARD) ? "Standard" :
+                         (theme == THEME_ALIEN) ? "Alien" :
+                         (theme == THEME_MINIMAL) ? "Minimal" :
+                         (theme == THEME_CYBERPUNK) ? "Cyberpunk" : "Tactical";
         const char* iconStr = (targetIcon == ICON_CIRCLE) ? "CIRCLE" :
                          (targetIcon == ICON_SQUARE) ? "SQUARE" :
                          (targetIcon == ICON_TRIANGLE) ? "TRIANGLE" : "SMART";
@@ -1760,8 +1765,9 @@ inline void VisualsMenuView::executeMenuEdit(UIManager* ui, int dir) {
     String selItem = String(ui->currentMenuItems[ui->menuSelection]);
     if (selItem.startsWith("Theme:")) {
         int t = (int)ui->theme + dir;
-        if (t > 2) t = 0; if (t < 0) t = 2;
+        if (t > 4) t = 0; if (t < 0) t = 4;
         ui->theme = (ThemeStyle)t;
+        applyTheme(t);
         ui->updateThemeText();
         if (ui->theme == THEME_ALIEN) { ui->sweepLineEnabled = true; ui->trailLength = 8; ui->gridEnabled = true; }
         else if (ui->theme == THEME_MINIMAL) { ui->sweepLineEnabled = false; ui->trailLength = 0; ui->gridEnabled = true; }

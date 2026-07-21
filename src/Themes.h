@@ -9,9 +9,10 @@ struct Theme {
     uint16_t danger;
     uint16_t warning;
     uint16_t success;
+    uint16_t text;
 };
 
-// Define some basic color constants
+// Define basic 16-bit RGB565 color constants
 #define TFT_BLACK       0x0000
 #define TFT_WHITE       0xFFFF
 #define TFT_RED         0xF800
@@ -20,14 +21,18 @@ struct Theme {
 #define TFT_YELLOW      0xFFE0
 #define TFT_CYAN        0x07FF
 #define TFT_MAGENTA     0xF81F
+#define TFT_ORANGE      0xFDA0
+#define TFT_PURPLE      0x780F
 
 extern Theme activeTheme;
 
-// Legacy variables for backward compatibility if needed, though activeTheme should be used
 extern uint16_t themeBg;
 extern uint16_t themePrimary;
 extern uint16_t themeDanger;
 extern uint16_t themeWarning;
 extern uint16_t themeSuccess;
+extern uint16_t themeText;
+
+void applyTheme(int themeIndex);
 
 #endif
