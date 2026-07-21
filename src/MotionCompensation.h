@@ -415,7 +415,9 @@ private:
                 } else {
                     state[i].framesLost++;
 
-                    if (state[i].framesLost >= 10) {
+                    // 1.0 second (1000ms) dropout interpolation window
+                    float totalDropoutSec = state[i].framesLost * dt;
+                    if (totalDropoutSec >= 1.0f || state[i].framesLost >= 15) {
                         state[i].active = false;
                         state[i].isAnchor = false;
                         compensated[i].active = false;
@@ -434,9 +436,9 @@ private:
                     }
                 }
             } else {
-                // Drop-out resilience logic
-                const uint8_t maxFramesLost = 10;
-                if (state[i].active && state[i].framesLost < maxFramesLost) {
+                // Drop-out resilience logic (1.0 second interpolation limit)
+                float totalDropoutSec = (state[i].framesLost + 1) * dt;
+                if (state[i].active && (totalDropoutSec < 1.0f && state[i].framesLost < 15)) {
                     state[i].framesLost++;
                     // Predict forward using last known velocity
                     float px = P_x[i];
@@ -451,10 +453,9 @@ private:
                     compensated[i].y = std::lround(py);
                     compensated[i].speed = std::lround(sqrtf(state[i].velX*state[i].velX + state[i].velY*state[i].velY));
                     compensated[i].active = true;
-                    compensated[i].resolution = 0; // indicates interpolated frame
                     compensated[i].isCoasting = true;
+                    compensated[i].resolution = 0; // indicates interpolated frame
                 } else {
-                    // Permanently drop after grace period
                     state[i].active = false;
                     state[i].isAnchor = false;
                     compensated[i].active = false;

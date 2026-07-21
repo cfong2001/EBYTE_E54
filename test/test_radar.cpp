@@ -232,8 +232,8 @@ void test_radar_mock_tracking_system() {
     assert(compensated[2].isCoasting == false); // Should be re-acquired
     assert(std::abs(compensated[2].x - 3200) < 100);
 
-    // Dropouts lasting > 10 frames permanently deactivate the track
-    for (int f = 0; f < 11; f++) {
+    // Dropouts lasting > 1.0s (15 frames) permanently deactivate the track
+    for (int f = 0; f < 16; f++) {
         injectFrame(mockSerial, radar, 1200 + f*50, 2200 + f*50, 50, 2200 + f*50, 3200 + f*50, 50, 0, 0, 0, true, true, false);
         mc.process(0.1f, radar.targets, compensated);
     }
