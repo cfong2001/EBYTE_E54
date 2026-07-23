@@ -25,11 +25,11 @@ It detects moving people through walls, drywall, plastic, and total darkness, sh
 
 | Feature | Specification |
 |---|---|
-| Radar Module | EBYTE E54-24LD12D (24GHz FMCW) |
+| Radar Module | EBYTE E54-24LD12D (24GHz FMCW) [link](https://www.aliexpress.us/item/3256810246621467.html)|
 | Target Capacity | Up to 3 simultaneous tracked targets |
 | Detection Range | 0.5m to 30.0m (Auto-scaling 2m grid arcs) |
 | Serial Baud Rate | 256,000 baud (Auto-detected on boot) |
-| Display | 240x320 SPI TFT Screen (ST7789 or ILI9341) |
+| Display | 240x320 SPI TFT Screen (ST7789 or ILI9341) [link](https://www.aliexpress.us/item/3256810252971024.html)|
 | Display Frame Rate | 60 FPS to 120 FPS (Direct-to-sprite rendering) |
 | Wireless Telemetry | Wi-Fi 802.11 b/g/n (`ESP32-Radar-Tracker`) |
 | Web API Output | Real-time JSON stream (`GET /api/data`) |
@@ -153,7 +153,7 @@ EBYTE_E54/
 ├── platformio.ini          # PlatformIO build settings
 └── README.md               # Project documentation
 ```
-
+Thank you to EBYTE for providing the ESP32 and E54 hardware for this project. Besides receiving the hardware for free, I am under no obligation to say anything positive but can confirm that the parts I recived all work reliably and the documentation/test software is superb. I can recommend.
 ---
 
 ## License
