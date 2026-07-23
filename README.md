@@ -8,6 +8,8 @@ It detects moving people through walls, drywall, plastic, and total darkness, sh
 
 *Click the image above to watch the live hardware demonstration video on YouTube.*
 
+<img width="3000" height="4000" alt="20260721_231319" src="https://github.com/user-attachments/assets/54d745c9-4e9d-41e4-a42e-96c85e28e892" />
+
 ---
 
 ## What It Does
