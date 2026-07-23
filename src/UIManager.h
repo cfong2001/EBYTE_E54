@@ -182,9 +182,7 @@ public:
     }
 
     void updateThemeText() {
-        if (theme == THEME_MINIMAL) themeText = 0xC618; // Light Grey
-        else if (theme == THEME_ALIEN) themeText = 0x06DD; // themePrimary
-        else themeText = TFT_WHITE;
+        themeText = activeTheme.text;
     }
 
     void loadSettings() {
@@ -791,7 +789,7 @@ public:
     void drawSweepLine() {
         if (sweepLineEnabled && theme != THEME_MINIMAL) {
             sweepAngle = (sweepAngle + 4) % 180;
-            uint16_t sweepColor = (theme == THEME_ALIEN) ? themePrimary : TFT_DARKGREY;
+            uint16_t sweepColor = activeTheme.hasSweepOverride ? activeTheme.sweepOverride : sprite.alphaBlend(128, themePrimary, themeBg);
 
             // Replace per-iteration sinf()/cosf() with fixed vector rotation.
             // Stepping by -2 degrees per iteration.
@@ -1313,7 +1311,7 @@ public:
         int maxR = (elapsed * 180) / 1000;
         if (maxR > 180) maxR = 180;
 
-        uint16_t gridColor = (theme == THEME_ALIEN) ? themePrimary : themePrimary;
+        uint16_t gridColor = activeTheme.hasGridOverride ? activeTheme.gridOverride : sprite.alphaBlend(128, themePrimary, themeBg);
 
         // Hoist trigonometry out of radial rendering loops
         for (int a = -180; a <= 180; a += 5) {
@@ -1412,7 +1410,7 @@ public:
         float maxRangeMM = currentMaxRangeMeters * 1000.0f;
         float scalePxPerMm = 300.0f / maxRangeMM;
 
-        uint16_t primaryColor = (theme == THEME_ALIEN) ? themePrimary : TFT_GREEN;
+        uint16_t primaryColor = themePrimary;
         uint16_t heavyGridColor = sprite.alphaBlend(150, primaryColor, themeBg); // Heavy stroke (even meters)
         uint16_t lightGridColor = sprite.alphaBlend(65, primaryColor, themeBg);  // Light stroke (odd meters)
 
@@ -1661,11 +1659,18 @@ public:
         String selItem = String(selectedItemText);
         const char* tooltipText = "Adjust setting value."; // Default fallback
 
+        bool found = false;
+
         for (const auto& mapping : tooltips) {
             if (selItem.startsWith(mapping.prefix)) {
                 tooltipText = mapping.text;
+                found = true;
                 break;
             }
+        }
+
+        if (!found) {
+            sprite.setTextColor(themePrimary, themeBg);
         }
 
         sprite.print(tooltipText);

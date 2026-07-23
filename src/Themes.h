@@ -10,6 +10,10 @@ struct Theme {
     uint16_t warning;
     uint16_t success;
     uint16_t text;
+    bool hasSweepOverride;
+    uint16_t sweepOverride;
+    bool hasGridOverride;
+    uint16_t gridOverride;
 };
 
 // Define basic 16-bit RGB565 color constants

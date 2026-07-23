@@ -1,6 +1,6 @@
 #include "Themes.h"
 
-Theme activeTheme = { TFT_BLACK, TFT_WHITE, TFT_RED, TFT_YELLOW, TFT_GREEN, TFT_WHITE };
+Theme activeTheme = { TFT_BLACK, TFT_WHITE, TFT_RED, TFT_YELLOW, TFT_GREEN, TFT_WHITE, false, 0, false, 0 };
 
 uint16_t themeBg = TFT_BLACK;
 uint16_t themePrimary = TFT_WHITE;
@@ -12,22 +12,22 @@ uint16_t themeText = TFT_WHITE;
 void applyTheme(int themeIndex) {
     switch (themeIndex) {
         case 0: // Standard
-            activeTheme = { TFT_BLACK, TFT_WHITE, TFT_RED, TFT_YELLOW, TFT_GREEN, TFT_WHITE };
+            activeTheme = { TFT_BLACK, TFT_WHITE, TFT_RED, TFT_YELLOW, TFT_GREEN, TFT_WHITE, false, 0, false, 0 };
             break;
         case 1: // Alien / Phosphor Green
-            activeTheme = { TFT_BLACK, 0x06DD, TFT_RED, TFT_YELLOW, 0x07E0, 0x06DD };
+            activeTheme = { TFT_BLACK, 0x06DD, TFT_RED, TFT_YELLOW, 0x07E0, 0x06DD, true, 0x06DD, true, 0x06DD };
             break;
         case 2: // Minimalist
-            activeTheme = { 0x0000, 0xC618, 0xF800, 0xFFE0, 0x07E0, 0xC618 };
+            activeTheme = { 0x0000, 0xC618, 0xF800, 0xFFE0, 0x07E0, 0xC618, false, 0, false, 0 };
             break;
         case 3: // Cyberpunk (Neon Cyan / Magenta)
-            activeTheme = { 0x0808, TFT_CYAN, TFT_MAGENTA, TFT_YELLOW, 0x07E0, TFT_CYAN };
+            activeTheme = { 0x0808, TFT_CYAN, TFT_MAGENTA, TFT_YELLOW, 0x07E0, TFT_CYAN, false, 0, false, 0 };
             break;
         case 4: // Tactical Amber / FLIR
-            activeTheme = { 0x0000, TFT_ORANGE, TFT_RED, TFT_YELLOW, 0x07E0, TFT_ORANGE };
+            activeTheme = { 0x0000, TFT_ORANGE, TFT_RED, TFT_YELLOW, 0x07E0, TFT_ORANGE, false, 0, false, 0 };
             break;
         default:
-            activeTheme = { TFT_BLACK, TFT_WHITE, TFT_RED, TFT_YELLOW, TFT_GREEN, TFT_WHITE };
+            activeTheme = { TFT_BLACK, TFT_WHITE, TFT_RED, TFT_YELLOW, TFT_GREEN, TFT_WHITE, false, 0, false, 0 };
             break;
     }
     themeBg = activeTheme.bg;
