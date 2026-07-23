@@ -1,7 +1,0 @@
-🔒 Add missing CORS headers to API routes
-
-🎯 **What:** Fixed a missing CORS header vulnerability in the BroadcastServer API endpoints (/api/data).
-
-⚠️ **Risk:** Without CORS headers (Access-Control-Allow-Origin: *), the radar data served over the ESP32's WiFi AP is vulnerable to Cross-Site Request Forgery (CSRF) or unauthorized data reading by a malicious web page if a user is simultaneously connected to the AP and the broader internet.
-
-🛡️ **Solution:** Switched from the shorthand request->send(code, type, content) to request->beginResponse() to generate an AsyncWebServerResponse object. This allowed the addition of the Access-Control-Allow-Origin: * header to both the 200 (Success) and 503 (Server Busy) responses before they are sent.
