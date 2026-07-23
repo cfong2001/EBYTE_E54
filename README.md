@@ -153,7 +153,10 @@ EBYTE_E54/
 ├── platformio.ini          # PlatformIO build settings
 └── README.md               # Project documentation
 ```
-Thank you to EBYTE for providing the ESP32 and E54 hardware for this project. Besides receiving the hardware for free, I am under no obligation to say anything positive but can confirm that the parts I recived all work reliably and the documentation/test software is superb. I can recommend.
+---
+
+Thank you to EBYTE for providing the ESP32 and E54 hardware for this project. Besides the hardware support, I am under no obligation to say anything positive. Nonetheless, I can confirm that the parts I received all work reliably and the documentation/test software is superb. I can recommend.)
+
 ---
 
 ## License
