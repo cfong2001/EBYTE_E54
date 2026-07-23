@@ -821,45 +821,6 @@ public:
 
 
 private:
-    void drawTargetTrail(int i, uint8_t currentAlpha, uint16_t baseColor) {
-        if (trailLength > 0) {
-            for (int h = 0; h < trailLength; h++) {
-                int hx = (int)targetHistoryX[i][h];
-                int hy = (int)targetHistoryY[i][h];
-                if (hx > 0 && hy > 0) {
-                    uint8_t t_alpha = (currentAlpha * (trailLength - h)) / trailLength;
-                    uint16_t tColor = sprite.alphaBlend(t_alpha, baseColor, themeBg);
-                    int tr = max(1, (int)((4 - (h / 2)) * uiScale));
-                    sprite.fillCircle(hx, hy, tr, tColor);
-                }
-            }
-        }
-    }
-
-    void drawTargetWarning(int i, int cx, int cy, uint8_t currentAlpha) {
-        if (zoneManager.isWarning(i)) {
-            float pulse = animWarningPulse;
-            uint8_t blendRatio = (uint8_t)(pulse * 255.0f);
-            uint16_t blendColor = sprite.alphaBlend(blendRatio, themeDanger, themeWarning);
-            uint16_t wCol = sprite.alphaBlend(currentAlpha, blendColor, themeBg);
-            int pr = (int)((8 + (pulse * 2.0f)) * uiScale);
-            sprite.drawCircle(cx, cy, pr, wCol);
-        }
-        float danger = zoneManager.getTargetDangerLevel(i);
-        if (danger > 0.01f) {
-            uint16_t dangerColor = sprite.alphaBlend((uint8_t)(danger * 255.0f), themeDanger, themeWarning);
-            uint16_t wCol = sprite.alphaBlend(currentAlpha, dangerColor, themeBg);
-
-            float pulseSpeed = 300.0f - (danger * 200.0f);
-            // Use single-precision sinf() to avoid implicit double conversion
-            // inside 30Hz display rendering loop, saving CPU cycles on ESP32 FPU.
-            float pulse = (sinf(millis() / pulseSpeed) + 1.0f) * 0.5f;
-            int r = (int)((6 + (pulse * 4.0f * danger)) * uiScale);
-
-            sprite.drawCircle(cx, cy, r, wCol);
-        }
-    }
-
     void drawTargetIcon(int i, int cx, int cy, uint16_t color) {
         if (targetIcon == ICON_CIRCLE) {
             int r1 = max(1, (int)(4 * uiScale));
