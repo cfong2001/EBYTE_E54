@@ -4,6 +4,10 @@ An open-source, handheld 24GHz radar tracker that works like a real-world Call o
 
 It detects moving people through walls, drywall, plastic, and total darkness, showing their position, distance, and speed on a color TFT screen in real time. It also streams live radar coordinates over Wi-Fi to smartphones and web browsers.
 
+[![ESP32 Radar Display Demonstration](https://img.youtube.com/vi/HvI1Ko4NO3E/maxresdefault.jpg)](https://www.youtube.com/watch?v=HvI1Ko4NO3E)
+
+*Click the image above to watch the live hardware demonstration video on YouTube.*
+
 ---
 
 ## What It Does
