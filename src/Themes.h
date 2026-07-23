@@ -3,6 +3,13 @@
 
 #include <stdint.h>
 
+/**
+ * Theme structure holding 16-bit RGB565 color constants for dynamic styling.
+ *
+ * Modular theaming system. Adding a new theme requires:
+ * 1. Adding a new case in Themes.cpp `applyTheme` method.
+ * 2. Updating UI bounds in UIManager.h `executeMenuEdit` `Theme:` section.
+ */
 struct Theme {
     uint16_t bg;
     uint16_t primary;

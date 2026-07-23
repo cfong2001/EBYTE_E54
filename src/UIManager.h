@@ -138,6 +138,7 @@ public:
         menuSelection = 0;
 
         theme = THEME_ALIEN;
+        applyTheme(theme);
         targetIcon = ICON_SMART;
         sweepLineEnabled = true;
         trailLength = 5;
@@ -188,6 +189,7 @@ public:
     void loadSettings() {
         preferences.begin("radar_ui", false);
         theme = (ThemeStyle)preferences.getInt("theme", THEME_ALIEN);
+        applyTheme(theme);
         updateThemeText();
         targetIcon = (TargetIcon)preferences.getInt("icon", ICON_SMART);
         sweepLineEnabled = preferences.getBool("sweep", true);
@@ -1482,7 +1484,11 @@ public:
         const char* themeStr = (theme == THEME_STANDARD) ? "Standard" :
                          (theme == THEME_ALIEN) ? "Alien" :
                          (theme == THEME_MINIMAL) ? "Minimal" :
-                         (theme == THEME_CYBERPUNK) ? "Cyberpunk" : "Tactical";
+                         (theme == THEME_CYBERPUNK) ? "Cyberpunk" :
+                         (theme == 4) ? "Tactical" :
+                         (theme == 5) ? "Synthwave" :
+                         (theme == 6) ? "Blood Red" :
+                         (theme == 7) ? "Arctic" : "Matrix";
         const char* iconStr = (targetIcon == ICON_CIRCLE) ? "CIRCLE" :
                          (targetIcon == ICON_SQUARE) ? "SQUARE" :
                          (targetIcon == ICON_TRIANGLE) ? "TRIANGLE" : "SMART";
@@ -1782,7 +1788,7 @@ inline void VisualsMenuView::executeMenuEdit(UIManager* ui, int dir) {
     String selItem = String(ui->currentMenuItems[ui->menuSelection]);
     if (selItem.startsWith("Theme:")) {
         int t = (int)ui->theme + dir;
-        if (t > 4) t = 0; if (t < 0) t = 4;
+        if (t > 8) t = 0; if (t < 0) t = 8;
         ui->theme = (ThemeStyle)t;
         applyTheme(t);
         ui->updateThemeText();
