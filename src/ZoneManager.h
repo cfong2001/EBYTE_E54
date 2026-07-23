@@ -28,15 +28,15 @@ class ZoneManager {
 public:
     Preferences preferences;
 
-    ZoneManager() {
-        warnPreset = ZONE_OFF;
-        deadPreset = ZONE_OFF;
-        warnCustom = {1000, 3000, -30, 30, 0.0f, 0.0f};
-        deadCustom = {0, 1000, -90, 90, 0.0f, 0.0f};
+    ZoneManager()
+        : warnPreset(ZONE_OFF),
+          deadPreset(ZONE_OFF),
+          warnCustom({1000, 3000, -30, 30, 0.0f, 0.0f}),
+          deadCustom({0, 1000, -90, 90, 0.0f, 0.0f}),
+          fuzzingThreshold(50),
+          historyWindow(10) {
         updateTangents(warnCustom);
         updateTangents(deadCustom);
-        fuzzingThreshold = 50;
-        historyWindow = 10;
 
         for(int i=0; i<3; i++) {
             historyCount[i] = 0;
