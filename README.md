@@ -245,4 +245,9 @@ make -C test test
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License (CC BY-NC-SA 4.0)**.
+
+- **Non-Commercial**: Free for open-source community, educational, and personal non-commercial use. Commercial distribution or integration requires prior written permission from the copyright holder.
+- **Share-Alike**: All derivative works and modified versions must be shared under the identical CC BY-NC-SA 4.0 license.
+
+See the [LICENSE](LICENSE) file for full legal text and commercial licensing details.
