@@ -87,7 +87,6 @@ void handleKey0LongPress() {
 }
 
 void radarTask(void *pvParameters) {
-    static uint32_t lastHeartbeat = 0;
     static uint32_t totalFrames = 0;
 
     while (1) {
