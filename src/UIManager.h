@@ -138,6 +138,7 @@ public:
         menuSelection = 0;
 
         theme = THEME_ALIEN;
+        applyTheme(theme);
         targetIcon = ICON_SMART;
         sweepLineEnabled = true;
         trailLength = 5;
@@ -184,14 +185,13 @@ public:
     }
 
     void updateThemeText() {
-        if (theme == THEME_MINIMAL) themeText = 0xC618; // Light Grey
-        else if (theme == THEME_ALIEN) themeText = 0x06DD; // themePrimary
-        else themeText = TFT_WHITE;
+        themeText = activeTheme.text;
     }
 
     void loadSettings() {
         preferences.begin("radar_ui", false);
         theme = (ThemeStyle)preferences.getInt("theme", THEME_ALIEN);
+        applyTheme(theme);
         updateThemeText();
         targetIcon = (TargetIcon)preferences.getInt("icon", ICON_SMART);
         sweepLineEnabled = preferences.getBool("sweep", true);
@@ -795,7 +795,7 @@ public:
     void drawSweepLine() {
         if (sweepLineEnabled && theme != THEME_MINIMAL) {
             sweepAngle = (sweepAngle + 4) % 180;
-            uint16_t sweepColor = (theme == THEME_ALIEN) ? themePrimary : TFT_DARKGREY;
+            uint16_t sweepColor = activeTheme.hasSweepOverride ? activeTheme.sweepOverride : sprite.alphaBlend(128, themePrimary, themeBg);
 
             // Replace per-iteration sinf()/cosf() with fixed vector rotation.
             // Stepping by -2 degrees per iteration.
@@ -1315,7 +1315,7 @@ public:
         int maxR = (elapsed * 180) / 1000;
         if (maxR > 180) maxR = 180;
 
-        uint16_t gridColor = themePrimary;
+        uint16_t gridColor = activeTheme.hasGridOverride ? activeTheme.gridOverride : sprite.alphaBlend(128, themePrimary, themeBg);
 
         // Hoist trigonometry out of radial rendering loops
         for (int a = -180; a <= 180; a += 5) {
@@ -1414,7 +1414,7 @@ public:
         float maxRangeMM = currentMaxRangeMeters * 1000.0f;
         float scalePxPerMm = 300.0f / maxRangeMM;
 
-        uint16_t primaryColor = (theme == THEME_ALIEN) ? themePrimary : TFT_GREEN;
+        uint16_t primaryColor = themePrimary;
         uint16_t heavyGridColor = sprite.alphaBlend(150, primaryColor, themeBg); // Heavy stroke (even meters)
         uint16_t lightGridColor = sprite.alphaBlend(65, primaryColor, themeBg);  // Light stroke (odd meters)
 
@@ -1486,7 +1486,11 @@ public:
         const char* themeStr = (theme == THEME_STANDARD) ? "Standard" :
                          (theme == THEME_ALIEN) ? "Alien" :
                          (theme == THEME_MINIMAL) ? "Minimal" :
-                         (theme == THEME_CYBERPUNK) ? "Cyberpunk" : "Tactical";
+                         (theme == THEME_CYBERPUNK) ? "Cyberpunk" :
+                         (theme == 4) ? "Tactical" :
+                         (theme == 5) ? "Synthwave" :
+                         (theme == 6) ? "Blood Red" :
+                         (theme == 7) ? "Arctic" : "Matrix";
         const char* iconStr = (targetIcon == ICON_CIRCLE) ? "CIRCLE" :
                          (targetIcon == ICON_SQUARE) ? "SQUARE" :
                          (targetIcon == ICON_TRIANGLE) ? "TRIANGLE" : "SMART";
@@ -1663,11 +1667,18 @@ public:
         String selItem = String(selectedItemText);
         const char* tooltipText = "Adjust setting value."; // Default fallback
 
+        bool found = false;
+
         for (const auto& mapping : tooltips) {
             if (selItem.startsWith(mapping.prefix)) {
                 tooltipText = mapping.text;
+                found = true;
                 break;
             }
+        }
+
+        if (!found) {
+            sprite.setTextColor(themePrimary, themeBg);
         }
 
         sprite.print(tooltipText);
@@ -1779,7 +1790,7 @@ inline void VisualsMenuView::executeMenuEdit(UIManager* ui, int dir) {
     String selItem = String(ui->currentMenuItems[ui->menuSelection]);
     if (selItem.startsWith("Theme:")) {
         int t = (int)ui->theme + dir;
-        if (t > 4) t = 0; if (t < 0) t = 4;
+        if (t > 8) t = 0; if (t < 0) t = 8;
         ui->theme = (ThemeStyle)t;
         applyTheme(t);
         ui->updateThemeText();

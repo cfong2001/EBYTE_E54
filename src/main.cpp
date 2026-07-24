@@ -1,4 +1,9 @@
 #include <Arduino.h>
+
+#ifndef RADAR_BAUD
+#define RADAR_BAUD 256000
+#endif
+
 #include <TFT_eSPI.h>
 #include <RotaryEncoder.h>
 #include <OneButton.h>
