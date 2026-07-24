@@ -1315,7 +1315,7 @@ public:
         int maxR = (elapsed * 180) / 1000;
         if (maxR > 180) maxR = 180;
 
-        uint16_t gridColor = (theme == THEME_ALIEN) ? themePrimary : themePrimary;
+        uint16_t gridColor = themePrimary;
 
         // Hoist trigonometry out of radial rendering loops
         for (int a = -180; a <= 180; a += 5) {
