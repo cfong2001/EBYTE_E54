@@ -138,6 +138,7 @@ public:
         menuSelection = 0;
 
         theme = THEME_ALIEN;
+        applyTheme(theme);
         targetIcon = ICON_SMART;
         sweepLineEnabled = true;
         trailLength = 5;
@@ -168,6 +169,8 @@ public:
             rawTargetX[i] = 0;
             rawTargetY[i] = 0;
             rawTargetSpeed[i] = 0;
+            rawTargetDistM[i] = 0.0f;
+            rawTargetAngleDeg[i] = 0;
             simAlpha[i] = 0.0f;
             smoothVecX[i] = 0.0f;
             smoothVecY[i] = 0.0f;
@@ -182,14 +185,13 @@ public:
     }
 
     void updateThemeText() {
-        if (theme == THEME_MINIMAL) themeText = 0xC618; // Light Grey
-        else if (theme == THEME_ALIEN) themeText = 0x06DD; // themePrimary
-        else themeText = TFT_WHITE;
+        themeText = activeTheme.text;
     }
 
     void loadSettings() {
         preferences.begin("radar_ui", false);
         theme = (ThemeStyle)preferences.getInt("theme", THEME_ALIEN);
+        applyTheme(theme);
         updateThemeText();
         targetIcon = (TargetIcon)preferences.getInt("icon", ICON_SMART);
         sweepLineEnabled = preferences.getBool("sweep", true);
@@ -469,6 +471,11 @@ public:
                     rawTargetX[i] = targets[i].x;
                     rawTargetY[i] = targets[i].y;
                     rawTargetSpeed[i] = targets[i].speed;
+
+                    // Precalculate expensive math operations at data ingest frequency (10Hz)
+                    // instead of per-frame render loops (60-120Hz).
+                    rawTargetDistM[i] = sqrtf((long)targets[i].x * targets[i].x + (long)targets[i].y * targets[i].y) * 0.001f;
+                    rawTargetAngleDeg[i] = (int)(atan2f((float)targets[i].x, (float)targets[i].y) * 57.2957795f);
 
                     if (targetGoalX[i] < 0 || targetGoalX[i] >= 240 || targetGoalY[i] < 0 || targetGoalY[i] >= 320) {
                         targetActive[i] = false;
@@ -760,12 +767,9 @@ public:
                 }
 
                 if (simulatedSweep) {
-                    float targetRad = atan2f(rawTargetX[i], rawTargetY[i]);
-                    int targetDeg = (int)(targetRad * 57.2957795f);
-
                     int visualAngle = sweepAngle - 90;
 
-                    if (abs(visualAngle - targetDeg) < 5) {
+                    if (abs(visualAngle - rawTargetAngleDeg[i]) < 5) {
                         simAlpha[i] = 1.0f;
                     }
                     simAlpha[i] -= 0.03f;
@@ -791,7 +795,7 @@ public:
     void drawSweepLine() {
         if (sweepLineEnabled && theme != THEME_MINIMAL) {
             sweepAngle = (sweepAngle + 4) % 180;
-            uint16_t sweepColor = (theme == THEME_ALIEN) ? themePrimary : TFT_DARKGREY;
+            uint16_t sweepColor = activeTheme.hasSweepOverride ? activeTheme.sweepOverride : sprite.alphaBlend(128, themePrimary, themeBg);
 
             // Replace per-iteration sinf()/cosf() with fixed vector rotation.
             // Stepping by -2 degrees per iteration.
@@ -1076,19 +1080,15 @@ private:
                 sprite.setCursor(cx + 8, cy - 12);
 
                 if (telemetryMode == TELEMETRY_DIST_ANG) {
-                    float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) * 0.001f;
-                    int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 57.2957795f);
-                    sprite.printf("%.1fm %ddeg", dist_m, angle);
+                    sprite.printf("%.1fm %ddeg", rawTargetDistM[i], rawTargetAngleDeg[i]);
                 } else if (telemetryMode == TELEMETRY_VELOCITY) {
                     float speed_ms = (float)rawTargetSpeed[i] * 0.1f;
                     sprite.printf("%.1fm/s", speed_ms);
                 } else if (telemetryMode == TELEMETRY_RAW) {
                     sprite.printf("%dmm,%dmm", rawTargetX[i], rawTargetY[i]);
                 } else if (telemetryMode == TELEMETRY_ALL) {
-                    float dist_m = sqrtf((long)rawTargetX[i]*rawTargetX[i] + (long)rawTargetY[i]*rawTargetY[i]) * 0.001f;
-                    int angle = (int)(atan2f((float)rawTargetX[i], (float)rawTargetY[i]) * 57.2957795f);
                     float speed_ms = (float)rawTargetSpeed[i] * 0.1f;
-                    sprite.printf("T%d %.1fm %ddeg", i+1, dist_m, angle);
+                    sprite.printf("T%d %.1fm %ddeg", i+1, rawTargetDistM[i], rawTargetAngleDeg[i]);
                     sprite.setCursor(cx + 8, cy - 2);
                     sprite.printf("%.1fm/s", speed_ms);
                 }
@@ -1195,6 +1195,8 @@ public:
     int16_t rawTargetX[3];
     int16_t rawTargetY[3];
     int16_t rawTargetSpeed[3];
+    float rawTargetDistM[3];
+    int rawTargetAngleDeg[3];
 
     float targetCurrentX[3];
     float targetCurrentY[3];
@@ -1313,7 +1315,7 @@ public:
         int maxR = (elapsed * 180) / 1000;
         if (maxR > 180) maxR = 180;
 
-        uint16_t gridColor = (theme == THEME_ALIEN) ? themePrimary : themePrimary;
+        uint16_t gridColor = activeTheme.hasGridOverride ? activeTheme.gridOverride : sprite.alphaBlend(128, themePrimary, themeBg);
 
         // Hoist trigonometry out of radial rendering loops
         for (int a = -180; a <= 180; a += 5) {
@@ -1412,7 +1414,7 @@ public:
         float maxRangeMM = currentMaxRangeMeters * 1000.0f;
         float scalePxPerMm = 300.0f / maxRangeMM;
 
-        uint16_t primaryColor = (theme == THEME_ALIEN) ? themePrimary : TFT_GREEN;
+        uint16_t primaryColor = themePrimary;
         uint16_t heavyGridColor = sprite.alphaBlend(150, primaryColor, themeBg); // Heavy stroke (even meters)
         uint16_t lightGridColor = sprite.alphaBlend(65, primaryColor, themeBg);  // Light stroke (odd meters)
 
@@ -1484,7 +1486,11 @@ public:
         const char* themeStr = (theme == THEME_STANDARD) ? "Standard" :
                          (theme == THEME_ALIEN) ? "Alien" :
                          (theme == THEME_MINIMAL) ? "Minimal" :
-                         (theme == THEME_CYBERPUNK) ? "Cyberpunk" : "Tactical";
+                         (theme == THEME_CYBERPUNK) ? "Cyberpunk" :
+                         (theme == 4) ? "Tactical" :
+                         (theme == 5) ? "Synthwave" :
+                         (theme == 6) ? "Blood Red" :
+                         (theme == 7) ? "Arctic" : "Matrix";
         const char* iconStr = (targetIcon == ICON_CIRCLE) ? "CIRCLE" :
                          (targetIcon == ICON_SQUARE) ? "SQUARE" :
                          (targetIcon == ICON_TRIANGLE) ? "TRIANGLE" : "SMART";
@@ -1664,11 +1670,18 @@ public:
         String selItem = String(selectedItemText);
         const char* tooltipText = "Adjust setting value."; // Default fallback
 
+        bool found = false;
+
         for (const auto& mapping : tooltips) {
             if (selItem.startsWith(mapping.prefix)) {
                 tooltipText = mapping.text;
+                found = true;
                 break;
             }
+        }
+
+        if (!found) {
+            sprite.setTextColor(themePrimary, themeBg);
         }
 
         sprite.print(tooltipText);
@@ -1780,7 +1793,7 @@ inline void VisualsMenuView::executeMenuEdit(UIManager* ui, int dir) {
     String selItem = String(ui->currentMenuItems[ui->menuSelection]);
     if (selItem.startsWith("Theme:")) {
         int t = (int)ui->theme + dir;
-        if (t > 4) t = 0; if (t < 0) t = 4;
+        if (t > 8) t = 0; if (t < 0) t = 8;
         ui->theme = (ThemeStyle)t;
         applyTheme(t);
         ui->updateThemeText();
