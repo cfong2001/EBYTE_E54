@@ -1419,8 +1419,10 @@ public:
         uint16_t lightGridColor = sprite.alphaBlend(65, primaryColor, themeBg);  // Light stroke (odd meters)
 
         // 1. Concentric Polar Distance Arcs (1m increments up to currentMaxRangeMeters)
+        // ⚡ Bolt: Hoisted loop-invariant multiplier to save FPU cycles
+        float meterToPxScale = 1000.0f * scalePxPerMm * uiScale;
         for (int m = 1; m <= currentMaxRangeMeters; m++) {
-            int r_px = (int)(m * 1000.0f * scalePxPerMm * uiScale);
+            int r_px = (int)(m * meterToPxScale);
             if (r_px <= 0 || r_px > originY + 50) continue;
 
             bool isEven = (m % 2 == 0);
@@ -1443,19 +1445,27 @@ public:
         }
 
         // 2. Polar Radial Spoke Rays (-60°, -45°, -30°, 0°, 30°, 45°, 60°)
-        int maxR = (int)(currentMaxRangeMeters * 1000.0f * scalePxPerMm * uiScale);
+        int maxR = (int)(currentMaxRangeMeters * meterToPxScale);
 
         // Heavy vertical centerline (0° / 90° straight up)
         sprite.drawLine(originX, originY, originX, originY - maxR, heavyGridColor);
 
-        int spokeAngles[] = {-60, -45, -30, 30, 45, 60};
-        for (int deg : spokeAngles) {
-            float rad = (deg - 90) * 0.0174532925f;
-            int rx = originX + (int)(maxR * cosf(rad));
-            int ry = originY + (int)(maxR * sinf(rad));
+        // ⚡ Bolt: Replace per-frame cosf()/sinf() evaluations with precalculated static vectors
+        // Angles: -60, -45, -30, 30, 45, 60
+        struct SpokeVector { float dx, dy; bool isHeavy; };
+        constexpr SpokeVector spokes[6] = {
+            {-0.866025f, -0.500000f, false}, // -60
+            {-0.707107f, -0.707107f, true},  // -45
+            {-0.500000f, -0.866025f, false}, // -30
+            { 0.500000f, -0.866025f, false}, // 30
+            { 0.707107f, -0.707107f, true},  // 45
+            { 0.866025f, -0.500000f, false}  // 60
+        };
 
-            bool isHeavy = (deg == -45 || deg == 45);
-            uint16_t rayColor = isHeavy ? heavyGridColor : lightGridColor;
+        for (int i = 0; i < 6; i++) {
+            int rx = originX + (int)(maxR * spokes[i].dx);
+            int ry = originY + (int)(maxR * spokes[i].dy);
+            uint16_t rayColor = spokes[i].isHeavy ? heavyGridColor : lightGridColor;
             sprite.drawLine(originX, originY, rx, ry, rayColor);
         }
 
