@@ -28,15 +28,15 @@ class ZoneManager {
 public:
     Preferences preferences;
 
-    ZoneManager() {
-        warnPreset = ZONE_OFF;
-        deadPreset = ZONE_OFF;
-        warnCustom = {1000, 3000, -30, 30, 0.0f, 0.0f};
-        deadCustom = {0, 1000, -90, 90, 0.0f, 0.0f};
+    ZoneManager()
+        : warnPreset(ZONE_OFF),
+          deadPreset(ZONE_OFF),
+          warnCustom({1000, 3000, -30, 30, 0.0f, 0.0f}),
+          deadCustom({0, 1000, -90, 90, 0.0f, 0.0f}),
+          fuzzingThreshold(50),
+          historyWindow(10) {
         updateTangents(warnCustom);
         updateTangents(deadCustom);
-        fuzzingThreshold = 50;
-        historyWindow = 10;
 
         for(int i=0; i<3; i++) {
             historyCount[i] = 0;
@@ -82,8 +82,8 @@ public:
 
     void setWarnPreset(ZonePreset p) { warnPreset = p; flagDirty(); }
     void setDeadPreset(ZonePreset p) { deadPreset = p; flagDirty(); }
-    void setWarnCustom(RadialZone z) { warnCustom = z; updateTangents(warnCustom); flagDirty(); }
-    void setDeadCustom(RadialZone z) { deadCustom = z; updateTangents(deadCustom); flagDirty(); }
+    void setWarnCustom(const RadialZone& z) { warnCustom = z; updateTangents(warnCustom); flagDirty(); }
+    void setDeadCustom(const RadialZone& z) { deadCustom = z; updateTangents(deadCustom); flagDirty(); }
     void setFuzzingThreshold(int percent) { fuzzingThreshold = percent; flagDirty(); }
     void setHistoryWindow(int frames) {
         if (frames > 30) frames = 30;
@@ -104,7 +104,7 @@ public:
     RadialZone getActiveWarnZone() { return getZoneFromPreset(warnPreset, warnCustom); }
     RadialZone getActiveDeadZone() { return getZoneFromPreset(deadPreset, deadCustom); }
 
-    bool isInsideZone(int16_t x, int16_t y, RadialZone z) const {
+    bool isInsideZone(int16_t x, int16_t y, const RadialZone& z) const {
         if (x == 0 && y == 0) return false;
         long distSq = (long)x*x + (long)y*y;
         long minDistSq = (long)z.minDist * z.minDist;
@@ -239,7 +239,7 @@ private:
     bool warnHistory[3][30];
     int historyCount[3];
 
-    RadialZone getZoneFromPreset(ZonePreset p, RadialZone custom) {
+    RadialZone getZoneFromPreset(ZonePreset p, const RadialZone& custom) {
         switch(p) {
             case ZONE_CLOSE:  return {0, 2000, -90, 90, 0.0f, 0.0f};
             case ZONE_MEDIUM: return {2000, 4000, -90, 90, 0.0f, 0.0f};
