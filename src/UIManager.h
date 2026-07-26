@@ -1448,14 +1448,19 @@ public:
         // Heavy vertical centerline (0° / 90° straight up)
         sprite.drawLine(originX, originY, originX, originY - maxR, heavyGridColor);
 
-        int spokeAngles[] = {-60, -45, -30, 30, 45, 60};
-        for (int deg : spokeAngles) {
-            float rad = (deg - 90) * 0.0174532925f;
-            int rx = originX + (int)(maxR * cosf(rad));
-            int ry = originY + (int)(maxR * sinf(rad));
+        struct { float dx, dy; bool isHeavy; } constexpr spokes[] = {
+            {-0.8660254038f, -0.5000000000f, false}, // -60 deg
+            {-0.7071067812f, -0.7071067812f, true},  // -45 deg
+            {-0.5000000000f, -0.8660254038f, false}, // -30 deg
+            { 0.5000000000f, -0.8660254038f, false}, // 30 deg
+            { 0.7071067812f, -0.7071067812f, true},  // 45 deg
+            { 0.8660254038f, -0.5000000000f, false}  // 60 deg
+        };
 
-            bool isHeavy = (deg == -45 || deg == 45);
-            uint16_t rayColor = isHeavy ? heavyGridColor : lightGridColor;
+        for (const auto& spoke : spokes) {
+            int rx = originX + (int)(maxR * spoke.dx);
+            int ry = originY + (int)(maxR * spoke.dy);
+            uint16_t rayColor = spoke.isHeavy ? heavyGridColor : lightGridColor;
             sprite.drawLine(originX, originY, rx, ry, rayColor);
         }
 
