@@ -628,21 +628,35 @@ public:
         } else if (state == STATE_CONFIRM_WIFI_GEN) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeWarning, themeBg);
-            sprite.fillRect(10, 90, 220, 60, pulseColor);
+
+            int lh = 8 * uiTextSize;
+            int boxH = lh * 3 + 20;
+            int boxY = 90;
+            sprite.fillRect(10, boxY, 220, boxH, pulseColor);
             sprite.setTextColor(themeBg, pulseColor);
+
+            int currentY = boxY + 8;
             int w1 = sprite.textWidth("CONFIRM WIFI KEY REGEN");
-            sprite.setCursor((240 - w1) / 2, 100);
+            sprite.setCursor((240 - w1) / 2, currentY);
             sprite.print("CONFIRM WIFI KEY REGEN");
+
+            currentY += lh + 4;
             int w2 = sprite.textWidth("[PRESS] TO REGEN");
-            sprite.setCursor((240 - w2) / 2, 115);
+            sprite.setCursor((240 - w2) / 2, currentY);
             sprite.print("[PRESS] TO REGEN");
+
+            currentY += lh + 4;
             int w3 = sprite.textWidth("[TURN] TO CANCEL");
-            sprite.setCursor((240 - w3) / 2, 130);
+            sprite.setCursor((240 - w3) / 2, currentY);
             sprite.print("[TURN] TO CANCEL");
         } else if (state == STATE_IMPORTING) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeWarning, themeBg);
-            sprite.fillRect(10, 100, 220, 40, pulseColor);
+
+            int lh = 8 * uiTextSize;
+            int boxH = lh * 2 + 16;
+            int boxY = 100;
+            sprite.fillRect(10, boxY, 220, boxH, pulseColor);
             sprite.setTextColor(themeBg, pulseColor);
 
             int dots = (millis() / 500) % 4;
@@ -650,49 +664,63 @@ public:
             char buf[32];
             snprintf(buf, sizeof(buf), "WAITING FOR CONFIG%-3s", dotStr);
             int w_dots = sprite.textWidth("WAITING FOR CONFIG...");
-            sprite.setCursor((240 - w_dots) / 2, 110);
+            sprite.setCursor((240 - w_dots) / 2, boxY + 8);
             sprite.print(buf);
 
             int w_apply = sprite.textWidth("[PRESS BUTTON TO APPLY]");
-            sprite.setCursor((240 - w_apply) / 2, 125);
+            sprite.setCursor((240 - w_apply) / 2, boxY + 8 + lh + 4);
             sprite.print("[PRESS BUTTON TO APPLY]");
         } else if (state == STATE_FALLBACK) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeDanger, themeBg);
-            sprite.fillRect(10, 90, 220, 60, pulseColor);
+
+            int lh = 8 * uiTextSize;
+            int boxH = lh * 3 + 20;
+            int boxY = 90;
+            sprite.fillRect(10, boxY, 220, boxH, pulseColor);
             sprite.setTextColor(themeBg, pulseColor);
 
+            int currentY = boxY + 8;
             int w1 = sprite.textWidth("NEW CONFIG LOADED");
-            sprite.setCursor((240 - w1) / 2, 100);
+            sprite.setCursor((240 - w1) / 2, currentY);
             sprite.print("NEW CONFIG LOADED");
 
+            currentY += lh + 4;
             int w2 = sprite.textWidth("PRESS BUTTON TO KEEP");
-            sprite.setCursor((240 - w2) / 2, 115);
+            sprite.setCursor((240 - w2) / 2, currentY);
             sprite.print("PRESS BUTTON TO KEEP");
 
+            currentY += lh + 4;
             int dots = (millis() / 500) % 4;
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
             char buf[32];
             snprintf(buf, sizeof(buf), "OR WAIT TO REVERT%-3s", dotStr);
             int w3 = sprite.textWidth("OR WAIT TO REVERT...");
-            sprite.setCursor((240 - w3) / 2, 130);
+            sprite.setCursor((240 - w3) / 2, currentY);
             sprite.print(buf);
         } else if (state == STATE_CONFIRM_RESET) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, themeDanger, themeBg);
-            sprite.fillRect(10, 90, 220, 60, pulseColor);
+
+            int lh = 8 * uiTextSize;
+            int boxH = lh * 3 + 20;
+            int boxY = 90;
+            sprite.fillRect(10, boxY, 220, boxH, pulseColor);
             sprite.setTextColor(themeBg, pulseColor);
 
+            int currentY = boxY + 8;
             int w1 = sprite.textWidth("CONFIRM FACTORY RESET");
-            sprite.setCursor((240 - w1) / 2, 100);
+            sprite.setCursor((240 - w1) / 2, currentY);
             sprite.print("CONFIRM FACTORY RESET");
 
+            currentY += lh + 4;
             int w2 = sprite.textWidth("[PRESS] TO WIPE");
-            sprite.setCursor((240 - w2) / 2, 115);
+            sprite.setCursor((240 - w2) / 2, currentY);
             sprite.print("[PRESS] TO WIPE");
 
+            currentY += lh + 4;
             int w3 = sprite.textWidth("[TURN] TO CANCEL");
-            sprite.setCursor((240 - w3) / 2, 130);
+            sprite.setCursor((240 - w3) / 2, currentY);
             sprite.print("[TURN] TO CANCEL");
         }
 
@@ -1224,23 +1252,35 @@ public:
         sprite.fillSprite(themeBg);
         sprite.setTextColor(themeText, themeBg);
         sprite.setTextSize(uiTextSize);
-        sprite.setCursor(10, 10);
+
+        int lh = 8 * uiTextSize;
+        int currentY = 10;
+
+        sprite.setCursor(10, currentY);
         sprite.print("--- SELF TEST ---");
 
-        sprite.setCursor(10, 40);
+        currentY += lh + 20;
+
         if (!selfTestDone) {
             float pulse = (sinf(millis() * 0.005f) + 1.0f) * 0.5f;
             uint16_t pulseColor = sprite.alphaBlend((uint8_t)(pulse * 100.0f) + 155, activeTheme.warning, activeTheme.bg);
-            sprite.fillRect(10, 40, 220, 40, pulseColor);
+            int boxH = lh + 24;
+            sprite.fillRect(10, currentY, 220, boxH, pulseColor);
             sprite.setTextColor(activeTheme.bg, pulseColor);
-            sprite.setCursor(20, 55);
 
             int dots = (millis() / 500) % 4;
             const char* dotStr = (dots == 0) ? "" : (dots == 1) ? "." : (dots == 2) ? ".." : "...";
-            sprite.printf("RUNNING TESTS%-3s", dotStr);
+            char buf[32];
+            snprintf(buf, sizeof(buf), "RUNNING TESTS%-3s", dotStr);
+            int w_dots = sprite.textWidth("RUNNING TESTS...");
+            sprite.setCursor((240 - w_dots) / 2, currentY + (boxH - lh) / 2);
+            sprite.print(buf);
         } else {
+            sprite.setCursor(10, currentY);
             sprite.print("Wiring / RX Check:");
-            sprite.setCursor(10, 60);
+
+            currentY += lh + 4;
+            sprite.setCursor(10, currentY);
             if (selfTestRxOk) {
                 sprite.setTextColor(themeSuccess, themeBg);
                 sprite.print("PASS: RX is HIGH");
@@ -1250,9 +1290,12 @@ public:
             }
 
             sprite.setTextColor(themeText, themeBg);
-            sprite.setCursor(10, 80);
+            currentY += lh + 12;
+            sprite.setCursor(10, currentY);
             sprite.print("Software Logic Check:");
-            sprite.setCursor(10, 100);
+
+            currentY += lh + 4;
+            sprite.setCursor(10, currentY);
             if (selfTestSoftwareOk) {
                 sprite.setTextColor(themeSuccess, themeBg);
                 sprite.print("PASS: Tests passed");
@@ -1260,11 +1303,12 @@ public:
                 sprite.setTextColor(themeDanger, themeBg);
                 sprite.print("FAIL: Tests failed");
             }
-        }
 
-        sprite.setTextColor(themeWarning, themeBg);
-        sprite.setCursor(10, 140);
-        sprite.print("Click to exit");
+            sprite.setTextColor(themeWarning, themeBg);
+            currentY += lh + 20;
+            sprite.setCursor(10, currentY);
+            sprite.print("Click to exit");
+        }
 
         sprite.pushSprite(0, 0);
     }
