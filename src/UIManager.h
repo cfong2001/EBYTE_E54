@@ -853,45 +853,6 @@ public:
 
 
 private:
-    void drawTargetTrail(int i, uint8_t currentAlpha, uint16_t baseColor) {
-        if (trailLength > 0) {
-            for (int h = 0; h < trailLength; h++) {
-                int hx = (int)targetHistoryX[i][h];
-                int hy = (int)targetHistoryY[i][h];
-                if (hx > 0 && hy > 0) {
-                    uint8_t t_alpha = (currentAlpha * (trailLength - h)) / trailLength;
-                    uint16_t tColor = sprite.alphaBlend(t_alpha, baseColor, themeBg);
-                    int tr = max(1, (int)((4 - (h / 2)) * uiScale));
-                    sprite.fillCircle(hx, hy, tr, tColor);
-                }
-            }
-        }
-    }
-
-    void drawTargetWarning(int i, int cx, int cy, uint8_t currentAlpha) {
-        if (zoneManager.isWarning(i)) {
-            float pulse = animWarningPulse;
-            uint8_t blendRatio = (uint8_t)(pulse * 255.0f);
-            uint16_t blendColor = sprite.alphaBlend(blendRatio, themeDanger, themeWarning);
-            uint16_t wCol = sprite.alphaBlend(currentAlpha, blendColor, themeBg);
-            int pr = (int)((8 + (pulse * 2.0f)) * uiScale);
-            sprite.drawCircle(cx, cy, pr, wCol);
-        }
-        float danger = zoneManager.getTargetDangerLevel(i);
-        if (danger > 0.01f) {
-            uint16_t dangerColor = sprite.alphaBlend((uint8_t)(danger * 255.0f), themeDanger, themeWarning);
-            uint16_t wCol = sprite.alphaBlend(currentAlpha, dangerColor, themeBg);
-
-            float pulseSpeed = 300.0f - (danger * 200.0f);
-            // Use single-precision sinf() to avoid implicit double conversion
-            // inside 30Hz display rendering loop, saving CPU cycles on ESP32 FPU.
-            float pulse = (sinf(millis() / pulseSpeed) + 1.0f) * 0.5f;
-            int r = (int)((6 + (pulse * 4.0f * danger)) * uiScale);
-
-            sprite.drawCircle(cx, cy, r, wCol);
-        }
-    }
-
     void drawTargetIcon(int i, int cx, int cy, uint16_t color) {
         if (targetIcon == ICON_CIRCLE) {
             int r1 = max(1, (int)(4 * uiScale));
@@ -1492,14 +1453,19 @@ public:
         // Heavy vertical centerline (0° / 90° straight up)
         sprite.drawLine(originX, originY, originX, originY - maxR, heavyGridColor);
 
-        int spokeAngles[] = {-60, -45, -30, 30, 45, 60};
-        for (int deg : spokeAngles) {
-            float rad = (deg - 90) * 0.0174532925f;
-            int rx = originX + (int)(maxR * cosf(rad));
-            int ry = originY + (int)(maxR * sinf(rad));
+        struct { float dx, dy; bool isHeavy; } constexpr spokes[] = {
+            {-0.8660254038f, -0.5000000000f, false}, // -60 deg
+            {-0.7071067812f, -0.7071067812f, true},  // -45 deg
+            {-0.5000000000f, -0.8660254038f, false}, // -30 deg
+            { 0.5000000000f, -0.8660254038f, false}, // 30 deg
+            { 0.7071067812f, -0.7071067812f, true},  // 45 deg
+            { 0.8660254038f, -0.5000000000f, false}  // 60 deg
+        };
 
-            bool isHeavy = (deg == -45 || deg == 45);
-            uint16_t rayColor = isHeavy ? heavyGridColor : lightGridColor;
+        for (const auto& spoke : spokes) {
+            int rx = originX + (int)(maxR * spoke.dx);
+            int ry = originY + (int)(maxR * spoke.dy);
+            uint16_t rayColor = spoke.isHeavy ? heavyGridColor : lightGridColor;
             sprite.drawLine(originX, originY, rx, ry, rayColor);
         }
 
