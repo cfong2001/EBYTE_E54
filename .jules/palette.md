@@ -4,3 +4,6 @@
 ## 2024-05-24 - Avoid hardcoded colors for UI flexibility and decouple themes
 **Learning:** Hardcoding absolute colors like `TFT_WHITE` or `TFT_DARKGREY` breaks visual consistency across different UI themes, leading to unstyled bounding boxes or illegible text when the background color changes. Inlining theme-specific logic (`if (theme == THEME_ALIEN)`) within the rendering code reduces modularity and scalability.
 **Action:** Use dynamic theme variables like `themePrimary` or `activeTheme.text`. For structural elements, use `sprite.alphaBlend()` to generate shades contextually, e.g. `sprite.alphaBlend(128, themePrimary, themeBg)`. Extend the base `Theme` struct to handle optional overrides (`hasSweepOverride`, `sweepOverride`) to maintain a clean separation of concerns and keep rendering code data-driven.
+## 2024-07-25 - Responsive Y-Coordinates for Self Test Screen
+**Learning:** Hardcoding Y-coordinates in screens like the Self Test screen breaks layout when `uiTextSize` (text scaling) is changed.
+**Action:** Use dynamic calculation for Y-coordinates based on `uiTextSize` (e.g. `base_y + lh * numLines`) for vertical stacking. Also dynamically size bounding boxes.
