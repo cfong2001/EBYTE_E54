@@ -67,12 +67,13 @@ void BroadcastServer::setupRoutes() {
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .blip { fill: #00ff88; filter: drop-shadow(0 0 6px #00ff88); }
         .scale-info { margin-top: 10px; font-size: 11px; color: #00dbe9aa; }
+        .conn-status { font-size: 12px; margin-left: 10px; vertical-align: middle; transition: color 0.3s; }
     </style>
 </head>
 <body>
-<div class="hud-title">E54 RADAR TRACKER HUD</div>
+<div class="hud-title">E54 RADAR TRACKER HUD<span id="conn-status" class="conn-status" style="color:#1e3a45;">● CONNECTING</span></div>
 <div class="radar-box">
-<svg viewbox="0 0 100 100">
+<svg viewBox="0 0 100 100" role="img" aria-label="Live radar tracking display">
 <!-- Polar Distance Arcs -->
 <circle class="heavy-grid" cx="50" cy="100" r="90"></circle>
 <circle class="grid" cx="50" cy="100" r="67.5"></circle>
@@ -140,8 +141,17 @@ void BroadcastServer::setupRoutes() {
                             card.style.borderColor = '#1e3a45';
                         }
                     }
+
+                    let conn = document.getElementById('conn-status');
+                    conn.innerText = '● LIVE';
+                    conn.style.color = '#00ff88';
                 })
-                .catch(err => console.error(err));
+                .catch(err => {
+                    console.error(err);
+                    let conn = document.getElementById('conn-status');
+                    conn.innerText = '● OFFLINE';
+                    conn.style.color = '#ff3366';
+                });
         }
         setInterval(updateData, 200);
         updateData();
