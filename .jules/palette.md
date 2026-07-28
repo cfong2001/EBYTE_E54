@@ -4,3 +4,6 @@
 ## 2024-05-24 - Avoid hardcoded colors for UI flexibility and decouple themes
 **Learning:** Hardcoding absolute colors like `TFT_WHITE` or `TFT_DARKGREY` breaks visual consistency across different UI themes, leading to unstyled bounding boxes or illegible text when the background color changes. Inlining theme-specific logic (`if (theme == THEME_ALIEN)`) within the rendering code reduces modularity and scalability.
 **Action:** Use dynamic theme variables like `themePrimary` or `activeTheme.text`. For structural elements, use `sprite.alphaBlend()` to generate shades contextually, e.g. `sprite.alphaBlend(128, themePrimary, themeBg)`. Extend the base `Theme` struct to handle optional overrides (`hasSweepOverride`, `sweepOverride`) to maintain a clean separation of concerns and keep rendering code data-driven.
+## 2024-07-28 - Inline SVG Accessibility in Web Dashboards
+**Learning:** When implementing inline SVGs in web dashboards (like those embedded in C++ raw string literals), using the lowercase `viewbox` attribute can cause rendering issues or warnings, and screen readers may not interpret the SVG correctly without explicit roles and labels.
+**Action:** Always ensure the `viewBox` attribute is camelCased (not `viewbox`), and include `role="img"` with a descriptive `aria-label` to support screen readers and ensure accessibility standards are met.
