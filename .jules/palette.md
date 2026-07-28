@@ -4,3 +4,7 @@
 ## 2024-05-24 - Avoid hardcoded colors for UI flexibility and decouple themes
 **Learning:** Hardcoding absolute colors like `TFT_WHITE` or `TFT_DARKGREY` breaks visual consistency across different UI themes, leading to unstyled bounding boxes or illegible text when the background color changes. Inlining theme-specific logic (`if (theme == THEME_ALIEN)`) within the rendering code reduces modularity and scalability.
 **Action:** Use dynamic theme variables like `themePrimary` or `activeTheme.text`. For structural elements, use `sprite.alphaBlend()` to generate shades contextually, e.g. `sprite.alphaBlend(128, themePrimary, themeBg)`. Extend the base `Theme` struct to handle optional overrides (`hasSweepOverride`, `sweepOverride`) to maintain a clean separation of concerns and keep rendering code data-driven.
+
+## 2023-11-20 - Visual Connection Status in Polling Dashboards
+**Learning:** In decoupled or polling-based web dashboards (such as those hosted on microcontrollers like ESP32), when the backend goes down or network connectivity drops, the frontend UI often silently stalls without user feedback. This leads to user confusion as they might assume the sensor or device is frozen.
+**Action:** Always implement explicit visual connection status indicators (e.g., '● LIVE' / '● OFFLINE') tied to the async fetch state in the `catch` blocks to provide immediate visual feedback during network disconnections.
