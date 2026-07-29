@@ -72,7 +72,7 @@ void BroadcastServer::setupRoutes() {
 <body>
 <div class="hud-title">E54 RADAR TRACKER HUD</div>
 <div class="radar-box">
-<svg viewbox="0 0 100 100">
+<svg viewBox="0 0 100 100" role="img" aria-label="Radar sweep and target display">
 <!-- Polar Distance Arcs -->
 <circle class="heavy-grid" cx="50" cy="100" r="90"></circle>
 <circle class="grid" cx="50" cy="100" r="67.5"></circle>
@@ -93,7 +93,10 @@ void BroadcastServer::setupRoutes() {
 <circle class="blip" id="blip-2" cx="50" cy="100" r="2.5" style="display:none;"></circle>
 </svg>
 </div>
-<div class="scale-info" id="scale-label">RANGE SCALE: 10m (2m/div)</div>
+<div style="display: flex; justify-content: space-between; width: 320px; margin-top: 10px;">
+<div class="scale-info" id="scale-label" style="margin-top: 0;">RANGE SCALE: 10m (2m/div)</div>
+<div class="scale-info" id="conn-status" style="margin-top: 0; color: #00ff88; font-weight: bold;">● LIVE</div>
+</div>
 <div class="readouts">
 <div class="target" id="t0-card">T-01<span id="t0-val">OFFLINE</span></div>
 <div class="target" id="t1-card">T-02<span id="t1-val">OFFLINE</span></div>
@@ -140,8 +143,16 @@ void BroadcastServer::setupRoutes() {
                             card.style.borderColor = '#1e3a45';
                         }
                     }
+                    let conn = document.getElementById('conn-status');
+                    conn.innerText = '● LIVE';
+                    conn.style.color = '#00ff88';
                 })
-                .catch(err => console.error(err));
+                .catch(err => {
+                    console.error(err);
+                    let conn = document.getElementById('conn-status');
+                    conn.innerText = '● OFFLINE';
+                    conn.style.color = '#ff3366';
+                });
         }
         setInterval(updateData, 200);
         updateData();
