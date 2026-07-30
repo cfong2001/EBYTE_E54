@@ -67,12 +67,15 @@ void BroadcastServer::setupRoutes() {
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .blip { fill: #00ff88; filter: drop-shadow(0 0 6px #00ff88); }
         .scale-info { margin-top: 10px; font-size: 11px; color: #00dbe9aa; }
+        .status-badge { font-size: 12px; margin-left: 10px; padding: 2px 6px; border-radius: 4px; background: #1e3a45; color: #00dbe9; }
+        .status-live { background: #00ff8822; color: #00ff88; border: 1px solid #00ff88; }
+        .status-offline { background: #ff004422; color: #ff0044; border: 1px solid #ff0044; }
     </style>
 </head>
 <body>
-<div class="hud-title">E54 RADAR TRACKER HUD</div>
+<div class="hud-title">E54 RADAR TRACKER HUD<span id="conn-status" class="status-badge status-offline">● OFFLINE</span></div>
 <div class="radar-box">
-<svg viewbox="0 0 100 100">
+<svg viewBox="0 0 100 100" role="img" aria-label="Radar Sweep Display">
 <!-- Polar Distance Arcs -->
 <circle class="heavy-grid" cx="50" cy="100" r="90"></circle>
 <circle class="grid" cx="50" cy="100" r="67.5"></circle>
@@ -114,6 +117,8 @@ void BroadcastServer::setupRoutes() {
                         }
                     }
 
+                    document.getElementById('conn-status').innerText = '● LIVE';
+                    document.getElementById('conn-status').className = 'status-badge status-live';
                     document.getElementById('scale-label').innerText = `RANGE SCALE: ${maxDist/1000}m (${maxDist/5000}m/div)`;
 
                     for (let i = 0; i < 3; i++) {
@@ -141,7 +146,11 @@ void BroadcastServer::setupRoutes() {
                         }
                     }
                 })
-                .catch(err => console.error(err));
+                .catch(err => {
+                    console.error(err);
+                    document.getElementById('conn-status').innerText = '● OFFLINE';
+                    document.getElementById('conn-status').className = 'status-badge status-offline';
+                });
         }
         setInterval(updateData, 200);
         updateData();
