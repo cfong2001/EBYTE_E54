@@ -70,9 +70,9 @@ void BroadcastServer::setupRoutes() {
     </style>
 </head>
 <body>
-<div class="hud-title">E54 RADAR TRACKER HUD</div>
+<div class="hud-title">E54 RADAR TRACKER HUD <span id="conn-status" style="color: #00ff88; margin-left: 10px; font-size: 12px; transition: color 0.3s;">● LIVE</span></div>
 <div class="radar-box">
-<svg viewbox="0 0 100 100">
+<svg viewBox="0 0 100 100" role="img" aria-label="Radar sweep and target blips">
 <!-- Polar Distance Arcs -->
 <circle class="heavy-grid" cx="50" cy="100" r="90"></circle>
 <circle class="grid" cx="50" cy="100" r="67.5"></circle>
@@ -140,8 +140,16 @@ void BroadcastServer::setupRoutes() {
                             card.style.borderColor = '#1e3a45';
                         }
                     }
+                    let conn = document.getElementById('conn-status');
+                    conn.innerText = '● LIVE';
+                    conn.style.color = '#00ff88';
                 })
-                .catch(err => console.error(err));
+                .catch(err => {
+                    console.error(err);
+                    let conn = document.getElementById('conn-status');
+                    conn.innerText = '● OFFLINE';
+                    conn.style.color = '#ff4444';
+                });
         }
         setInterval(updateData, 200);
         updateData();
