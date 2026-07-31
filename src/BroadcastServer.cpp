@@ -67,12 +67,16 @@ void BroadcastServer::setupRoutes() {
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .blip { fill: #00ff88; filter: drop-shadow(0 0 6px #00ff88); }
         .scale-info { margin-top: 10px; font-size: 11px; color: #00dbe9aa; }
+        .status-indicator { font-size: 12px; margin-top: -8px; margin-bottom: 12px; }
+        .status-live { color: #00ff88; text-shadow: 0 0 5px #00ff88; }
+        .status-offline { color: #ff3366; text-shadow: 0 0 5px #ff3366; }
     </style>
 </head>
 <body>
 <div class="hud-title">E54 RADAR TRACKER HUD</div>
+<div class="status-indicator" id="conn-status"><span class="status-offline">● OFFLINE</span></div>
 <div class="radar-box">
-<svg viewbox="0 0 100 100">
+<svg viewBox="0 0 100 100" role="img" aria-label="Radar tracking visualization showing target positions">
 <!-- Polar Distance Arcs -->
 <circle class="heavy-grid" cx="50" cy="100" r="90"></circle>
 <circle class="grid" cx="50" cy="100" r="67.5"></circle>
@@ -140,8 +144,12 @@ void BroadcastServer::setupRoutes() {
                             card.style.borderColor = '#1e3a45';
                         }
                     }
+                    document.getElementById('conn-status').innerHTML = '<span class="status-live">● LIVE</span>';
                 })
-                .catch(err => console.error(err));
+                .catch(err => {
+                    console.error(err);
+                    document.getElementById('conn-status').innerHTML = '<span class="status-offline">● OFFLINE</span>';
+                });
         }
         setInterval(updateData, 200);
         updateData();
