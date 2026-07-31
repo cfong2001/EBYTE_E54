@@ -1278,11 +1278,17 @@ public:
 
         uint16_t gridColor = activeTheme.hasGridOverride ? activeTheme.gridOverride : sprite.alphaBlend(128, themePrimary, themeBg);
 
-        // Hoist trigonometry out of radial rendering loops
+        // Replace per-iteration sinf()/cosf() with fixed vector rotation
+        // for iterative arcs, avoiding expensive FPU trigonometric evaluations.
+        // cos(5 degrees) ≈ 0.996194698f
+        // sin(5 degrees) ≈ 0.087155743f
+        constexpr float rotCos = 0.996194698f;
+        constexpr float rotSin = 0.087155743f;
+
+        float cosA = -1.0f; // cos(-180)
+        float sinA = 0.0f;  // sin(-180)
+
         for (int a = -180; a <= 180; a += 5) {
-            float rad = a * 0.0174533f;
-            float cosA = cosf(rad);
-            float sinA = sinf(rad);
             for (int r = 60; r <= 180; r += 60) {
                 if (maxR >= r) {
                     int sweepDeg = ((maxR - r) * 180) / 30;
@@ -1292,6 +1298,11 @@ public:
                     }
                 }
             }
+
+            float nextCos = cosA * rotCos - sinA * rotSin;
+            float nextSin = sinA * rotCos + cosA * rotSin;
+            cosA = nextCos;
+            sinA = nextSin;
         }
 
         if (maxR > 0) {
