@@ -4,3 +4,11 @@
 ## 2024-05-24 - Avoid hardcoded colors for UI flexibility and decouple themes
 **Learning:** Hardcoding absolute colors like `TFT_WHITE` or `TFT_DARKGREY` breaks visual consistency across different UI themes, leading to unstyled bounding boxes or illegible text when the background color changes. Inlining theme-specific logic (`if (theme == THEME_ALIEN)`) within the rendering code reduces modularity and scalability.
 **Action:** Use dynamic theme variables like `themePrimary` or `activeTheme.text`. For structural elements, use `sprite.alphaBlend()` to generate shades contextually, e.g. `sprite.alphaBlend(128, themePrimary, themeBg)`. Extend the base `Theme` struct to handle optional overrides (`hasSweepOverride`, `sweepOverride`) to maintain a clean separation of concerns and keep rendering code data-driven.
+
+## 2024-08-01 - Explicit Connection State Indicators
+**Learning:** In decoupled or polling-based web dashboards (such as the ESP32 web interface), users can easily miss network disconnections if the UI simply stops updating without explicit warning.
+**Action:** Always implement explicit visual connection status indicators (e.g., "● LIVE" / "● OFFLINE") tied directly to the async fetch state (`.then` vs `.catch`) to prevent user confusion during disconnections.
+
+## 2024-08-01 - Inline SVG Accessibility in Dashboards
+**Learning:** Inline SVGs used for complex visualizations (like radar sweeps) are often ignored by screen readers if not properly tagged, and case-sensitive attributes like `viewBox` can break rendering or accessibility parsers if camelCasing is missed.
+**Action:** When implementing inline SVGs in web dashboards, ensure the `viewBox` attribute is camelCased (not `viewbox`) and include `role="img"` with a descriptive `aria-label` to support screen readers.

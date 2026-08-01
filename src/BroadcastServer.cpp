@@ -70,9 +70,9 @@ void BroadcastServer::setupRoutes() {
     </style>
 </head>
 <body>
-<div class="hud-title">E54 RADAR TRACKER HUD</div>
+<div class="hud-title">E54 RADAR TRACKER HUD <span id="conn-status" style="color: #00ff88; font-size: 12px; float: right;">● LIVE</span></div>
 <div class="radar-box">
-<svg viewbox="0 0 100 100">
+<svg viewBox="0 0 100 100" role="img" aria-label="Live radar sweep showing target positions">
 <!-- Polar Distance Arcs -->
 <circle class="heavy-grid" cx="50" cy="100" r="90"></circle>
 <circle class="grid" cx="50" cy="100" r="67.5"></circle>
@@ -104,6 +104,8 @@ void BroadcastServer::setupRoutes() {
             fetch('/api/data')
                 .then(r => r.json())
                 .then(data => {
+                    document.getElementById('conn-status').innerText = '● LIVE';
+                    document.getElementById('conn-status').style.color = '#00ff88';
                     let targets = data.targets || [];
                     let maxDist = 10000; // Minimum 10m scale
 
@@ -141,7 +143,11 @@ void BroadcastServer::setupRoutes() {
                         }
                     }
                 })
-                .catch(err => console.error(err));
+                .catch(err => {
+                    document.getElementById('conn-status').innerText = '● OFFLINE';
+                    document.getElementById('conn-status').style.color = '#ff3333';
+                    console.error(err);
+                });
         }
         setInterval(updateData, 200);
         updateData();
