@@ -4,3 +4,6 @@
 ## 2024-05-24 - Avoid hardcoded colors for UI flexibility and decouple themes
 **Learning:** Hardcoding absolute colors like `TFT_WHITE` or `TFT_DARKGREY` breaks visual consistency across different UI themes, leading to unstyled bounding boxes or illegible text when the background color changes. Inlining theme-specific logic (`if (theme == THEME_ALIEN)`) within the rendering code reduces modularity and scalability.
 **Action:** Use dynamic theme variables like `themePrimary` or `activeTheme.text`. For structural elements, use `sprite.alphaBlend()` to generate shades contextually, e.g. `sprite.alphaBlend(128, themePrimary, themeBg)`. Extend the base `Theme` struct to handle optional overrides (`hasSweepOverride`, `sweepOverride`) to maintain a clean separation of concerns and keep rendering code data-driven.
+## 2024-08-02 - Explicit Connection Status in Web Dashboards
+**Learning:** In decoupled or polling-based web dashboards (such as the ESP32 web interface), users can become confused during network disconnections if there is no explicit visual feedback indicating the connection state.
+**Action:** Always implement explicit visual connection status indicators (e.g., '● LIVE' / '● OFFLINE') tied directly to the async fetch state (e.g. within `.then()` and `.catch()` blocks) to provide immediate feedback on connection health.
