@@ -56,7 +56,8 @@ void BroadcastServer::setupRoutes() {
 <title>E54 RADAR TRACKER - WEB DASHBOARD</title>
 <style>
         body { margin: 0; background: #0a0c10; color: #00dbe9; font-family: 'Courier New', monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
-        .hud-title { font-size: 16px; font-weight: bold; letter-spacing: 2px; margin-bottom: 12px; text-shadow: 0 0 10px #00dbe988; }
+        .hud-title { font-size: 16px; font-weight: bold; letter-spacing: 2px; margin-bottom: 12px; text-shadow: 0 0 10px #00dbe988; display: flex; justify-content: space-between; width: 320px; align-items: center; }
+        .conn-status { font-size: 12px; text-shadow: none; letter-spacing: 0; transition: color 0.3s; }
         .radar-box { position: relative; width: 320px; height: 320px; border: 2px solid #00dbe944; border-radius: 50%; padding: 4px; box-shadow: 0 0 30px #00dbe922, inset 0 0 30px #00dbe911; background: radial-gradient(circle, #0b1c24 0%, #05080c 100%); }
         svg { width: 100%; height: 100%; }
         .grid { stroke: #00dbe9; stroke-width: 0.5; stroke-opacity: 0.35; fill: none; }
@@ -70,9 +71,12 @@ void BroadcastServer::setupRoutes() {
     </style>
 </head>
 <body>
-<div class="hud-title">E54 RADAR TRACKER HUD</div>
+<div class="hud-title">
+<span>E54 RADAR HUD</span>
+<span id="conn-status" class="conn-status" style="color: #ff3366;">● CONNECTING</span>
+</div>
 <div class="radar-box">
-<svg viewbox="0 0 100 100">
+<svg viewBox="0 0 100 100" role="img" aria-label="Live radar sweep display">
 <!-- Polar Distance Arcs -->
 <circle class="heavy-grid" cx="50" cy="100" r="90"></circle>
 <circle class="grid" cx="50" cy="100" r="67.5"></circle>
@@ -104,6 +108,8 @@ void BroadcastServer::setupRoutes() {
             fetch('/api/data')
                 .then(r => r.json())
                 .then(data => {
+                    let statusEl = document.getElementById('conn-status');
+                    if(statusEl) { statusEl.innerText = '● LIVE'; statusEl.style.color = '#00ff88'; }
                     let targets = data.targets || [];
                     let maxDist = 10000; // Minimum 10m scale
 
@@ -141,7 +147,11 @@ void BroadcastServer::setupRoutes() {
                         }
                     }
                 })
-                .catch(err => console.error(err));
+                .catch(err => {
+                    let statusEl = document.getElementById('conn-status');
+                    if(statusEl) { statusEl.innerText = '● OFFLINE'; statusEl.style.color = '#ff3366'; }
+                    console.error(err);
+                });
         }
         setInterval(updateData, 200);
         updateData();
