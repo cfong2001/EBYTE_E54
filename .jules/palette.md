@@ -4,3 +4,6 @@
 ## 2024-05-24 - Avoid hardcoded colors for UI flexibility and decouple themes
 **Learning:** Hardcoding absolute colors like `TFT_WHITE` or `TFT_DARKGREY` breaks visual consistency across different UI themes, leading to unstyled bounding boxes or illegible text when the background color changes. Inlining theme-specific logic (`if (theme == THEME_ALIEN)`) within the rendering code reduces modularity and scalability.
 **Action:** Use dynamic theme variables like `themePrimary` or `activeTheme.text`. For structural elements, use `sprite.alphaBlend()` to generate shades contextually, e.g. `sprite.alphaBlend(128, themePrimary, themeBg)`. Extend the base `Theme` struct to handle optional overrides (`hasSweepOverride`, `sweepOverride`) to maintain a clean separation of concerns and keep rendering code data-driven.
+## 2024-08-03 - Explicit connection status indicators and SVG accessibility
+**Learning:** Decoupled or polling-based web dashboards (e.g. ESP32) can leave users confused during network disconnections. Missing `role="img"` and lowercase `viewbox` attributes break accessibility tools.
+**Action:** Always implement explicit visual connection status indicators (e.g., '● LIVE' / '● OFFLINE') tied to the async fetch state. For SVG elements, always use camelCase `viewBox`, and ensure `role="img"` with a descriptive `aria-label` are present.
