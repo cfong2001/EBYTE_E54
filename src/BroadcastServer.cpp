@@ -67,12 +67,14 @@ void BroadcastServer::setupRoutes() {
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .blip { fill: #00ff88; filter: drop-shadow(0 0 6px #00ff88); }
         .scale-info { margin-top: 10px; font-size: 11px; color: #00dbe9aa; }
+        .status-live { color: #00ff88; float: right; }
+        .status-offline { color: #ff3366; float: right; }
     </style>
 </head>
 <body>
-<div class="hud-title">E54 RADAR TRACKER HUD</div>
+<div class="hud-title" style="width: 320px;">E54 RADAR TRACKER HUD<span id="conn-status" class="status-offline">● OFFLINE</span></div>
 <div class="radar-box">
-<svg viewbox="0 0 100 100">
+<svg viewBox="0 0 100 100" role="img" aria-label="Radar Display">
 <!-- Polar Distance Arcs -->
 <circle class="heavy-grid" cx="50" cy="100" r="90"></circle>
 <circle class="grid" cx="50" cy="100" r="67.5"></circle>
@@ -102,8 +104,15 @@ void BroadcastServer::setupRoutes() {
 <script>
         function updateData() {
             fetch('/api/data')
-                .then(r => r.json())
+                .then(r => {
+                    if (!r.ok) throw new Error('Network response was not ok');
+                    return r.json();
+                })
                 .then(data => {
+                    let conn = document.getElementById('conn-status');
+                    conn.innerText = '● LIVE';
+                    conn.className = 'status-live';
+
                     let targets = data.targets || [];
                     let maxDist = 10000; // Minimum 10m scale
 
@@ -141,7 +150,12 @@ void BroadcastServer::setupRoutes() {
                         }
                     }
                 })
-                .catch(err => console.error(err));
+                .catch(err => {
+                    console.error(err);
+                    let conn = document.getElementById('conn-status');
+                    conn.innerText = '● OFFLINE';
+                    conn.className = 'status-offline';
+                });
         }
         setInterval(updateData, 200);
         updateData();
