@@ -56,7 +56,10 @@ void BroadcastServer::setupRoutes() {
 <title>E54 RADAR TRACKER - WEB DASHBOARD</title>
 <style>
         body { margin: 0; background: #0a0c10; color: #00dbe9; font-family: 'Courier New', monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
-        .hud-title { font-size: 16px; font-weight: bold; letter-spacing: 2px; margin-bottom: 12px; text-shadow: 0 0 10px #00dbe988; }
+        .hud-title { font-size: 16px; font-weight: bold; letter-spacing: 2px; margin-bottom: 12px; text-shadow: 0 0 10px #00dbe988; display: flex; justify-content: space-between; width: 320px; }
+        .status-badge { font-size: 12px; padding: 2px 6px; border-radius: 10px; background: #1e3a45; color: #00dbe9; }
+        .status-badge.live { background: #00ff8822; color: #00ff88; border: 1px solid #00ff88; }
+        .status-badge.offline { background: #ff444422; color: #ff4444; border: 1px solid #ff4444; }
         .radar-box { position: relative; width: 320px; height: 320px; border: 2px solid #00dbe944; border-radius: 50%; padding: 4px; box-shadow: 0 0 30px #00dbe922, inset 0 0 30px #00dbe911; background: radial-gradient(circle, #0b1c24 0%, #05080c 100%); }
         svg { width: 100%; height: 100%; }
         .grid { stroke: #00dbe9; stroke-width: 0.5; stroke-opacity: 0.35; fill: none; }
@@ -70,9 +73,12 @@ void BroadcastServer::setupRoutes() {
     </style>
 </head>
 <body>
-<div class="hud-title">E54 RADAR TRACKER HUD</div>
+<div class="hud-title">
+    <span>E54 RADAR TRACKER HUD</span>
+    <span class="status-badge" id="conn-status">● CONNECTING</span>
+</div>
 <div class="radar-box">
-<svg viewbox="0 0 100 100">
+<svg viewBox="0 0 100 100" role="img" aria-label="Radar sweep and target display">
 <!-- Polar Distance Arcs -->
 <circle class="heavy-grid" cx="50" cy="100" r="90"></circle>
 <circle class="grid" cx="50" cy="100" r="67.5"></circle>
@@ -102,8 +108,14 @@ void BroadcastServer::setupRoutes() {
 <script>
         function updateData() {
             fetch('/api/data')
-                .then(r => r.json())
+                .then(r => {
+                    if (!r.ok) throw new Error('Network response was not ok');
+                    return r.json();
+                })
                 .then(data => {
+                    let statusBadge = document.getElementById('conn-status');
+                    statusBadge.innerText = '● LIVE';
+                    statusBadge.className = 'status-badge live';
                     let targets = data.targets || [];
                     let maxDist = 10000; // Minimum 10m scale
 
@@ -141,7 +153,17 @@ void BroadcastServer::setupRoutes() {
                         }
                     }
                 })
-                .catch(err => console.error(err));
+                .catch(err => {
+                    console.error(err);
+                    let statusBadge = document.getElementById('conn-status');
+                    statusBadge.innerText = '● OFFLINE';
+                    statusBadge.className = 'status-badge offline';
+                    for(let i=0; i<3; i++) {
+                        document.getElementById(`blip-${i}`).style.display = 'none';
+                        document.getElementById(`t${i}-val`).innerText = 'OFFLINE';
+                        document.getElementById(`t${i}-card`).style.borderColor = '#1e3a45';
+                    }
+                });
         }
         setInterval(updateData, 200);
         updateData();
