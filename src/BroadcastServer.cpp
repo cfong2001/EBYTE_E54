@@ -70,9 +70,9 @@ void BroadcastServer::setupRoutes() {
     </style>
 </head>
 <body>
-<div class="hud-title">E54 RADAR TRACKER HUD</div>
+<div class="hud-title">E54 RADAR TRACKER HUD <span id="hud-status" style="font-size: 12px; margin-left: 10px; color: #ff3333; transition: color 0.3s;">● CONNECTING</span></div>
 <div class="radar-box">
-<svg viewbox="0 0 100 100">
+<svg viewBox="0 0 100 100" role="img" aria-label="Live 24GHz radar sweep tracking display">
 <!-- Polar Distance Arcs -->
 <circle class="heavy-grid" cx="50" cy="100" r="90"></circle>
 <circle class="grid" cx="50" cy="100" r="67.5"></circle>
@@ -100,9 +100,19 @@ void BroadcastServer::setupRoutes() {
 <div class="target" id="t2-card">T-03<span id="t2-val">OFFLINE</span></div>
 </div>
 <script>
+        let connectionActive = false;
         function updateData() {
             fetch('/api/data')
-                .then(r => r.json())
+                .then(r => {
+                    if (!r.ok) throw new Error('Network response was not ok');
+                    if (!connectionActive) {
+                        connectionActive = true;
+                        let status = document.getElementById('hud-status');
+                        status.innerText = '● LIVE';
+                        status.style.color = '#00ff88';
+                    }
+                    return r.json();
+                })
                 .then(data => {
                     let targets = data.targets || [];
                     let maxDist = 10000; // Minimum 10m scale
@@ -141,7 +151,20 @@ void BroadcastServer::setupRoutes() {
                         }
                     }
                 })
-                .catch(err => console.error(err));
+                .catch(err => {
+                    console.error(err);
+                    if (connectionActive) {
+                        connectionActive = false;
+                        let status = document.getElementById('hud-status');
+                        status.innerText = '● OFFLINE';
+                        status.style.color = '#ff3333';
+                        for (let i = 0; i < 3; i++) {
+                            document.getElementById(`blip-${i}`).style.display = 'none';
+                            document.getElementById(`t${i}-val`).innerText = 'OFFLINE';
+                            document.getElementById(`t${i}-card`).style.borderColor = '#1e3a45';
+                        }
+                    }
+                });
         }
         setInterval(updateData, 200);
         updateData();
