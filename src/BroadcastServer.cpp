@@ -70,9 +70,10 @@ void BroadcastServer::setupRoutes() {
     </style>
 </head>
 <body>
+<div id="conn-status" style="position:absolute; top:10px; right:10px; color:#00ff88; font-size:12px; font-weight:bold; letter-spacing:1px; padding:4px 8px; border:1px solid #00ff88; border-radius:4px; background:#0e1620;">● LIVE</div>
 <div class="hud-title">E54 RADAR TRACKER HUD</div>
 <div class="radar-box">
-<svg viewbox="0 0 100 100">
+<svg viewBox="0 0 100 100" role="img" aria-label="Radar Display">
 <!-- Polar Distance Arcs -->
 <circle class="heavy-grid" cx="50" cy="100" r="90"></circle>
 <circle class="grid" cx="50" cy="100" r="67.5"></circle>
@@ -102,7 +103,14 @@ void BroadcastServer::setupRoutes() {
 <script>
         function updateData() {
             fetch('/api/data')
-                .then(r => r.json())
+                .then(r => {
+                    if (!r.ok) throw new Error('Network response was not ok');
+                    let statusEl = document.getElementById('conn-status');
+                    statusEl.innerText = '● LIVE';
+                    statusEl.style.color = '#00ff88';
+                    statusEl.style.borderColor = '#00ff88';
+                    return r.json();
+                })
                 .then(data => {
                     let targets = data.targets || [];
                     let maxDist = 10000; // Minimum 10m scale
@@ -141,7 +149,21 @@ void BroadcastServer::setupRoutes() {
                         }
                     }
                 })
-                .catch(err => console.error(err));
+                .catch(err => {
+                    console.error(err);
+                    let statusEl = document.getElementById('conn-status');
+                    statusEl.innerText = '● OFFLINE';
+                    statusEl.style.color = '#ff3366';
+                    statusEl.style.borderColor = '#ff3366';
+                    for (let i = 0; i < 3; i++) {
+                        let blip = document.getElementById(`blip-${i}`);
+                        let val = document.getElementById(`t${i}-val`);
+                        let card = document.getElementById(`t${i}-card`);
+                        blip.style.display = 'none';
+                        val.innerText = 'OFFLINE';
+                        card.style.borderColor = '#1e3a45';
+                    }
+                });
         }
         setInterval(updateData, 200);
         updateData();
