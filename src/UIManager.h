@@ -1275,14 +1275,26 @@ public:
 
         int maxR = (elapsed * 180) / 1000;
         if (maxR > 180) maxR = 180;
-
         uint16_t gridColor = activeTheme.hasGridOverride ? activeTheme.gridOverride : sprite.alphaBlend(128, themePrimary, themeBg);
 
-        // Hoist trigonometry out of radial rendering loops
+        // Replace per-iteration sinf()/cosf() with fixed vector rotation.
+        // Stepping by 5 degrees per iteration.
+        // cos(5 deg) ≈ 0.996194698f, sin(5 deg) ≈ 0.087155743f
+        constexpr float rotCos = 0.996194698f;
+        constexpr float rotSin = 0.087155743f;
+        float dirX = -1.0f; // cos(-180 deg)
+        float dirY = 0.0f;  // sin(-180 deg)
+
         for (int a = -180; a <= 180; a += 5) {
-            float rad = a * 0.0174533f;
-            float cosA = cosf(rad);
-            float sinA = sinf(rad);
+            float cosA = dirX;
+            float sinA = dirY;
+
+            // Advance vector by 5 degrees for next iteration
+            float nextX = dirX * rotCos - dirY * rotSin;
+            float nextY = dirY * rotCos + dirX * rotSin;
+            dirX = nextX;
+            dirY = nextY;
+
             for (int r = 60; r <= 180; r += 60) {
                 if (maxR >= r) {
                     int sweepDeg = ((maxR - r) * 180) / 30;

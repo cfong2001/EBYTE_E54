@@ -5,3 +5,6 @@
 ## 2024-07-24 - Avoid Runtime Trigonometry for Static UI Elements
 **Learning:** In fast rendering loops on embedded systems like the ESP32, repeated evaluations of trigonometric functions (`cosf`, `sinf`) for static UI angles (like fixed grid spokes or ticks) waste valuable FPU cycles per frame.
 **Action:** Replace dynamically calculated loop angles and their associated runtime `cosf`/`sinf` evaluations with a `constexpr` struct array of precalculated 2D direction vectors (cosine and sine values) to eliminate unnecessary mathematical overhead during rendering.
+## 2023-10-27 - Vector Rotation for Radial Rendering
+**Learning:** In ESP32 graphics loops (like drawing radar grids or sweeping arcs), calling `cosf()` and `sinf()` inside a loop that steps by a fixed angle per iteration consumes significant CPU cycles.
+**Action:** Replace trigonometric function calls in iterative radial loops with a fixed 2D vector rotation using a 2x2 rotation matrix, applying precalculated `constexpr` sine/cosine constants for the step angle to continuously advance the direction vector.
