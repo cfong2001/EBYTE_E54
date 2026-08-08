@@ -72,7 +72,7 @@ void BroadcastServer::setupRoutes() {
 <body>
 <div class="hud-title">E54 RADAR TRACKER HUD</div>
 <div class="radar-box">
-<svg viewbox="0 0 100 100">
+<svg viewBox="0 0 100 100" role="img" aria-label="Radar Map">
 <!-- Polar Distance Arcs -->
 <circle class="heavy-grid" cx="50" cy="100" r="90"></circle>
 <circle class="grid" cx="50" cy="100" r="67.5"></circle>
