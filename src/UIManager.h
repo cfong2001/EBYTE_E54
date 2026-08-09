@@ -1278,20 +1278,32 @@ public:
 
         uint16_t gridColor = activeTheme.hasGridOverride ? activeTheme.gridOverride : sprite.alphaBlend(128, themePrimary, themeBg);
 
+        // Replace per-iteration sinf()/cosf() with fixed vector rotation
+        // for iterative arcs, avoiding expensive FPU trigonometric evaluations.
+        // 5 degrees in radians = 0.0872665f
+        // cos(5 degrees) ≈ 0.996194698f
+        // sin(5 degrees) ≈ 0.087155742f
+        constexpr float rotCos = 0.996194698f;
+        constexpr float rotSin = 0.087155742f;
+
+        float dirX = -1.0f; // cos(-180 deg)
+        float dirY = 0.0f;  // sin(-180 deg)
+
         // Hoist trigonometry out of radial rendering loops
         for (int a = -180; a <= 180; a += 5) {
-            float rad = a * 0.0174533f;
-            float cosA = cosf(rad);
-            float sinA = sinf(rad);
             for (int r = 60; r <= 180; r += 60) {
                 if (maxR >= r) {
                     int sweepDeg = ((maxR - r) * 180) / 30;
                     if (sweepDeg > 360) sweepDeg = 360;
                     if (a < -180 + sweepDeg) {
-                        sprite.drawPixel((tft.width() / 2) + r * cosA, tft.width() + r * sinA, gridColor);
+                        sprite.drawPixel((tft.width() / 2) + r * dirX, tft.width() + r * dirY, gridColor);
                     }
                 }
             }
+            float nextX = dirX * rotCos - dirY * rotSin;
+            float nextY = dirY * rotCos + dirX * rotSin;
+            dirX = nextX;
+            dirY = nextY;
         }
 
         if (maxR > 0) {
