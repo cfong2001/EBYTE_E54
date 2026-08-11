@@ -203,7 +203,6 @@ public:
     }
 
     // Expose velocity and state data for advanced prediction UI interpolation
-    bool isTargetActive(int i) const { return state[i].active; }
     float getTargetVelX(int i) const { return state[i].velX; }
     float getTargetVelY(int i) const { return state[i].velY; }
     float getTargetAccX(int i) const { return state[i].accX; }
