@@ -35,13 +35,6 @@ public:
         }
     }
 
-    void incrementFrames() { framesThisSecond++; }
-    void incrementUartErrors() { uartErrorsThisSecond++; }
-    void incrementParseErrors() { parseErrorsThisSecond++; }
-
-    // For testing purposes
-    int getFrames() { return framesThisSecond; }
-
 private:
     int framesThisSecond = 0;
     int uartErrorsThisSecond = 0;
