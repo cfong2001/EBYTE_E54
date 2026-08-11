@@ -125,7 +125,8 @@ public:
     int uiTextSize = 1;
     float uiScale = 1.0f;
 
-    UIManager(TFT_eSPI& display) : tft(display), sprite(&display), bgSprite(&display) {
+    UIManager(TFT_eSPI& display) : tft(display), sprite(&display), bgSprite(&display),
+                                   targetVelX{0}, targetVelY{0}, targetAccX{0}, targetAccY{0} {
         mainMenuView = new MainMenuView();
         visualsMenuView = new VisualsMenuView();
         zonesMenuView = new ZonesMenuView();
