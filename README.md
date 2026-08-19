@@ -157,7 +157,12 @@ EBYTE_E54/
 ```
 ---
 
-Thank you to EBYTE for providing the ESP32 and E54 hardware for this project. Besides the hardware support, I am under no obligation to say anything positive. Nonetheless, I can confirm that the parts I received all work reliably and the documentation/test software is superb. I can recommend.)
+Thank you to EBYTE for providing the ESP32 and E54 hardware for this project. Besides the hardware support, I am under no obligation to say anything positive. Nonetheless, I can confirm that the parts I received all work reliably and the documentation/test software is superb. I can recommend.
+
+Their Information:
+Official website: https://www.cdebyte.com
+Official store: https://www.ebyteiot.com/
+RobotShop: https://www.robotshop.com/collections/vendor-ebyte
 
 ---
 
